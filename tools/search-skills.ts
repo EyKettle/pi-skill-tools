@@ -12,9 +12,8 @@
 import type { ToolDeps, ToolTextResult } from "./shared";
 import {
 	failEmptyIndex,
-	recoverThrownFailure,
+	resolveCallPayload,
 	textResult,
-	unknownFailurePayload,
 } from "./shared";
 import { presentRow } from "../presentation";
 import type { ProjectInput, SlotComponents } from "../presentation";
@@ -88,36 +87,6 @@ interface SearchRenderContext {
 	expanded: boolean;
 	isError: boolean;
 	isPartial?: boolean;
-}
-
-function payloadFromDetails(details: unknown): TransportPayload | undefined {
-	if (typeof details !== "object" || details === null) {
-		return undefined;
-	}
-	if (!("payload" in details)) {
-		return undefined;
-	}
-	const payload = details.payload;
-	if (typeof payload !== "object" || payload === null) {
-		return undefined;
-	}
-	return payload as TransportPayload;
-}
-
-function resolvePayload(
-	context: SearchRenderContext,
-	details?: unknown,
-): TransportPayload | undefined {
-	if (context.state.payload !== undefined) {
-		return context.state.payload;
-	}
-	const found =
-		payloadFromDetails(details) ??
-		recoverThrownFailure(context.toolCallId, "search_skills");
-	if (found !== undefined) {
-		context.state.payload = found;
-	}
-	return found;
 }
 
 function presentSearch(
@@ -270,9 +239,16 @@ export function defineSearchSkills(deps: ToolDeps) {
 			context: unknown,
 		) => {
 			const ctx = asSearchContext(context);
-			const payload =
-				resolvePayload(ctx, result.details) ??
-				(ctx.isError ? unknownFailurePayload("search_skills") : undefined);
+			const payload = resolveCallPayload({
+				tool: "search_skills",
+				details: result.details,
+				retained: ctx.state.payload,
+				isError: ctx.isError,
+				toolCallId: ctx.toolCallId,
+			});
+			if (payload !== undefined) {
+				ctx.state.payload = payload;
+			}
 			const phase = options.expanded ? "expanded" : "collapsed";
 			return presentSearch(
 				deps,

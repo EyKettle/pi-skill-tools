@@ -19,17 +19,13 @@ import {
 	countTextLines,
 	failError,
 	failureSource,
-	recoverThrownFailure,
+	resolveCallPayload,
 	textResult,
 	themeLike,
-	unknownFailurePayload,
 } from "./shared";
 import { presentRow } from "../presentation";
 import type { ProjectInput, SlotComponents } from "../presentation";
-import {
-	assertValidPayload,
-	buildCreateSkillPayload,
-} from "../transport";
+import { buildCreateSkillPayload } from "../transport";
 import type { TransportPayload } from "../transport";
 import { formatSkillId, parseSkillId } from "../skill-id";
 import type { SkillStorage } from "../skill-id";
@@ -116,48 +112,10 @@ function lineCount(content: string, newlines: number): number {
 	return newlines + (content.endsWith("\n") ? 0 : 1);
 }
 
-function payloadOf(details: Record<string, unknown> | undefined): TransportPayload | undefined {
-	if (details === undefined || !("payload" in details)) {
-		return undefined;
-	}
-	try {
-		assertValidPayload(details.payload);
-		return details.payload;
-	} catch {
-		return undefined;
-	}
-}
-
-function recoveredThrown(toolCallId: string | undefined): TransportPayload | undefined {
-	if (toolCallId === undefined) {
-		return undefined;
-	}
-	return recoverThrownFailure(toolCallId, "create_skill");
-}
-
 function rowState(context: RenderContext): CreateRenderState {
 	const state = (context.state ?? {}) as CreateRenderState;
 	context.state = state;
 	return state;
-}
-
-function resolvePayload(
-	details: Record<string, unknown> | undefined,
-	context: RenderContext,
-): TransportPayload | undefined {
-	const state = rowState(context);
-	const found =
-		payloadOf(details) ?? state.payload ?? recoveredThrown(context.toolCallId);
-	if (found !== undefined) {
-		state.payload = found;
-		return found;
-	}
-	if (context.isError === true) {
-		const unknown = unknownFailurePayload("create_skill");
-		state.payload = unknown;
-		return unknown;
-	}
-	return undefined;
 }
 
 function isPending(context: RenderContext): boolean {
@@ -328,7 +286,17 @@ export function defineCreateSkill(
 			if (options.isPartial === true) {
 				return emptySlot();
 			}
-			const payload = resolvePayload(result.details, context);
+			const state = rowState(context);
+			const payload = resolveCallPayload({
+				tool: "create_skill",
+				details: result.details,
+				retained: state.payload,
+				isError: context.isError === true,
+				toolCallId: context.toolCallId,
+			});
+			if (payload !== undefined) {
+				state.payload = payload;
+			}
 			return paint(
 				{
 					tool: "create_skill",

@@ -18,10 +18,9 @@ import {
 	countTextLines,
 	failError,
 	failureSource,
-	recoverThrownFailure,
+	resolveCallPayload,
 	textResult,
 	themeLike,
-	unknownFailurePayload,
 } from "./shared";
 import type { ThemeLike } from "../render";
 import {
@@ -67,31 +66,6 @@ interface ViewRenderContext {
 
 function failViewSkill(toolCallId: string, source: FailureSource): never {
 	return failError(toolCallId, "view_skill", source);
-}
-
-function payloadFromDetails(details: unknown): TransportPayload | undefined {
-	if (details === null || typeof details !== "object") {
-		return undefined;
-	}
-	if (!("payload" in details)) {
-		return undefined;
-	}
-	const payload = (details as { payload: unknown }).payload;
-	if (payload === null || typeof payload !== "object") {
-		return undefined;
-	}
-	return payload as TransportPayload;
-}
-
-function resolvePayload(
-	details: unknown,
-	context: ViewRenderContext,
-): TransportPayload | undefined {
-	return (
-		payloadFromDetails(details) ??
-		context.state.payload ??
-		recoverThrownFailure(context.toolCallId, "view_skill")
-	);
 }
 
 function cardBackground(
@@ -302,15 +276,16 @@ export function defineViewSkill(
 			if (options.isPartial === true) {
 				return new deps.Container();
 			}
-			const resolved = resolvePayload(result.details, context);
-			if (resolved !== undefined) {
-				context.state.payload = resolved;
+			const payload = resolveCallPayload({
+				tool: "view_skill",
+				details: result.details,
+				retained: context.state.payload,
+				isError: context.isError,
+				toolCallId: context.toolCallId,
+			});
+			if (payload !== undefined) {
+				context.state.payload = payload;
 			}
-			const payload =
-				resolved ??
-				(context.isError
-					? unknownFailurePayload("view_skill")
-					: undefined);
 			const id = context.args?.id;
 			const input: ProjectInput = {
 				tool: "view_skill",

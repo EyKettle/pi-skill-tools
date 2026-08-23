@@ -9,10 +9,9 @@
 import type { ToolDeps, ToolTextResult } from "./shared";
 import {
 	failEmptyIndex,
-	recoverThrownFailure,
+	resolveCallPayload,
 	textResult,
 	themeLike,
-	unknownFailurePayload,
 } from "./shared";
 import {
 	presentRow,
@@ -69,42 +68,6 @@ function locationFrom(
 		location === "package"
 	) {
 		return location;
-	}
-	return undefined;
-}
-
-function payloadFromDetails(
-	details: Record<string, unknown> | undefined,
-): TransportPayload | undefined {
-	if (details === undefined) return undefined;
-	const payload = details.payload;
-	if (typeof payload !== "object" || payload === null) return undefined;
-	if (!("tool" in payload) || !("outcome" in payload) || !("version" in payload)) {
-		return undefined;
-	}
-	return payload as TransportPayload;
-}
-
-function resolvePayload(
-	context: RenderContext,
-	details: Record<string, unknown> | undefined,
-): TransportPayload | undefined {
-	const found =
-		payloadFromDetails(details) ??
-		context.state?.payload ??
-		(context.toolCallId === undefined
-			? undefined
-			: recoverThrownFailure(context.toolCallId, "list_skill_tags"));
-	if (found !== undefined) {
-		const state = (context.state ??= {});
-		state.payload = found;
-		return found;
-	}
-	if (context.isError === true) {
-		const synthesized = unknownFailurePayload("list_skill_tags");
-		const state = (context.state ??= {});
-		state.payload = synthesized;
-		return synthesized;
 	}
 	return undefined;
 }
@@ -235,7 +198,13 @@ export function defineListSkillTags(deps: ToolDeps) {
 		) => {
 			const state = (context.state ??= {});
 			state.settled = true;
-			state.payload = resolvePayload(context, result.details);
+			state.payload = resolveCallPayload({
+				tool: "list_skill_tags",
+				details: result.details,
+				retained: state.payload,
+				isError: context.isError === true,
+				toolCallId: context.toolCallId,
+			});
 			const like = themeLike(theme);
 			const args = context.args ?? {};
 			return slotView((width) => {

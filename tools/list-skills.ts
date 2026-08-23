@@ -13,9 +13,8 @@
 import type { ToolDeps, ToolTextResult } from "./shared";
 import {
 	failEmptyIndex,
-	recoverThrownFailure,
+	resolveCallPayload,
 	textResult,
-	unknownFailurePayload,
 } from "./shared";
 import type { ProjectInput, SlotComponents, ThemeFg } from "../presentation";
 import { presentRow } from "../presentation";
@@ -100,18 +99,6 @@ interface ListSkillsRowState {
 	payload?: TransportPayload;
 }
 
-function payloadOf(
-	details: Record<string, unknown> | undefined,
-): TransportPayload | undefined {
-	const value = details?.payload;
-	if (value === undefined || typeof value !== "object" || value === null) {
-		return undefined;
-	}
-	// SAFETY: projectRow fail-closes malformed payloads; this only forwards
-	// a non-null object so we never invent a success payload we did not get.
-	return value as TransportPayload;
-}
-
 function rowState(context: { state?: unknown }): ListSkillsRowState {
 	if (typeof context.state === "object" && context.state !== null) {
 		return context.state as ListSkillsRowState;
@@ -119,30 +106,6 @@ function rowState(context: { state?: unknown }): ListSkillsRowState {
 	const state: ListSkillsRowState = {};
 	context.state = state;
 	return state;
-}
-
-function resolvePayload(
-	details: Record<string, unknown> | undefined,
-	state: ListSkillsRowState,
-	isError: boolean,
-	toolCallId: string | undefined,
-): TransportPayload | undefined {
-	const found =
-		payloadOf(details) ??
-		state.payload ??
-		(toolCallId === undefined
-			? undefined
-			: recoverThrownFailure(toolCallId, "list_skills"));
-	if (found !== undefined) {
-		state.payload = found;
-		return found;
-	}
-	if (isError) {
-		const failure = unknownFailurePayload("list_skills");
-		state.payload = failure;
-		return failure;
-	}
-	return undefined;
 }
 
 function locationArgs(args: unknown): ProjectInput["args"] {
@@ -254,12 +217,16 @@ export function defineListSkills(deps: ToolDeps) {
 			},
 		) => {
 			const state = rowState(context);
-			const payload = resolvePayload(
-				result.details,
-				state,
-				context.isError === true,
-				context.toolCallId,
-			);
+			const payload = resolveCallPayload({
+				tool: "list_skills",
+				details: result.details,
+				retained: state.payload,
+				isError: context.isError === true,
+				toolCallId: context.toolCallId,
+			});
+			if (payload !== undefined) {
+				state.payload = payload;
+			}
 			return paint(
 				{
 					tool: "list_skills",

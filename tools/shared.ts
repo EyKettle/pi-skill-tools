@@ -14,7 +14,12 @@
 import type { ThemeLike } from "../render";
 import type { Registry } from "../registry";
 import { buildFailurePayload } from "../transport";
-import type { FailurePayload, ToolName, ViewSkillPayload } from "../transport";
+import type {
+	FailurePayload,
+	ToolName,
+	TransportPayload,
+	ViewSkillPayload,
+} from "../transport";
 import { createFailure } from "../failure";
 import type { FailureCode, FailureEvidence } from "../failure";
 import { associate } from "../correlation";
@@ -175,6 +180,57 @@ export function unknownFailurePayload(tool: ToolName): FailurePayload {
 		tool,
 		createFailure("ENTRY_UNREACHABLE", { evidence: { kind: "none" } }),
 	);
+}
+
+/** Inputs a renderer has when recovering this call's transport payload. */
+export interface CallPayloadSource {
+	tool: ToolName;
+	details: unknown;
+	retained: TransportPayload | undefined;
+	isError: boolean;
+	toolCallId: string | undefined;
+}
+
+function payloadFromDetails(details: unknown): TransportPayload | undefined {
+	if (typeof details !== "object" || details === null) {
+		return undefined;
+	}
+	if (!("payload" in details)) {
+		return undefined;
+	}
+	const payload = details.payload;
+	if (typeof payload !== "object" || payload === null) {
+		return undefined;
+	}
+	return payload as TransportPayload;
+}
+
+/**
+ * Recover this call's transport payload for a renderer.
+ *
+ * Precedence: `details.payload`, then retained row state, then the
+ * thrown-failure stash. Fresh details win: a redraw carries the same
+ * details as the first paint, so details-first and state-first agree on
+ * every documented call; five of six tools already used this order.
+ * When `isError` and nothing was recovered, synthesize the unknown-failure
+ * payload so a wiped throw still paints the known-error row.
+ */
+export function resolveCallPayload(
+	source: CallPayloadSource,
+): TransportPayload | undefined {
+	const found =
+		payloadFromDetails(source.details) ??
+		source.retained ??
+		(source.toolCallId === undefined
+			? undefined
+			: recoverThrownFailure(source.toolCallId, source.tool));
+	if (found !== undefined) {
+		return found;
+	}
+	if (source.isError) {
+		return unknownFailurePayload(source.tool);
+	}
+	return undefined;
 }
 
 /** Drop every stashed payload (tests, and later session_shutdown). */

@@ -9,12 +9,13 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { createFailure } from "../failure";
 import { claim, clear, release } from "../correlation";
-import { buildFailurePayload } from "../transport";
+import { buildFailurePayload, buildListSkillsPayload } from "../transport";
 import {
 	clearThrownFailures,
 	failEmptyIndex,
 	failError,
 	recoverThrownFailure,
+	resolveCallPayload,
 	unknownFailurePayload,
 } from "../tools/shared";
 import type { FailureSource } from "../tools/shared";
@@ -118,5 +119,114 @@ describe("unknown-failure synthesis", () => {
 	it("names the tool that asked, not a shared placeholder", () => {
 		expect(unknownFailurePayload("create_skill").tool).toBe("create_skill");
 		expect(unknownFailurePayload("view_skill").tool).toBe("view_skill");
+	});
+});
+
+describe("resolveCallPayload", () => {
+	const listed = buildListSkillsPayload(0, null, []);
+	const tagged = unknownFailurePayload("list_skill_tags");
+
+	it("takes a fresh details payload first", () => {
+		const payload = resolveCallPayload({
+			tool: "list_skills",
+			details: { payload: listed },
+			retained: tagged,
+			isError: true,
+			toolCallId: "call-1",
+		});
+		expect(payload).toEqual(listed);
+	});
+
+	it("falls back to retained state when details have no payload", () => {
+		const payload = resolveCallPayload({
+			tool: "list_skills",
+			details: {},
+			retained: listed,
+			isError: false,
+			toolCallId: "call-1",
+		});
+		expect(payload).toEqual(listed);
+	});
+
+	it("falls back to the thrown-failure stash when details and state are empty", () => {
+		expect(() => failError("call-1", "view_skill", notFound)).toThrow();
+		release("call-1");
+		const payload = resolveCallPayload({
+			tool: "view_skill",
+			details: undefined,
+			retained: undefined,
+			isError: true,
+			toolCallId: "call-1",
+		});
+		expect(payload).toEqual(
+			buildFailurePayload(
+				"view_skill",
+				createFailure("ID_NOT_FOUND", { evidence: { kind: "none" } }),
+			),
+		);
+	});
+
+	it("lets fresh details win over a retained payload", () => {
+		const payload = resolveCallPayload({
+			tool: "search_skills",
+			details: { payload: listed },
+			retained: tagged,
+			isError: false,
+			toolCallId: "call-1",
+		});
+		expect(payload).toBe(listed);
+		expect(payload).not.toBe(tagged);
+	});
+
+	it("synthesizes unknown-failure when isError and nothing was recovered", () => {
+		const payload = resolveCallPayload({
+			tool: "create_skill",
+			details: { payload: null },
+			retained: undefined,
+			isError: true,
+			toolCallId: "call-1",
+		});
+		expect(payload).toEqual(unknownFailurePayload("create_skill"));
+	});
+
+	it("does not synthesize when the result is not an error", () => {
+		const payload = resolveCallPayload({
+			tool: "list_skills",
+			details: undefined,
+			retained: undefined,
+			isError: false,
+			toolCallId: undefined,
+		});
+		expect(payload).toBeUndefined();
+	});
+
+	it("does not hand one call's stashed payload to another tool", () => {
+		expect(() => failError("call-1", "view_skill", notFound)).toThrow();
+		release("call-1");
+		const payload = resolveCallPayload({
+			tool: "list_skills",
+			details: undefined,
+			retained: undefined,
+			isError: true,
+			toolCallId: "call-1",
+		});
+		expect(payload).toEqual(unknownFailurePayload("list_skills"));
+		expect(payload).not.toEqual(
+			buildFailurePayload(
+				"view_skill",
+				createFailure("ID_NOT_FOUND", { evidence: { kind: "none" } }),
+			),
+		);
+	});
+
+	it("treats a non-object details payload as missing", () => {
+		const payload = resolveCallPayload({
+			tool: "list_skills",
+			details: { payload: "not-a-payload" },
+			retained: listed,
+			isError: false,
+			toolCallId: "call-1",
+		});
+		expect(payload).toEqual(listed);
 	});
 });

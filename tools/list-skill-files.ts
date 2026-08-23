@@ -15,17 +15,13 @@ import {
 	failEmptyIndex,
 	failError,
 	failureSource,
-	recoverThrownFailure,
+	resolveCallPayload,
 	textResult,
 	themeLike,
-	unknownFailurePayload,
 } from "./shared";
 import { presentRow } from "../presentation";
 import type { ProjectInput, SlotComponents, ThemeFg } from "../presentation";
-import {
-	assertValidPayload,
-	buildListSkillFilesPayload,
-} from "../transport";
+import { buildListSkillFilesPayload } from "../transport";
 import type { TransportPayload } from "../transport";
 import { formatSkillId, parseSkillId, resolveSkillId } from "../skill-id";
 import { listSkillFiles } from "../skill-files";
@@ -92,22 +88,6 @@ function pendingInput(
 	return { tool: TOOL, phase: "pending", args: { id: argId(args) }, keyHint };
 }
 
-function payloadOf(details: unknown): TransportPayload | undefined {
-	if (typeof details !== "object" || details === null) {
-		return undefined;
-	}
-	const raw = (details as { payload?: unknown }).payload;
-	if (raw === undefined) {
-		return undefined;
-	}
-	try {
-		assertValidPayload(raw);
-		return raw;
-	} catch {
-		return undefined;
-	}
-}
-
 function settledInput(opts: {
 	result: { details?: unknown };
 	expanded: boolean;
@@ -118,24 +98,16 @@ function settledInput(opts: {
 	keyHint: ProjectInput["keyHint"];
 }): ProjectInput {
 	const phase = opts.expanded ? "expanded" : "collapsed";
-	const payload =
-		payloadOf(opts.result.details) ??
-		opts.previous ??
-		(opts.toolCallId === undefined
-			? undefined
-			: recoverThrownFailure(opts.toolCallId, TOOL));
+	const payload = resolveCallPayload({
+		tool: TOOL,
+		details: opts.result.details,
+		retained: opts.previous,
+		isError: opts.isError,
+		toolCallId: opts.toolCallId,
+	});
 	const args = { id: argId(opts.args) };
 	if (payload !== undefined) {
 		return { tool: TOOL, phase, payload, args, keyHint: opts.keyHint };
-	}
-	if (opts.isError) {
-		return {
-			tool: TOOL,
-			phase,
-			payload: unknownFailurePayload(TOOL),
-			args,
-			keyHint: opts.keyHint,
-		};
 	}
 	return { tool: TOOL, phase, args, keyHint: opts.keyHint };
 }
