@@ -1,5 +1,10 @@
 # skill-tools
 
+[![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-%23FE5196?logo=conventionalcommits&logoColor=white)](https://conventionalcommits.org)
+
+> [!note]
+> AI-generated artifacts. May include low-quality code.
+
 A [Pi](https://github.com/earendil-works/pi) extension that registers six
 tools for managing skills: list, search, view (untruncated), and create.
 
@@ -47,5 +52,4 @@ npm test
 npm run typecheck
 ```
 
-`private: true` is intentional. This is a Pi extension, not an npm
-package to publish.
+`private: true` is intentional. This extension is not ready to publish.
