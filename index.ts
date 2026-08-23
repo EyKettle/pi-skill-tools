@@ -67,7 +67,8 @@ export default async function (pi: ExtensionAPI): Promise<void> {
 	// Association state is released when a tool execution ends and cleared
 	// when the session shuts down (design.md §错误处理). The thrown-failure
 	// stash must outlive tool_execution_end — that is why it exists — so it
-	// is cleared here, not on release.
+	// is cleared here, not on release. Renderers recover through the stash
+	// (`recoverThrownFailure`), not through `correlation.claim`.
 
 	pi.on("tool_execution_end", (event) => {
 		release(event.toolCallId);

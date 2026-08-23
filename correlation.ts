@@ -1,17 +1,28 @@
 /**
  * Per-call failure correlation (plan Task 4).
  *
- * A structured failure is associated with exactly one tool call and
- * retrievable only by that call's own tool. Isolation is by call identity
- * (`toolCallId`), not tool name; a claim additionally requires an exact
- * tool-name match so no failure crosses a call boundary. The store is a
- * module-level singleton shared across the tool seam (associate on failure),
- * the renderers (claim on render — Task 5), and the entry point (release at
- * tool_execution_end, clear at session_shutdown).
+ * Execute-time store of structured `Failure` values. A failure is associated
+ * with exactly one tool call and retrievable only by that call's own tool.
+ * Isolation is by call identity (`toolCallId`); a claim additionally requires
+ * an exact tool-name match so no failure crosses a call boundary.
  *
- * Fail closed: a second association for one unclaimed call leaves neither
- * failure retrievable; a claim by a non-owning call or tool discloses
- * nothing.
+ * This store is not the render-time path. Pi dispatches `tool_execution_end`
+ * (which calls `release`) before the UI paints, so a renderer that `claim`s
+ * always sees an empty store. The render-time authority is the thrown-failure
+ * stash in `tools/shared.ts` (`recoverThrownFailure`): it holds a
+ * `FailurePayload` and is cleared on `session_shutdown`, not on release.
+ * `claim` remains the reader of THIS store — tests, and any execute-time
+ * consumer that runs before release. Production renderers do not call it.
+ *
+ * Collision: a second `associate` for one unclaimed call deletes the entry
+ * so neither failure remains retrievable. Two unclaimed Failures for one
+ * call is a programming error; fail-closed is the only honest answer to
+ * "which unique Failure belongs to this call?". The stash answers a
+ * different question ("what payload did this call throw?") and overwrites;
+ * the two policies legitimately differ. See `stashThrownFailure`.
+ *
+ * Lifecycle: associate on failure, release at `tool_execution_end`, clear at
+ * `session_shutdown`.
  */
 import type { Failure } from "./failure";
 
@@ -21,7 +32,7 @@ interface Association {
  failure: Failure;
 }
 
-/** callId → association. Singleton shared by seam, renderers, entry point. */
+/** callId → association. Execute-time singleton; renderers do not read it. */
 const store = new Map<string, Association>();
 
 /**
@@ -42,10 +53,13 @@ export function associate(
 }
 
 /**
- * Claim the failure for the owning call and tool. Returns the failure only
+ * Read the failure for the owning call and tool. Returns the failure only
  * when the call identity AND the tool name match exactly; any other caller
  * gets undefined. Idempotent-safe: repeated claims return the same failure;
  * the association is removed by `release`, not by claiming.
+ *
+ * Not the render-time path — `release` has already run by the time a
+ * renderer paints. Renderers call `recoverThrownFailure`.
  */
 export function claim(callId: string, toolName: string): Failure | undefined {
  const entry = store.get(callId);

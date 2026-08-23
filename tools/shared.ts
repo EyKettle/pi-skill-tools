@@ -146,9 +146,18 @@ interface ThrownFailure {
 	payload: FailurePayload;
 }
 
-/** callId → thrown failure. Survives correlation.release(); cleared at session end. */
+/** callId → thrown failure. Render-time authority; survives `release()`. */
 const thrownFailures = new Map<string, ThrownFailure>();
 
+/**
+ * Record the payload this call threw. A second stash for the same call
+ * overwrites: the store answers "what did this call throw?", so the latest
+ * payload is what the renderer should paint. Correlation fail-closes on a
+ * second `associate` because two unclaimed Failures make the association
+ * ambiguous; that question does not apply here. One execute throws at most
+ * once (`failError` is `never`); overwrite is the policy for a reused call
+ * id (tests, or any later sequential throw of the same id).
+ */
 function stashThrownFailure(
 	callId: string,
 	toolName: ToolName,
@@ -161,7 +170,7 @@ function stashThrownFailure(
  * Recover the payload stashed on the throw path. Returns it only when the
  * call identity AND the tool name match exactly; any other caller gets
  * undefined. Does not consume the entry, so a redraw can recover again.
- * Independent of correlation.claim: still works after release().
+ * This is the render-time authority: it still works after `release()`.
  */
 export function recoverThrownFailure(
 	callId: string,

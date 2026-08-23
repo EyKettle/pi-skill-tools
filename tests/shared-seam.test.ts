@@ -96,6 +96,15 @@ describe("thrown-failure stash", () => {
 		expect(recoverThrownFailure("call-2", "view_skill")).toBeUndefined();
 	});
 
+	it("a second throw for the same call overwrites; the renderer sees the latest payload", () => {
+		expect(() => failError("call-1", "view_skill", notFound)).toThrow();
+		expect(() => failEmptyIndex("call-1", "view_skill")).toThrow();
+		release("call-1");
+		expect(recoverThrownFailure("call-1", "view_skill")?.failure.code).toBe(
+			"INDEX_EMPTY",
+		);
+	});
+
 	it("clears every stashed payload", () => {
 		expect(() => failError("call-1", "view_skill", notFound)).toThrow();
 		expect(() => failEmptyIndex("call-2", "list_skills")).toThrow();
