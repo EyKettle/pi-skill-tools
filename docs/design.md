@@ -349,7 +349,7 @@ so the title is not drawn twice — the label lives only on the result card.
 | error | `toolErrorBg` | label + error text + dim presumed path |
 | success | `customMessageBg` (purple) | label; full content (wrapper stripped) only when expanded |
 
-The success label is the `[Skill] ` marker in `customMessageLabel` followed
+The success label is the `[Skill]` marker in `customMessageLabel` followed
 by the bare id, plus a muted
 ref suffix when the id has a ref path: `" > {file}"` for a file-only path,
 or `" > {PathName}({file-name})"` for a nested ref (each directory segment
@@ -598,6 +598,8 @@ Public exports used as-is: `keyHint`, `keyText`, `getMarkdownTheme`,
 
 ## 11. Decision Record
 
+### Design
+
 Decisions taken by the user during design:
 
 1. **View scope: hybrid.** pi's loaded list is the active set; a supplementary
@@ -631,3 +633,29 @@ users see in every session prompt; it is visible on inspection and trivially
 revertible. Shadow-scan cost is linear in the
 number of skill directories and unbounded in principle; acceptable at the
 current scale (~20).
+
+### Stage 1 render calibration
+
+1. **Render evidence goes through real components.** A composed-row assertion
+   builds the row with the real pi-tui `Text`/`Container` and a real `Theme`,
+   call slot then result slot. A stub renderer or fake theme voids the evidence,
+   so `tests/composed-row-boundary.test.ts` is the cross-tool sentinel: a
+   refactor must leave it green WITHOUT editing it, and that untouched green
+   state is the behaviour-preservation proof.
+2. **Two stores, one for each question.** `correlation` answers "which unique
+   unclaimed failure belongs to this call?" and fails closed — a second write
+   deletes both entries. The `tools/shared.ts` stash answers "what payload did
+   this call throw?" and overwrites, because the latest write is what the
+   renderer paints. They cannot merge: `release()` runs on `tool_execution_end`
+   before the UI paints, so render-time recovery must outlive it, and
+   correlation holds a `Failure` while the renderer needs a `FailurePayload`.
+3. **`correlation.claim` stays exported with no production caller.** Renderers
+   recover through `recoverThrownFailure`; `claim` remains because the sentinel
+   calls it, and removing the export would turn the sentinel red for a compile
+   reason.
+4. **`search_skills` echoes the filter it was given.** A zero-match expanded row
+   showing the caller's own filter values is correct behaviour, not tool output
+   to be corrected. `projectSearchSkills` stays as written.
+5. **`ID_AMBIGUOUS` is covered by tests only.** Reaching it live needs the same
+   skill name in two storages; test coverage exists and the live gap is recorded
+   rather than presented as verified.
