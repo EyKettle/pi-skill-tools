@@ -24,7 +24,7 @@ wrapped in an attributed `<SKILL>` block.
 | `create_skill` | Scaffold a new skill with id-conflict interception and no-overwrite |
 
 Row layout for the interactive TUI is specified by
-[`docs-zh-CN/tui-render-design.md`](docs-zh-CN/tui-render-design.md). That
+[TUI Render Principle](docs_zh-CN/tui-render.md). That
 document is the layout authority.
 
 ## Install

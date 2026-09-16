@@ -1,5 +1,7 @@
 # skill-tools — Design Document v1
 
+<!--Outdated-->
+
 Pi extension providing six read-only/create-only skill management tools:
 `list_skills`, `list_skill_tags`, `search_skills`, `view_skill`,
 `list_skill_files`, `create_skill`.

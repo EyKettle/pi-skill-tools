@@ -6,7 +6,7 @@
  * with styling sequences stripped and East Asian width (delegated to
  * pi-tui), and bound semantic values before any theme role is applied.
  * Per-tool projections compose those primitives
- * into the row shapes in docs-zh-CN/tui-render-design.md. Stored semantic
+ * into the row shapes in docs_zh-CN/tui-render.md. Stored semantic
  * data is never rewritten here. `clampLines` stays in render.ts.
  *
  * The module never claims a correlated failure — it receives a Failure
