@@ -6,10 +6,7 @@ import { describe, expect, it } from "vitest";
 import { Text, Container } from "../deps/pi-tui";
 import { testTheme } from "../deps/pi-theme";
 import { createFailure } from "../failure";
-import {
-	paintProjectedRow,
-	projectRow,
-} from "../presentation";
+import { paintProjectedRow, projectRow } from "../presentation";
 import type { ProjectInput } from "../presentation";
 import {
 	buildCreateSkillPayload,
@@ -93,10 +90,7 @@ describe("list_skills row shapes", () => {
 					keyHint,
 				}),
 			),
-		).toEqual([
-			"list_skills · Ctrl+O to expand",
-			"listed 2 skills in Project",
-		]);
+		).toEqual(["list_skills · Ctrl+O to expand", "listed 2 skills in Project"]);
 	});
 
 	it("expanded swaps the hint for a count and puts a blank in the result slot", () => {
@@ -137,7 +131,7 @@ describe("list_skills row shapes", () => {
 		).toBe("list_skills (1 in Global)");
 	});
 
-	it("empty shows the expand hint", () => {
+	it("empty collapsed paints No skills found without an expand hint", () => {
 		const payload = buildListSkillsPayload(0, null, []);
 		expect(
 			visible(
@@ -148,7 +142,7 @@ describe("list_skills row shapes", () => {
 					keyHint,
 				}),
 			),
-		).toEqual(["list_skills · Ctrl+O to expand", "listed 0 skills"]);
+		).toEqual(["list_skills", "No skills found"]);
 	});
 
 	it("empty expanded reports No skills found", () => {
@@ -169,9 +163,7 @@ describe("list_skills row shapes", () => {
 describe("list_skill_tags row shapes", () => {
 	it("pending is the title only", () => {
 		expect(
-			visible(
-				compose({ tool: "list_skill_tags", phase: "pending", keyHint }),
-			),
+			visible(compose({ tool: "list_skill_tags", phase: "pending", keyHint })),
 		).toEqual(["list_skill_tags"]);
 	});
 
@@ -218,12 +210,9 @@ describe("search_skills row shapes", () => {
 	});
 
 	it("collapsed uses matched {n} skills", () => {
-		const payload = buildSearchSkillsPayload(
-			1,
-			null,
-			{ name: "git" },
-			[{ id: "git", filePath: "/skills/git/SKILL.md" }],
-		);
+		const payload = buildSearchSkillsPayload(1, null, { name: "git" }, [
+			{ id: "git", filePath: "/skills/git/SKILL.md" },
+		]);
 		expect(
 			visible(
 				compose({
@@ -237,12 +226,9 @@ describe("search_skills row shapes", () => {
 	});
 
 	it("expanded paints filters then the match list, with a blank after the title", () => {
-		const payload = buildSearchSkillsPayload(
-			1,
-			"global",
-			{ name: "git" },
-			[{ id: "git", filePath: "/skills/git/SKILL.md" }],
-		);
+		const payload = buildSearchSkillsPayload(1, "global", { name: "git" }, [
+			{ id: "git", filePath: "/skills/git/SKILL.md" },
+		]);
 		const lines = compose({
 			tool: "search_skills",
 			phase: "expanded",
@@ -285,10 +271,7 @@ describe("list_skill_files row shapes", () => {
 					keyHint,
 				}),
 			),
-		).toEqual([
-			"[Skill] git · Ctrl+O to expand",
-			"listed 1 related file",
-		]);
+		).toEqual(["[Skill] git · Ctrl+O to expand", "listed 1 related file"]);
 		expect(
 			visible(
 				compose({
@@ -336,10 +319,7 @@ describe("create_skill row shapes", () => {
 					keyHint,
 				}),
 			),
-		).toEqual([
-			"[NewSkill] notes",
-			"Wrote 1 line (6B) · Ctrl+O to expand",
-		]);
+		).toEqual(["[NewSkill] notes", "Wrote 1 line (6B) · Ctrl+O to expand"]);
 	});
 
 	it("expanded shows path, full content, and the size readout with no expand hint", () => {
@@ -383,9 +363,7 @@ describe("view_skill row shapes", () => {
 
 	it("pending with no id shows the tool name only", () => {
 		expect(
-			visible(
-				compose({ tool: "view_skill", phase: "pending", keyHint }),
-			),
+			visible(compose({ tool: "view_skill", phase: "pending", keyHint })),
 		).toEqual(["view_skill"]);
 	});
 

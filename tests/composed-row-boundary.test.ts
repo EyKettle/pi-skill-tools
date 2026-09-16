@@ -316,7 +316,7 @@ const DOCUMENTED: DocumentedState[] = [
 		identity: "list_skills",
 		args: {},
 		payload: buildListSkillsPayload(0, null, []),
-		expected: ["list_skills · Ctrl+O to expand", "listed 0 skills"],
+		expected: ["list_skills", "No skills found"],
 	},
 	{
 		id: "list_skills/empty/expanded",
@@ -378,7 +378,7 @@ const DOCUMENTED: DocumentedState[] = [
 		identity: "list_skill_tags",
 		args: {},
 		payload: buildListSkillTagsPayload(0, null, []),
-		expected: ["list_skill_tags · Ctrl+O to expand", "listed 0 skill tags"],
+		expected: ["list_skill_tags", "No tags found"],
 	},
 	{
 		id: "list_skill_tags/empty/expanded",
@@ -428,7 +428,7 @@ const DOCUMENTED: DocumentedState[] = [
 		identity: "[Skill]",
 		args: { id: "git" },
 		payload: buildListSkillFilesPayload(0, "git", []),
-		expected: ["[Skill] git · Ctrl+O to expand", "listed 0 related files"],
+		expected: ["[Skill] git", "No related files"],
 	},
 	{
 		id: "list_skill_files/empty/expanded",
@@ -506,7 +506,7 @@ const DOCUMENTED: DocumentedState[] = [
 		identity: "search_skills",
 		args: { frontmatter: { name: "missing" } },
 		payload: buildSearchSkillsPayload(0, null, { name: "missing" }, []),
-		expected: ["search_skills · Ctrl+O to expand", "matched 0 skills"],
+		expected: ["search_skills · Ctrl+O to expand", "No matches"],
 	},
 	{
 		id: "search_skills/empty/expanded",
@@ -789,29 +789,29 @@ const EXPANSION: ExpansionPair[] = [
 		id: "search_skills/empty",
 		collapsed: "search_skills/empty",
 		expanded: "search_skills/empty/expanded",
-		extra: ["name: missing", "No matches"],
-		gone: ["to expand", "matched 0 skills"],
+		extra: ["name: missing", "(0)"],
+		gone: ["to expand"],
 	},
 	{
 		id: "list_skills/empty",
 		collapsed: "list_skills/empty",
 		expanded: "list_skills/empty/expanded",
-		extra: ["No skills found"],
-		gone: ["to expand", "listed 0 skills"],
+		extra: ["(0)"],
+		gone: [],
 	},
 	{
 		id: "list_skill_tags/empty",
 		collapsed: "list_skill_tags/empty",
 		expanded: "list_skill_tags/empty/expanded",
-		extra: ["No tags found"],
-		gone: ["to expand", "listed 0 skill tags"],
+		extra: ["(0)"],
+		gone: [],
 	},
 	{
 		id: "list_skill_files/empty",
 		collapsed: "list_skill_files/empty",
 		expanded: "list_skill_files/empty/expanded",
-		extra: ["No related files"],
-		gone: ["to expand", "listed 0 related files"],
+		extra: ["(0)"],
+		gone: [],
 	},
 	{
 		id: "create_skill",
@@ -950,7 +950,7 @@ describe("documented-state matrix", () => {
 	});
 });
 
-describe("expand affordance matches whether expansion reveals more", () => {
+describe("expand affordance matches whether expansion reveals extra content", () => {
 	const AFFORDANCE = /\bto (expand|show)\b/;
 
 	function rowText(row: {
@@ -960,12 +960,21 @@ describe("expand affordance matches whether expansion reveals more", () => {
 		return [...row.call, ...row.result].map((line) => line.text).join("\n");
 	}
 
+	function coreContent(text: string): string {
+		return text
+			.replace(/ · Ctrl\+O to (expand|show)/g, "")
+			.replace(/ \((\d+) in /g, " (in ")
+			.replace(/ \((\d+)\)/g, "")
+			.replace(/\n+/g, "\n")
+			.trim();
+	}
+
 	const settled = DOCUMENTED.filter(
 		(row) => row.pending !== true && row.expanded !== true,
 	);
 
 	it.each(settled)(
-		"$id: affordance present iff the expanded row differs",
+		"$id: affordance present iff expansion adds content beyond a count restatement",
 		(state) => {
 			const collapsed = projectRow({
 				tool: state.tool,
@@ -983,7 +992,7 @@ describe("expand affordance matches whether expansion reveals more", () => {
 			});
 			const collapsedText = rowText(collapsed);
 			const expandedText = rowText(expanded);
-			const revealsMore = collapsedText !== expandedText;
+			const revealsMore = coreContent(collapsedText) !== coreContent(expandedText);
 			const hasAffordance = AFFORDANCE.test(collapsedText);
 			expect(hasAffordance, `${state.id} affordance`).toBe(revealsMore);
 		},
@@ -1695,9 +1704,7 @@ describe("presentRow bounding route truncates before paint", () => {
 		const input: ProjectInput = {
 			tool: "list_skills",
 			phase: "expanded",
-			payload: buildListSkillsPayload(1, null, [
-				{ id: "git", filePath: cjkPath },
-			]),
+			payload: buildListSkillsPayload(1, null, [{ id: "git", filePath: cjkPath }]),
 			keyHint,
 		};
 		const presented = presentRow(input, theme, realComponents).render(NARROW);

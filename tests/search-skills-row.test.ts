@@ -193,15 +193,24 @@ describe("search_skills collapsed row", () => {
 		expect(identityCount(lines)).toBe(1);
 	});
 
-	it("no-match with filters still shows the expand hint", () => {
+	it("no-match with filters shows the expand hint and No matches", () => {
 		const lines = compose({
 			payload: gitPayload(0, null, { name: "missing" }),
 			args: { frontmatter: { name: "missing" } },
 		});
 		expect(visible(lines)).toEqual([
 			"search_skills · Ctrl+O to expand",
-			"matched 0 skills",
+			"No matches",
 		]);
+		expect(identityCount(lines)).toBe(1);
+	});
+
+	it("no-match without filters paints No matches without an expand hint", () => {
+		const lines = compose({
+			payload: gitPayload(0, null, {}),
+			args: {},
+		});
+		expect(visible(lines)).toEqual(["search_skills", "No matches"]);
 		expect(identityCount(lines)).toBe(1);
 	});
 });
@@ -222,9 +231,9 @@ describe("search_skills expanded row", () => {
 			"- git /skills/git/SKILL.md",
 		]);
 		expect(identityCount(lines)).toBe(1);
-		expect(lines.some((line) => line.includes(theme.fg("accent", "name: git")))).toBe(
-			true,
-		);
+		expect(
+			lines.some((line) => line.includes(theme.fg("accent", "name: git"))),
+		).toBe(true);
 	});
 
 	it("expanded with a location puts {Position} in the title parens", () => {
@@ -261,7 +270,7 @@ describe("search_skills expanded row", () => {
 			},
 		});
 		const text = visible(lines).join("\n");
-		expect(text).toContain("metadata.tags: [\"cli\"]");
+		expect(text).toContain('metadata.tags: ["cli"]');
 		expect(text).not.toContain("*cli*");
 		expect(identityCount(lines)).toBe(1);
 	});
@@ -368,14 +377,7 @@ describe("search_skills execute hands the payload to the renderer", () => {
 		const composed = new Container();
 		composed.addChild(asChild(tool.renderCall(args, theme, context)));
 		composed.addChild(
-			asChild(
-				tool.renderResult(
-					result,
-					{ expanded: false },
-					theme,
-					context,
-				),
-			),
+			asChild(tool.renderResult(result, { expanded: false }, theme, context)),
 		);
 		const lines = composed.render(80);
 		expect(visible(lines)).toEqual([
@@ -388,9 +390,7 @@ describe("search_skills execute hands the payload to the renderer", () => {
 
 describe("search_skills recovers a thrown failure from the shared stash", () => {
 	it("keeps INDEX_EMPTY after failEmptyIndex with wiped details and empty row state", () => {
-		expect(() => failEmptyIndex("call-seam", "search_skills")).toThrow(
-			/error:/,
-		);
+		expect(() => failEmptyIndex("call-seam", "search_skills")).toThrow(/error:/);
 		const tool = makeTool();
 		const args = { frontmatter: { name: "git" } };
 		const wiped = {
@@ -421,9 +421,7 @@ describe("search_skills recovers a thrown failure from the shared stash", () => 
 			const composed = new Container();
 			composed.addChild(asChild(tool.renderCall(args, theme, context)));
 			composed.addChild(
-				asChild(
-					tool.renderResult(wiped, { expanded: false }, theme, context),
-				),
+				asChild(tool.renderResult(wiped, { expanded: false }, theme, context)),
 			);
 			return { lines: composed.render(80), state };
 		};

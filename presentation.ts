@@ -246,11 +246,30 @@ function namedTitle(
 	return spanned(...parts);
 }
 
-function listedResult(
-	count: number,
-	phrase: string,
-	location: Scope,
+/**
+ * The tool name as a collapsed call row. The expand hint is drawn only
+ * when expansion adds content beyond the answer already shown — a count
+ * restatement like `(0)` does not count.
+ */
+function plainTitle(
+	name: string,
+	keyHint: ProjectInput["keyHint"],
+	hasExtra: boolean,
 ): RowLine {
+	return hasExtra
+		? namedTitle(name, { hint: expandAffordance(keyHint, "to expand") })
+		: namedTitle(name);
+}
+
+/**
+ * An empty collection's collapsed row: the identity call plus the tool's
+ * empty-state sentence, written here and in the expanded row alike.
+ */
+function emptyCollapse(call: RowLine, message: string): ProjectedRow {
+	return both(call, [line(message, "toolOutput")]);
+}
+
+function listedResult(count: number, phrase: string, location: Scope): RowLine {
 	const body =
 		location === null
 			? `listed ${count} ${phrase}`
@@ -267,12 +286,12 @@ function contentBody(content: string): RowLine[] {
 	if (trimmed.length === 0) {
 		return [line("(empty file)", "toolOutput")];
 	}
-	return trimmed.split("\n").map((row) => contentLine(display(row), "toolOutput"));
+	return trimmed
+		.split("\n")
+		.map((row) => contentLine(display(row), "toolOutput"));
 }
 
-function filterLines(
-	filters: Readonly<Record<string, unknown>>,
-): RowLine[] {
+function filterLines(filters: Readonly<Record<string, unknown>>): RowLine[] {
 	return Object.entries(filters).map(([key, value]) => {
 		const rendered = typeof value === "string" ? value : JSON.stringify(value);
 		return line(display(`${key}: ${rendered}`), "accent");
@@ -433,6 +452,12 @@ function projectListSkills(
 			[blankLine(), ...items],
 		);
 	}
+	if (data.count === 0) {
+		return emptyCollapse(
+			plainTitle("list_skills", keyHint, data.location !== null),
+			"No skills found",
+		);
+	}
 	return both(
 		namedTitle("list_skills", {
 			hint: expandAffordance(keyHint, "to expand"),
@@ -457,6 +482,12 @@ function projectListSkillTags(
 				location: data.location,
 			}),
 			[blankLine(), ...items],
+		);
+	}
+	if (data.count === 0) {
+		return emptyCollapse(
+			plainTitle("list_skill_tags", keyHint, data.location !== null),
+			"No tags found",
 		);
 	}
 	return both(
@@ -498,6 +529,14 @@ function projectSearchSkills(
 			result,
 		);
 	}
+	if (data.count === 0) {
+		const hasExtra =
+			Object.keys(data.filters).length > 0 || data.location !== null;
+		return emptyCollapse(
+			plainTitle("search_skills", keyHint, hasExtra),
+			"No matches",
+		);
+	}
 	const matched = `matched ${data.count} ${noun(data.count, "skill", "skills")}${
 		data.location === null ? "" : ` in ${positionLabel(data.location)}`
 	}`;
@@ -529,6 +568,12 @@ function projectListSkillFiles(
 				span(")", "muted"),
 			),
 			[blankLine(), ...items],
+		);
+	}
+	if (data.count === 0) {
+		return emptyCollapse(
+			spanned(skillPrefix("call"), span(id, "toolTitle")),
+			"No related files",
 		);
 	}
 	return both(
@@ -710,7 +755,7 @@ function projectAmbiguous(input: ProjectInput, failure: Failure): ProjectedRow {
 function paintLine(row: RowLine, theme: ThemeFg): string {
 	const parts = row.spans ?? [span(row.text, row.role)];
 	return parts
-		.map((part) => (part.role === null ? part.text : theme.fg(part.role, part.text)))
+		.map((part) => part.role === null ? part.text : theme.fg(part.role, part.text))
 		.join("");
 }
 

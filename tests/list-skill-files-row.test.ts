@@ -218,17 +218,15 @@ describe("list_skill_files collapsed", () => {
 		expect(visible(lines).join("\n")).not.toContain("list_skill_files");
 	});
 
-	it("shows the expand hint when there are no files", () => {
+	it("empty collapsed paints No related files without an expand hint", () => {
 		const payload = buildListSkillFilesPayload(0, "git", []);
 		const lines = compose(
 			{ id: "git" },
 			{ details: { payload }, expanded: false },
 		);
-		expect(visible(lines)).toEqual([
-			"[Skill] git · Ctrl+O to expand",
-			"listed 0 related files",
-		]);
+		expect(visible(lines)).toEqual(["[Skill] git", "No related files"]);
 		expect(visible(lines).join("\n")).not.toContain("no files");
+		expect(visible(lines).join("\n")).not.toContain("to expand");
 		expect(countVisible(lines, "[Skill]")).toBe(1);
 	});
 });
@@ -254,11 +252,7 @@ describe("list_skill_files expanded", () => {
 			{ id: "git" },
 			{ details: { payload }, expanded: true },
 		);
-		expect(visible(lines)).toEqual([
-			"[Skill] git (0)",
-			"",
-			"No related files",
-		]);
+		expect(visible(lines)).toEqual(["[Skill] git (0)", "", "No related files"]);
 		expect(countVisible(lines, "[Skill]")).toBe(1);
 	});
 });
@@ -359,12 +353,7 @@ describe("list_skill_files recovers a thrown failure from the shared stash", () 
 			};
 			composed.addChild(tool.renderCall!(args, theme, ctx));
 			composed.addChild(
-				tool.renderResult!(
-					wiped,
-					{ expanded: false },
-					theme,
-					ctx,
-				),
+				tool.renderResult!(wiped, { expanded: false }, theme, ctx),
 			);
 			return { lines: composed.render(80), state };
 		};

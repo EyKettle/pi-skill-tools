@@ -148,10 +148,7 @@ describe("list_skills tool row", () => {
 					details: { payload },
 				}),
 			),
-		).toEqual([
-			"list_skills · Ctrl+O to expand",
-			"listed 2 skills in Project",
-		]);
+		).toEqual(["list_skills · Ctrl+O to expand", "listed 2 skills in Project"]);
 	});
 
 	it("expanded swaps the hint for a count and puts a blank in the result slot", () => {
@@ -163,7 +160,8 @@ describe("list_skills tool row", () => {
 			isPartial: false,
 			expanded: true,
 			details: { payload },
-			content: "- git [active] /skills/git/SKILL.md\n- notes [active] /skills/notes/SKILL.md",
+			content:
+				"- git [active] /skills/git/SKILL.md\n- notes [active] /skills/notes/SKILL.md",
 		});
 		expect(visible(lines)).toEqual([
 			"list_skills (2)",
@@ -188,14 +186,10 @@ describe("list_skills tool row", () => {
 					details: { payload },
 				}),
 			),
-		).toEqual([
-			"list_skills (1 in Global)",
-			"",
-			"- git /skills/git/SKILL.md",
-		]);
+		).toEqual(["list_skills (1 in Global)", "", "- git /skills/git/SKILL.md"]);
 	});
 
-	it("empty shows the expand hint", () => {
+	it("empty collapsed paints No skills found without an expand hint", () => {
 		const payload = buildListSkillsPayload(0, null, []);
 		expect(
 			visible(
@@ -204,7 +198,20 @@ describe("list_skills tool row", () => {
 					details: { payload },
 				}),
 			),
-		).toEqual(["list_skills · Ctrl+O to expand", "listed 0 skills"]);
+		).toEqual(["list_skills", "No skills found"]);
+	});
+
+	it("empty collapsed with a location keeps the expand hint", () => {
+		const payload = buildListSkillsPayload(0, "global", []);
+		expect(
+			visible(
+				compose({
+					isPartial: false,
+					args: { location: "global" },
+					details: { payload },
+				}),
+			),
+		).toEqual(["list_skills · Ctrl+O to expand", "No skills found"]);
 	});
 
 	it("empty expanded reports No skills found", () => {
@@ -277,9 +284,7 @@ describe("list_skills recovers a thrown failure from the shared stash", () => {
 	});
 
 	it("keeps INDEX_EMPTY after failEmptyIndex with wiped details and empty row state", () => {
-		expect(() => failEmptyIndex("call-seam", "list_skills")).toThrow(
-			/error:/,
-		);
+		expect(() => failEmptyIndex("call-seam", "list_skills")).toThrow(/error:/);
 		const tool = defineListSkills(deps());
 		const args = {};
 		const wiped = {
@@ -294,10 +299,7 @@ describe("list_skills recovers a thrown failure from the shared stash", () => {
 		const paint = () => {
 			const state: { payload?: TransportPayload } = {};
 			const composed = new Container();
-			addSlot(
-				composed,
-				tool.renderCall(args, theme, { isPartial: false }),
-			);
+			addSlot(composed, tool.renderCall(args, theme, { isPartial: false }));
 			const context = {
 				args,
 				toolCallId: "call-seam",
@@ -306,12 +308,7 @@ describe("list_skills recovers a thrown failure from the shared stash", () => {
 			};
 			addSlot(
 				composed,
-				tool.renderResult(
-					wiped,
-					{ expanded: false },
-					theme,
-					context,
-				),
+				tool.renderResult(wiped, { expanded: false }, theme, context),
 			);
 			return { lines: composed.render(80), state };
 		};
@@ -321,9 +318,7 @@ describe("list_skills recovers a thrown failure from the shared stash", () => {
 				? first.state.payload.failure.code
 				: undefined,
 		).toBe("INDEX_EMPTY");
-		expect(visible(first.lines)).toEqual([
-			"list_skills · Tool execution failed",
-		]);
+		expect(visible(first.lines)).toEqual(["list_skills · Tool execution failed"]);
 		const second = paint();
 		expect(
 			second.state.payload?.outcome === "failure"

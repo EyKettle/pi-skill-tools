@@ -170,11 +170,7 @@ describe("list_skill_tags row through renderCall/renderResult", () => {
 				details: { location: "all", tags: 2, payload },
 			},
 		});
-		expect(visible(lines)).toEqual([
-			"list_skill_tags (2)",
-			"",
-			"cli, git",
-		]);
+		expect(visible(lines)).toEqual(["list_skill_tags (2)", "", "cli, git"]);
 		expect(countVisible(lines, "list_skill_tags")).toBe(1);
 		expect(visible(lines)[2]).toBe("cli, git");
 	});
@@ -195,20 +191,33 @@ describe("list_skill_tags row through renderCall/renderResult", () => {
 		).toEqual(["list_skill_tags (2 in Package)", "", "cli, git"]);
 	});
 
-	it("empty shows the expand hint", () => {
+	it("empty collapsed paints No tags found without an expand hint", () => {
 		const payload = buildListSkillTagsPayload(0, null, []);
 		expect(
 			visible(
 				compose({
 					result: {
-						content: [
-							{ type: "text", text: "no skills carry metadata.tags" },
-						],
+						content: [{ type: "text", text: "no skills carry metadata.tags" }],
 						details: { location: "all", tags: 0, payload },
 					},
 				}),
 			),
-		).toEqual(["list_skill_tags · Ctrl+O to expand", "listed 0 skill tags"]);
+		).toEqual(["list_skill_tags", "No tags found"]);
+	});
+
+	it("empty collapsed with a location keeps the expand hint", () => {
+		const payload = buildListSkillTagsPayload(0, "global", []);
+		expect(
+			visible(
+				compose({
+					args: { location: "global" },
+					result: {
+						content: [{ type: "text", text: "no tags" }],
+						details: { location: "global", tags: 0, payload },
+					},
+				}),
+			),
+		).toEqual(["list_skill_tags · Ctrl+O to expand", "No tags found"]);
 	});
 
 	it("empty expanded reports No tags found", () => {
@@ -218,9 +227,7 @@ describe("list_skill_tags row through renderCall/renderResult", () => {
 				compose({
 					expanded: true,
 					result: {
-						content: [
-							{ type: "text", text: "no skills carry metadata.tags" },
-						],
+						content: [{ type: "text", text: "no skills carry metadata.tags" }],
 						details: { location: "all", tags: 0, payload },
 					},
 				}),
@@ -231,9 +238,7 @@ describe("list_skill_tags row through renderCall/renderResult", () => {
 	it("missing payload uses the malformed wording and ignores model prose", () => {
 		const lines = compose({
 			result: {
-				content: [
-					{ type: "text", text: "no skills carry metadata.tags" },
-				],
+				content: [{ type: "text", text: "no skills carry metadata.tags" }],
 				details: { location: "all", tags: 0 },
 			},
 		});
@@ -260,9 +265,7 @@ describe("list_skill_tags row through renderCall/renderResult", () => {
 		});
 		expect(visible(lines).join("\n")).not.toContain("error:");
 		expect(visible(lines).join("\n")).not.toContain("suggestions:");
-		expect(visible(lines)).toEqual([
-			"list_skill_tags · Tool execution failed",
-		]);
+		expect(visible(lines)).toEqual(["list_skill_tags · Tool execution failed"]);
 		expect(countVisible(lines, "list_skill_tags")).toBe(1);
 	});
 
@@ -274,9 +277,7 @@ describe("list_skill_tags row through renderCall/renderResult", () => {
 				details: {},
 			},
 		});
-		expect(visible(lines)).toEqual([
-			"list_skill_tags · Tool execution failed",
-		]);
+		expect(visible(lines)).toEqual(["list_skill_tags · Tool execution failed"]);
 		expect(visible(lines).join("\n")).not.toContain("error:");
 	});
 
@@ -332,9 +333,7 @@ describe("list_skill_tags row through renderCall/renderResult", () => {
 				details: { payload },
 			},
 		});
-		expect(visible(lines)).toEqual([
-			"list_skill_tags · Tool execution failed",
-		]);
+		expect(visible(lines)).toEqual(["list_skill_tags · Tool execution failed"]);
 		expect(visible(lines).join("\n")).not.toContain("error:");
 		expect(countVisible(lines, "list_skill_tags")).toBe(1);
 	});
@@ -378,12 +377,7 @@ describe("list_skill_tags recovers a thrown failure from the shared stash", () =
 			const composed = new Container();
 			composed.addChild(tool.renderCall(args, theme, ctx));
 			composed.addChild(
-				tool.renderResult(
-					wiped,
-					{ expanded: false, isPartial: false },
-					theme,
-					ctx,
-				),
+				tool.renderResult(wiped, { expanded: false, isPartial: false }, theme, ctx),
 			);
 			return { lines: composed.render(80), state };
 		};
