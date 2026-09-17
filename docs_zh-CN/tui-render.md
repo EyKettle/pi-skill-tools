@@ -28,12 +28,12 @@
 
 | 工具 | 进行中 | 已结算调用行 |
 | --- | --- | --- |
-| `list_skills` | `list_skills` | `list_skills`；展开为 `list_skills ({n})` 或 `list_skills ({n} in {Position})` |
-| `list_skill_tags` | `list_skill_tags` | 同 `list_skills` 形态 |
-| `search_skills` | `search_skills` | 同 `list_skills` 形态 |
-| `list_skill_files` | `[Skill] {dynamic-skill-id}`；id 未知则 `list_skill_files` | 同左；展开为 `[Skill] {dynamic-skill-id} ({n})` |
+| `list_skills` | `list_skills ...` | `list_skills`；展开为 `list_skills ({n})` 或 `list_skills ({n} in {Position})` |
+| `list_skill_tags` | `list_skill_tags ...` | 同 `list_skills` 形态 |
+| `search_skills` | `search_skills ...` | 同 `list_skills` 形态 |
+| `list_skill_files` | `[Skill] {dynamic-skill-id} ...`；id 未知则 `list_skill_files ...` | 同左；展开为 `[Skill] {dynamic-skill-id} ({n})` |
 | `create_skill` | `[NewSkill] {dynamic-skill-id} ({n} lines · {m} B)` | `[NewSkill] {dynamic-skill-id}`；展开身份行加 `({path})` |
-| `view_skill` | `[Skill] {dynamic-skill-id}`；id 未知则 `view_skill` | 同左；展开身份行加 `({path})` |
+| `view_skill` | `[Skill] {dynamic-skill-id} ...`；id 未知则 `view_skill ...` | 同左；展开身份行加 `({path})` |
 
 ## 答案
 
@@ -94,7 +94,7 @@ listed 0 related files
 提示文案：揭示结果用 `to expand`，揭示失败旁证用 `to show`。
 
 提示位置（形状，不是新约束）：默认壳且调用行是工具名时缀调用行；
-`create_skill` 缀写入量行；`view_skill` 缀身份行。
+`create_skill` 缀写入量行；`list_skill_files`、`view_skill` 缀身份行。
 
 | 工具 | 空态画提示 | 原因 |
 | --- | --- | --- |
@@ -104,7 +104,7 @@ listed 0 related files
 | `create_skill` | 是 | 展开有正文或 `(empty file)` |
 | `view_skill` | 是 | 正文只能展开读 |
 
-进行中不画提示，不画 `...`。
+进行中不画提示。调用行以 `...` 收尾：澄清该行正在进行而非显示出错，并在结算行会缀 ` · {hotkey} to expand` 时占住它的位置。`create_skill` 除外——流式行数与字节已表达进行中，它的提示落在结算后的写入量行，调用行无位可占。
 
 ## 失败
 
@@ -138,3 +138,5 @@ TUI 消费与当前 `toolCallId` 和工具名匹配的结构化结果；模型�
 | 错误 | `error` | 失败信息 |
 
 进行中的行没有提示层级，其数据与标题同级。
+
+进行中行尾的 `...` 按结算后提示的身份着色（次级色）。
