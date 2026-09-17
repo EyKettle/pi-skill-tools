@@ -105,8 +105,20 @@ export interface RetainedPresentation {
 	readonly input: ProjectInput;
 }
 
-export interface PresentedRow {
+/**
+ * The pi-tui `Component` contract this boundary hands to pi. `invalidate` is
+ * not optional: pi's `MouseRegion` calls `child.invalidate()` without a guard
+ * (pi-tui 0.85.1 components/mouse-region.ts:31), so a product implementing
+ * only `render` takes the process down on any whole-tree invalidation —
+ * exit, `/reload`, or a fullscreen mode switch.
+ */
+export interface PresentedComponent {
 	render(width: number): string[];
+	invalidate(): void;
+}
+
+/** A projected row plus the semantic input it was projected from. */
+export interface PresentedRow extends PresentedComponent {
 	readonly retained: RetainedPresentation;
 }
 
@@ -827,19 +839,22 @@ function fallbackRow(input: ProjectInput): ProjectedRow {
 function widthSafePlain(
 	row: ProjectedRow,
 	width: number,
-): { render(width: number): string[] } {
+): PresentedComponent {
 	const text = boundDisplayValue(
 		sanitizeDisplayText(row.call.map(unstyledLine).join("\n")),
 		width,
 	);
-	return { render: () => [text] };
+	return {
+		render: () => [text],
+		invalidate() {},
+	};
 }
 
 function paintSafely(
 	input: ProjectInput,
 	theme: ThemeFg,
 	components: SlotComponents,
-): { render(width: number): string[] } {
+): PresentedComponent {
 	return {
 		render(width: number): string[] {
 			const row = boundRow(projectRow(input), width);
@@ -854,6 +869,7 @@ function paintSafely(
 				}
 			}
 		},
+		invalidate() {},
 	};
 }
 
@@ -871,6 +887,7 @@ export function presentRow(
 	return {
 		retained,
 		render: (width) => painted.render(width),
+		invalidate: () => painted.invalidate(),
 	};
 }
 
@@ -878,6 +895,6 @@ export function rebuildPresentation(
 	retained: RetainedPresentation,
 	theme: ThemeFg,
 	components: SlotComponents,
-): { render(width: number): string[] } {
+): PresentedComponent {
 	return paintSafely(retained.input, theme, components);
 }
