@@ -132,7 +132,7 @@ describe("search_skills pending row", () => {
 			pending: true,
 			args: { frontmatter: { name: "git" } },
 		});
-		expect(visible(lines)).toEqual(["search_skills"]);
+		expect(visible(lines)).toEqual(["search_skills ..."]);
 		expect(identityCount(lines)).toBe(1);
 		expect(visible(lines).join("\n")).not.toContain("to expand");
 		expect(visible(lines).join("\n")).not.toContain("name:");

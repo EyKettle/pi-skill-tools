@@ -404,11 +404,27 @@ function projectPending(input: ProjectInput): ProjectedRow {
 		case "list_skills":
 		case "list_skill_tags":
 		case "search_skills":
-			return callOnly(line(input.tool, "toolTitle"));
-		case "list_skill_files":
 			return callOnly(
-				spanned(skillPrefix("call"), span(identityOf(input), "toolTitle")),
+				spanned(span(input.tool, "toolTitle"), span(" ...", "muted")),
 			);
+		case "list_skill_files": {
+			const id = identityOf(input);
+			if (id === "") {
+				return callOnly(
+					spanned(
+						span("list_skill_files", "toolTitle"),
+						span(" ...", "muted"),
+					),
+				);
+			}
+			return callOnly(
+				spanned(
+					skillPrefix("call"),
+					span(id, "toolTitle"),
+					span(" ...", "muted"),
+				),
+			);
+		}
 		case "create_skill": {
 			const progress = input.progress ?? { lines: 0, bytes: 0 };
 			const readout = ` (${progress.lines} ${noun(progress.lines, "line", "lines")} · ${progress.bytes} B)`;
@@ -423,10 +439,16 @@ function projectPending(input: ProjectInput): ProjectedRow {
 		case "view_skill": {
 			const id = input.args?.id;
 			if (id === undefined || id.length === 0) {
-				return callOnly(line("view_skill", "toolTitle"));
+				return callOnly(
+					spanned(span("view_skill", "toolTitle"), span(" ...", "muted")),
+				);
 			}
 			return callOnly(
-				spanned(skillPrefix("call"), span(display(id), "toolTitle")),
+				spanned(
+					skillPrefix("call"),
+					span(display(id), "toolTitle"),
+					span(" ...", "muted"),
+				),
 			);
 		}
 	}

@@ -250,7 +250,7 @@ const DOCUMENTED: DocumentedState[] = [
 		identity: "list_skills",
 		args: { location: "project" },
 		pending: true,
-		expected: ["list_skills"],
+		expected: ["list_skills ..."],
 	},
 	{
 		id: "list_skills/collapsed",
@@ -319,7 +319,7 @@ const DOCUMENTED: DocumentedState[] = [
 		identity: "list_skill_tags",
 		args: {},
 		pending: true,
-		expected: ["list_skill_tags"],
+		expected: ["list_skill_tags ..."],
 	},
 	{
 		id: "list_skill_tags/collapsed",
@@ -381,7 +381,7 @@ const DOCUMENTED: DocumentedState[] = [
 		identity: "[Skill]",
 		args: { id: "git" },
 		pending: true,
-		expected: ["[Skill] git"],
+		expected: ["[Skill] git ..."],
 	},
 	{
 		id: "list_skill_files/collapsed",
@@ -431,7 +431,7 @@ const DOCUMENTED: DocumentedState[] = [
 		identity: "search_skills",
 		args: { frontmatter: { name: "git" } },
 		pending: true,
-		expected: ["search_skills"],
+		expected: ["search_skills ..."],
 	},
 	{
 		id: "search_skills/collapsed",
@@ -587,7 +587,7 @@ const DOCUMENTED: DocumentedState[] = [
 		identity: "[Skill]",
 		args: { id: "git" },
 		pending: true,
-		expected: ["[Skill] git"],
+		expected: ["[Skill] git ..."],
 	},
 	{
 		id: "view_skill/pending-unknown-id",
@@ -595,7 +595,7 @@ const DOCUMENTED: DocumentedState[] = [
 		identity: "view_skill",
 		args: {},
 		pending: true,
-		expected: ["view_skill"],
+		expected: ["view_skill ..."],
 	},
 	{
 		id: "view_skill/collapsed",
@@ -2101,7 +2101,7 @@ describe("prefixed id title across phases — pinning current behaviour", () => 
 			pending: true,
 			args: { id: "global:notes" },
 		});
-		expect(pending.lines).toEqual(["[Skill] global:notes"]);
+		expect(pending.lines).toEqual(["[Skill] global:notes ..."]);
 		const payload = buildViewSkillPayload(
 			"notes",
 			"/skills/notes/SKILL.md",

@@ -159,10 +159,15 @@ const oneFile = buildListSkillFilesPayload(1, "git", [
 describe("list_skill_files pending", () => {
 	it("paints [Skill] {id} on the call slot with no result and no expand hint", () => {
 		const lines = compose({ id: "git" });
-		expect(visible(lines)).toEqual(["[Skill] git"]);
+		expect(visible(lines)).toEqual(["[Skill] git ..."]);
 		expect(lines[0]).toContain(theme.fg("customMessageLabel", "[Skill] "));
 		expect(visible(lines).join("\n")).not.toContain("to expand");
 		expect(countVisible(lines, "[Skill]")).toBe(1);
+	});
+
+	it("paints the tool-name fallback when no id has arrived", () => {
+		const lines = compose({});
+		expect(visible(lines)).toEqual(["list_skill_files ..."]);
 	});
 });
 
@@ -171,9 +176,9 @@ describe("list_skill_files pending refresh and settled freeze", () => {
 		const tool = defineTool();
 		const state: Record<string, unknown> = {};
 		const first = composeOn(tool, state, { id: "git" });
-		expect(visible(first)).toEqual(["[Skill] git"]);
+		expect(visible(first)).toEqual(["[Skill] git ..."]);
 		const second = composeOn(tool, state, { id: "coding" });
-		expect(visible(second)).toEqual(["[Skill] coding"]);
+		expect(visible(second)).toEqual(["[Skill] coding ..."]);
 		expect(visible(second).join("\n")).not.toContain("git");
 		expect(countVisible(second, "[Skill]")).toBe(1);
 		expect(visible(second).join("\n")).not.toContain("to expand");

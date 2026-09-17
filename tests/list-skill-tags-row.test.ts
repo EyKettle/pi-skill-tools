@@ -126,7 +126,7 @@ function compose(options: {
 describe("list_skill_tags row through renderCall/renderResult", () => {
 	it("pending is the title only, with no result slot and no expand hint", () => {
 		const lines = compose({});
-		expect(visible(lines)).toEqual(["list_skill_tags"]);
+		expect(visible(lines)).toEqual(["list_skill_tags ..."]);
 		expect(visible(lines).join("\n")).not.toContain("to expand");
 		expect(countVisible(lines, "list_skill_tags")).toBe(1);
 	});

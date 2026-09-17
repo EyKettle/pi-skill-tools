@@ -99,7 +99,7 @@ function compose(options: {
 describe("list_skills tool row", () => {
 	it("pending is the title only, with no result slot and no expand hint", () => {
 		const lines = compose({ isPartial: true, args: { location: "project" } });
-		expect(visible(lines)).toEqual(["list_skills"]);
+		expect(visible(lines)).toEqual(["list_skills ..."]);
 		expect(visible(lines).join("\n")).not.toContain("to expand");
 		expect(visible(lines).join("\n")).not.toContain("location");
 		expect(countVisible(lines, "list_skills")).toBe(1);

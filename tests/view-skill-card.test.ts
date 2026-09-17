@@ -122,7 +122,7 @@ function countIdentity(lines: string[]): number {
 		(line) =>
 			line.startsWith("[Skill]") ||
 			line === "view_skill" ||
-			line.startsWith("view_skill ·"),
+			line.startsWith("view_skill "),
 	).length;
 }
 
@@ -162,7 +162,7 @@ describe("view_skill card — pending", () => {
 		const tool = defineTool();
 		const ctx = renderContext({ isPartial: true });
 		const lines = compose(tool.renderCall!({ id: "git" }, theme, ctx));
-		expect(cardBody(lines)).toEqual(["[Skill] git"]);
+		expect(cardBody(lines)).toEqual(["[Skill] git ..."]);
 		expect(countIdentity(lines)).toBe(1);
 		expect(lines.join("\n")).not.toContain("to expand");
 		expect(hasBg(lines, "customMessageBg")).toBe(true);
@@ -173,7 +173,7 @@ describe("view_skill card — pending", () => {
 		const tool = defineTool();
 		const ctx = renderContext({ args: {}, isPartial: true });
 		const lines = compose(tool.renderCall!({}, theme, ctx));
-		expect(cardBody(lines)).toEqual(["view_skill"]);
+		expect(cardBody(lines)).toEqual(["view_skill ..."]);
 		expect(countIdentity(lines)).toBe(1);
 	});
 });
@@ -572,7 +572,7 @@ describe("view_skill card — rebuild and partial", () => {
 			),
 		);
 		expect(cardBody(rebuilt)).toEqual(["[Skill] git · Ctrl+O to expand"]);
-		expect(cardBody(rebuilt)).not.toEqual(["[Skill] git"]);
+		expect(cardBody(rebuilt)).not.toEqual(["[Skill] git ..."]);
 		expect(countIdentity(rebuilt)).toBe(1);
 
 		const retained = retainPresentation({
@@ -607,7 +607,7 @@ describe("view_skill card — rebuild and partial", () => {
 				renderContext({ isPartial: true, expanded: true, state }),
 			),
 		);
-		expect(cardBody(lines)).toEqual(["[Skill] git"]);
+		expect(cardBody(lines)).toEqual(["[Skill] git ..."]);
 		expect(countIdentity(lines)).toBe(1);
 		expect(visible(lines).join("\n")).not.toContain("to expand");
 		expect(visible(lines).join("\n")).not.toContain("# Git");

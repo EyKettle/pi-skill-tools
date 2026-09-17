@@ -52,7 +52,7 @@ describe("list_skills row shapes", () => {
 			phase: "pending",
 			keyHint,
 		});
-		expect(visible(lines)).toEqual(["list_skills"]);
+		expect(visible(lines)).toEqual(["list_skills ..."]);
 		expect(visible(lines).join("\n")).not.toContain("to expand");
 	});
 
@@ -164,7 +164,7 @@ describe("list_skill_tags row shapes", () => {
 	it("pending is the title only", () => {
 		expect(
 			visible(compose({ tool: "list_skill_tags", phase: "pending", keyHint })),
-		).toEqual(["list_skill_tags"]);
+		).toEqual(["list_skill_tags ..."]);
 	});
 
 	it("collapsed and expanded match the design, tags as a comma stream", () => {
@@ -206,7 +206,7 @@ describe("search_skills row shapes", () => {
 					keyHint,
 				}),
 			),
-		).toEqual(["search_skills"]);
+		).toEqual(["search_skills ..."]);
 	});
 
 	it("collapsed uses matched {n} skills", () => {
@@ -254,7 +254,7 @@ describe("list_skill_files row shapes", () => {
 			args: { id: "git" },
 			keyHint,
 		});
-		expect(visible(lines)).toEqual(["[Skill] git"]);
+		expect(visible(lines)).toEqual(["[Skill] git ..."]);
 		expect(lines[0]).toContain(theme.fg("customMessageLabel", "[Skill] "));
 	});
 
@@ -358,13 +358,13 @@ describe("view_skill row shapes", () => {
 					keyHint,
 				}),
 			),
-		).toEqual(["[Skill] git"]);
+		).toEqual(["[Skill] git ..."]);
 	});
 
 	it("pending with no id shows the tool name only", () => {
 		expect(
 			visible(compose({ tool: "view_skill", phase: "pending", keyHint })),
-		).toEqual(["view_skill"]);
+		).toEqual(["view_skill ..."]);
 	});
 
 	it("collapsed is a single call line with the expand hint", () => {
@@ -586,6 +586,6 @@ describe("generic failure and safety", () => {
 			args: { id: "git\u001B[31m" },
 			keyHint,
 		});
-		expect(visible(lines)[0]).toBe("[Skill] git\uFFFD[31m");
+		expect(visible(lines)[0]).toBe("[Skill] git\uFFFD[31m ...");
 	});
 });
