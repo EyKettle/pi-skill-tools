@@ -22,7 +22,7 @@ import {
 	textResult,
 	themeLike,
 } from "./shared";
-import type { ThemeLike } from "../render";
+import type { ThemeLike } from "../presentation";
 import {
 	presentRow,
 	type ProjectInput,

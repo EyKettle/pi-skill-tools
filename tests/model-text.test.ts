@@ -1,46 +1,14 @@
+/**
+ * Model-channel text builders — the `content[0].text` each tool returns.
+ * Unit-tested outside the pi runtime; row layout lives in the row tests.
+ */
 import { describe, expect, it } from "vitest";
-import {
-	clampLines,
-	formatToolCallLine,
-	linkPath,
-	shortenPath,
-	skillMarker,
-} from "../render";
 import { buildListOutput } from "../tools/list-skills";
 import { buildTagsOutput } from "../tools/list-skill-tags";
 import { buildSearchOutput } from "../tools/search-skills";
 import { matchedValues } from "../frontmatter";
 import { buildFilesOutput } from "../tools/list-skill-files";
 import { wrapSkillBlock } from "../tools/view-skill";
-import type { ThemeLike } from "../render";
-
-/**
- * Fake theme (plan Task 9 Step 1): `fg(role, text)` returns `<role>text`,
- * `bold(t)` returns `*t*`, so pi styling is assertable as plain strings.
- */
-const theme: ThemeLike = {
-	fg: (role, text) => `<${role}>${text}`,
-	bg: (role, text) => `<bg:${role}>${text}`,
-	bold: (text) => `*${text}*`,
-};
-
-const HOME = "/home/user";
-
-describe("shortenPath", () => {
-	it("replaces the home prefix with ~ and leaves other paths intact", () => {
-		expect(shortenPath(`${HOME}/.pi/agent/skills/alpha/SKILL.md`, HOME)).toBe(
-			"~/.pi/agent/skills/alpha/SKILL.md",
-		);
-		expect(shortenPath(HOME, HOME)).toBe("~");
-		expect(shortenPath("/opt/elsewhere/SKILL.md", HOME)).toBe(
-			"/opt/elsewhere/SKILL.md",
-		);
-	});
-
-	it("does not touch a sibling path that merely contains the home string", () => {
-		expect(shortenPath(`${HOME}2/x.md`, HOME)).toBe(`${HOME}2/x.md`);
-	});
-});
 
 describe("buildListOutput", () => {
 	const entries = [
@@ -304,66 +272,6 @@ describe("wrapSkillBlock", () => {
 			wrapSkillBlock("alpha", "/s/alpha/SKILL.md", "---\nname: alpha\n---"),
 		).toBe(
 			'<SKILL name="alpha" location="/s/alpha/SKILL.md">\n---\nname: alpha\n---\n</SKILL>',
-		);
-	});
-});
-
-describe("formatToolCallLine", () => {
-	it("renders the tool title bold with accent-wrapped arguments", () => {
-		expect(formatToolCallLine("list_skills", "global", { theme })).toBe(
-			"<toolTitle>*list_skills* <accent>global",
-		);
-	});
-
-	it("drops the accent part when there are no arguments", () => {
-		expect(formatToolCallLine("list_skills", "", { theme })).toBe(
-			"<toolTitle>*list_skills*",
-		);
-	});
-});
-
-describe("skillMarker", () => {
-	it("paints the call prefix with customMessageLabel", () => {
-		expect(skillMarker("call", { theme })).toBe("<customMessageLabel>[Skill] ");
-	});
-
-	it("paints the create prefix with success", () => {
-		expect(skillMarker("create", { theme })).toBe("<success>[NewSkill] ");
-	});
-
-	it("paints the query prefix with muted", () => {
-		expect(skillMarker("query", { theme })).toBe("<muted>[SkillInfo] ");
-	});
-});
-
-describe("clampLines", () => {
-	const fifteen = Array.from({ length: 15 }, (_, i) => `line ${i + 1}`);
-
-	it("caps at 15 lines and appends an overflow line with the remaining count", () => {
-		const out = clampLines([...fifteen, "extra 1", "extra 2"]);
-		expect(out).toHaveLength(16);
-		expect(out.slice(0, 15)).toEqual(fifteen);
-		expect(out[15]).toBe("... (2 more lines, to expand)");
-	});
-
-	it("returns the input unchanged at exactly 15 lines", () => {
-		expect(clampLines(fifteen)).toBe(fifteen);
-	});
-
-	it("applies the pi row muted overflow style when a theme is injected", () => {
-		const out = clampLines([...fifteen, "extra"], { theme });
-		expect(out[15]).toBe("<muted>... (1 more lines, to expand<muted>)");
-	});
-});
-
-describe("linkPath", () => {
-	it("returns the styled text unchanged when hyperlinks are unsupported", () => {
-		expect(linkPath("styled text", "/abs/x.md", false)).toBe("styled text");
-	});
-
-	it("emits the OSC 8 hyperlink sequence when supported", () => {
-		expect(linkPath("styled text", "/abs/x.md", true)).toBe(
-			"\x1b]8;;file:///abs/x.md\x1b\\styled text\x1b]8;;\x1b\\",
 		);
 	});
 });

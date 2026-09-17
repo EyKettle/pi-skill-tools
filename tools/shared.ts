@@ -12,7 +12,7 @@
  * without a terminal.
  */
 import type { PiComponent } from "../deps/pi-tui";
-import type { ThemeLike } from "../render";
+import type { ThemeLike } from "../presentation";
 import type { Registry } from "../registry";
 import { buildFailurePayload } from "../transport";
 import type {
@@ -248,7 +248,7 @@ export function clearThrownFailures(): void {
 	thrownFailures.clear();
 }
 
-/** Adapt pi's Theme instance to the structural ThemeLike the render helpers take. */
+/** Adapt pi's Theme instance to the structural ThemeLike the renderer takes. */
 export function themeLike(theme: unknown): ThemeLike {
 	const t = theme as ThemeLike;
 	return {

@@ -7,7 +7,7 @@
  * pi-tui), and bound semantic values before any theme role is applied.
  * Per-tool projections compose those primitives
  * into the row shapes in docs_zh-CN/tui-render.md. Stored semantic
- * data is never rewritten here. `clampLines` stays in render.ts.
+ * data is never rewritten here.
  *
  * The module never claims a correlated failure — it receives a Failure
  * (via the transport FailurePayload) as an input. Tasks 6–11 own the
@@ -83,6 +83,13 @@ export interface ProjectInput {
 export interface ProjectedRow {
 	readonly call: readonly RowLine[];
 	readonly result: readonly RowLine[];
+}
+
+/** Structural mirror of pi's theme: the injected function triple. */
+export interface ThemeLike {
+	fg(role: string, text: string): string;
+	bg(role: string, text: string): string;
+	bold(text: string): string;
 }
 
 export interface ThemeFg {
