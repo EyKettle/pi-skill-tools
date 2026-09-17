@@ -65,6 +65,9 @@ export function buildListOutput(
 			options.detail === true,
 		),
 	);
+	if (lines.length === 0) {
+		return "no skills";
+	}
 	return lines.join("\n");
 }
 

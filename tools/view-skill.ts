@@ -17,6 +17,7 @@ import type {
 import {
 	countTextLines,
 	failError,
+	failEmptyIndex,
 	failureSource,
 	resolveCallPayload,
 	textResult,
@@ -46,10 +47,6 @@ export function wrapSkillBlock(
 	return `<SKILL name="${name}" location="${path}">\n${text}\n</SKILL>`;
 }
 
-
-const viewSkillSuggestions =
-	"Check the id with list_skills; qualify an ambiguous name with a storage prefix. " +
-	"Ref paths stay relative to the skill directory.";
 
 
 interface ViewCardState {
@@ -121,9 +118,9 @@ export function defineViewSkill(
 		name: "view_skill",
 		label: "View skill",
 		description:
-			"Read a skill's file verbatim and untruncated (the model channel is never truncated) " +
-			'and wrap it in an attributed <SKILL name="..." location="..."> block; the TUI ' +
-			"renders a self-drawn three-state skill card. id without " +
+			"Read a skill's file verbatim and untruncated, " +
+			'wrapped in an attributed <SKILL name="..." location="..."> block. ' +
+			"id without " +
 			"a ref path reads SKILL.md; an id with /<ref path> (e.g. global:git/references/GUIDE.md) reads " +
 			"that file inside the skill directory. A bare name resolves across all locations and reports " +
 			"ambiguity with every match. frontmatterOnly: true returns just the frontmatter block. " +
@@ -148,20 +145,13 @@ export function defineViewSkill(
 		): Promise<ToolTextResult> {
 			const registry = deps.registryDeps(ctx);
 			if (registry.indexEmpty) {
-				return failViewSkill(toolCallId, {
-					error:
-						"skill index is not yet populated; the before_agent_start cache has not captured any skills",
-					suggestions:
-						"restart pi or run /reload so the before_agent_start hook fires before the next prompt",
-					code: "INDEX_EMPTY",
-					evidence: { kind: "none" },
-				});
+				return failEmptyIndex(toolCallId, "view_skill");
 			}
 			const parsedId = parseSkillId(params.id);
 			if (parsedId.error !== undefined) {
 				return failViewSkill(
 					toolCallId,
-					failureSource(parsedId, viewSkillSuggestions),
+					failureSource(parsedId),
 				);
 			}
 			const resolved = resolveSkillId(
@@ -172,7 +162,7 @@ export function defineViewSkill(
 			if (resolved.error !== undefined) {
 				return failViewSkill(
 					toolCallId,
-					failureSource(resolved, viewSkillSuggestions),
+					failureSource(resolved),
 				);
 			}
 			const entry = registry.entries.find(
@@ -181,7 +171,6 @@ export function defineViewSkill(
 			if (entry === undefined) {
 				return failViewSkill(toolCallId, {
 					error: `skill '${formatSkillId(resolved.storage, resolved.name)}' resolved but has no registry entry`,
-					suggestions: viewSkillSuggestions,
 					code: "ENTRY_UNREACHABLE",
 					evidence: { kind: "none" },
 				});
@@ -194,19 +183,18 @@ export function defineViewSkill(
 			if (resolvedFile.error !== undefined) {
 				return failViewSkill(
 					toolCallId,
-					failureSource(resolvedFile, viewSkillSuggestions),
+					failureSource(resolvedFile),
 				);
 			}
 			const read = readSkillFile(resolvedFile.path);
 			if (read.error !== undefined) {
-				return failViewSkill(toolCallId, failureSource(read, viewSkillSuggestions));
+				return failViewSkill(toolCallId, failureSource(read));
 			}
 			if (params.frontmatterOnly === true) {
 				const parsedBlock = parseFrontmatterBlock(read.text);
 				if (parsedBlock.raw === undefined) {
 					return failViewSkill(toolCallId, {
 						error: `no frontmatter block in '${resolvedFile.path}'`,
-						suggestions: viewSkillSuggestions,
 						code: "FILE_NO_FRONTMATTER",
 						evidence: { kind: "none" },
 					});

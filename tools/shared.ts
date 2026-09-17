@@ -21,7 +21,7 @@ import type {
 	TransportPayload,
 	ViewSkillPayload,
 } from "../transport";
-import { createFailure } from "../failure";
+import { createFailure, INDEX_EMPTY_ERROR } from "../failure";
 import type { FailureCode, FailureEvidence } from "../failure";
 import { associate } from "../correlation";
 
@@ -51,17 +51,13 @@ export const SHADOW_SCAN_SOURCE = "skill-tools-shadow-scan";
 
 /**
  * The one seam source: model-facing text and structured failure in one
- * object. Both the thrown `error:` / `suggestions:` lines and the associated
- * `Failure` derive from this single object, so the two channels cannot
- * diverge. `recovery` is derived from `recoveryFor(code)` (failure.ts), not
- * from the suggestions line — the model channel keeps its byte-identical
- * text while the structured channel carries the vocabulary's recovery.
+ * object. The thrown `error:` line comes from this object; the thrown
+ * `suggestions:` line and the structured `recovery` are both
+ * `recoveryFor(code)` (failure.ts), so the two channels cannot diverge.
  */
 export interface FailureSource {
-	/** Model-channel `error:` line (byte-identical to today). */
+	/** Model-channel `error:` line: the failing operation and its object. */
 	error: string;
-	/** Model-channel `suggestions:` line (byte-identical to today). */
-	suggestions: string;
 	/** Closed vocabulary code (structured channel). */
 	code: FailureCode;
 	/** Typed evidence (structured channel). */
@@ -72,8 +68,7 @@ export interface FailureSource {
  * The one seam: raises the structured failure (associates it with this call),
  * stashes the transport payload for the renderer, AND throws the model-facing
  * error from the SAME source object, so the two channels cannot diverge.
- * The Failure's recovery derives from `recoveryFor(code)`; the thrown message
- * keeps the `error:` / `suggestions:` framing byte-identical. Throw from
+ * The thrown `suggestions:` line is that same recovery sentence. Throw from
  * `execute` (extensions.md 1988): the message becomes `content[0].text` with
  * `isError: true`, and Pi discards `details` — the stash is the recoverable
  * payload after correlation.release() has already run.
@@ -90,7 +85,7 @@ export function failError(
 		toolName,
 		buildFailurePayload(toolName, failure),
 	);
-	throw new Error(`error: ${source.error}\nsuggestions: ${source.suggestions}`);
+	throw new Error(`error: ${source.error}\nsuggestions: ${failure.recovery}`);
 }
 
 /**
@@ -104,7 +99,6 @@ export function failureSource(
 		code?: FailureCode;
 		evidence?: FailureEvidence;
 	},
-	suggestions: string,
 ): FailureSource {
 	if (
 		result.error === undefined ||
@@ -115,7 +109,6 @@ export function failureSource(
 	}
 	return {
 		error: result.error,
-		suggestions,
 		code: result.code,
 		evidence: result.evidence,
 	};
@@ -132,10 +125,7 @@ export function textResult(
 /** Shared explicit empty-index guard for every read tool (plan Task 10 item 8). */
 export function failEmptyIndex(toolCallId: string, toolName: ToolName): never {
 	return failError(toolCallId, toolName, {
-		error:
-			"skill index is not yet populated; the before_agent_start cache has not captured any skills",
-		suggestions:
-			"restart pi or run /reload so the before_agent_start hook fires before the next prompt",
+		error: INDEX_EMPTY_ERROR,
 		code: "INDEX_EMPTY",
 		evidence: { kind: "none" },
 	});

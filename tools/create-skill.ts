@@ -137,8 +137,6 @@ export function defineCreateSkill(
 	config: { agentDir: string; configDirName: string },
 ) {
 	const Type = deps.Type as ToolDeps["Type"];
-	const createSkillSuggestions =
-		"Check existing names with list_skills; pick a different name or a storage prefix.";
 	const components: SlotComponents = {
 		Text: deps.Text,
 		Container: deps.Container,
@@ -202,14 +200,13 @@ export function defineCreateSkill(
 			if (parsedId.error !== undefined) {
 				return failCreate(
 					toolCallId,
-					failureSource(parsedId, createSkillSuggestions),
+					failureSource(parsedId),
 				);
 			}
 			if (parsedId.refPath !== undefined) {
 				return failCreate(toolCallId, {
 					error:
 						"create_skill takes a skill name only; a ref path in the id is not accepted",
-					suggestions: createSkillSuggestions,
 					code: "TOOL_REF_PATH_UNSUPPORTED",
 					evidence: { kind: "none" },
 				});
@@ -243,7 +240,7 @@ export function defineCreateSkill(
 			if (result.error !== undefined) {
 				return failCreate(
 					toolCallId,
-					failureSource(result, createSkillSuggestions),
+					failureSource(result),
 				);
 			}
 			return textResult(

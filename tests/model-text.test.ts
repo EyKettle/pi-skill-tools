@@ -89,12 +89,12 @@ describe("buildListOutput", () => {
 		expect(buildListOutput(entries)).not.toContain("conflicts:");
 	});
 
-	it("yields an empty string for no entries even when conflicts are reported", () => {
+	it("names the empty list even when conflicts are reported", () => {
 		const conflicts = [
 			{ name: "alpha", participants: ["project:alpha", "global:alpha"] },
 			{ name: "zeta", participants: ["project:zeta", "local:zeta"] },
 		];
-		expect(buildListOutput([], { conflicts })).toBe("");
+		expect(buildListOutput([], { conflicts })).toBe("no skills");
 	});
 });
 
@@ -107,8 +107,8 @@ describe("buildTagsOutput", () => {
 		expect(buildTagsOutput(byTag)).toBe("formatting, markdown");
 	});
 
-	it("states explicitly when no skill carries metadata.tags", () => {
-		expect(buildTagsOutput(new Map())).toBe("no skills carry metadata.tags");
+	it("names the empty tag list", () => {
+		expect(buildTagsOutput(new Map())).toBe("no tags");
 	});
 });
 

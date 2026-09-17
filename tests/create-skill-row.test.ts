@@ -684,7 +684,6 @@ describe("create_skill failure and missing payload", () => {
 	it("recovers a failError stash with wiped details even when row state is empty", () => {
 		const source: FailureSource = {
 			error: "skill 'notes' already exists",
-			suggestions: "pick a different name",
 			code: "CREATE_NAME_EXISTS",
 			evidence: { kind: "none" },
 		};

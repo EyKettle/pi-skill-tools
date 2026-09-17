@@ -122,8 +122,6 @@ function rowState(context: { state?: unknown }): FilesRowState {
 
 export function defineListSkillFiles(deps: ToolDeps) {
 	const Type = deps.Type as ToolDeps["Type"];
-	const fileSuggestions =
-		"Check the id with list_skills and the files with view_skill.";
 	const components = slotsOf(deps);
 
 	return {
@@ -157,7 +155,7 @@ export function defineListSkillFiles(deps: ToolDeps) {
 				return failError(
 					toolCallId,
 					"list_skill_files",
-					failureSource(parsedId, fileSuggestions),
+					failureSource(parsedId),
 				);
 			}
 			const resolved = resolveSkillId(
@@ -169,7 +167,7 @@ export function defineListSkillFiles(deps: ToolDeps) {
 				return failError(
 					toolCallId,
 					"list_skill_files",
-					failureSource(resolved, fileSuggestions),
+					failureSource(resolved),
 				);
 			}
 			const entry = registry.entries.find(
@@ -178,7 +176,6 @@ export function defineListSkillFiles(deps: ToolDeps) {
 			if (entry === undefined) {
 				return failError(toolCallId, "list_skill_files", {
 					error: `skill '${formatSkillId(resolved.storage, resolved.name)}' resolved but has no registry entry`,
-					suggestions: fileSuggestions,
 					code: "ENTRY_UNREACHABLE",
 					evidence: { kind: "none" },
 				});
@@ -188,7 +185,7 @@ export function defineListSkillFiles(deps: ToolDeps) {
 				return failError(
 					toolCallId,
 					"list_skill_files",
-					failureSource(listing, fileSuggestions),
+					failureSource(listing),
 				);
 			}
 			const text = buildFilesOutput(listing.entries);

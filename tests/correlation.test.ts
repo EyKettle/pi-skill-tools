@@ -80,12 +80,11 @@ describe("shared tool seam (failError)", () => {
 	it("associates the failure with the call and throws the model text from the same source", () => {
 		const source: FailureSource = {
 			error: "no skill named 'x'",
-			suggestions: "check the id with list_skills",
 			code: "ID_NOT_FOUND",
 			evidence: { kind: "none" },
 		};
 		expect(() => failError("call-1", "view_skill", source)).toThrow(
-			"error: no skill named 'x'\nsuggestions: check the id with list_skills",
+			"error: no skill named 'x'\nsuggestions: Check the spelling with list_skills; a bare name resolves across all locations.",
 		);
 		// structured channel derives from the same source object
 		expect(claim("call-1", "view_skill")).toEqual({
@@ -99,7 +98,6 @@ describe("shared tool seam (failError)", () => {
 		const source: FailureSource = {
 			error:
 				"skill id 'x' is ambiguous (2 matches); qualify with a storage prefix: global:x, project:x",
-			suggestions: "qualify the name with a storage prefix",
 			code: "ID_AMBIGUOUS",
 			evidence: {
 				kind: "candidates",
@@ -110,7 +108,7 @@ describe("shared tool seam (failError)", () => {
 			},
 		};
 		expect(() => failError("call-1", "view_skill", source)).toThrow(
-			"error: skill id 'x' is ambiguous (2 matches); qualify with a storage prefix: global:x, project:x\nsuggestions: qualify the name with a storage prefix",
+			"error: skill id 'x' is ambiguous (2 matches); qualify with a storage prefix: global:x, project:x\nsuggestions: Qualify the name with a storage prefix to pick one location.",
 		);
 		const failure = claim("call-1", "view_skill") as Failure;
 		expect(failure.code).toBe("ID_AMBIGUOUS");
@@ -121,20 +119,19 @@ describe("shared tool seam (failError)", () => {
 	it("does not leak the associated failure to a different tool", () => {
 		const source: FailureSource = {
 			error: "boom",
-			suggestions: "try again",
 			code: "FILE_UNREADABLE",
 			evidence: { kind: "none" },
 		};
 		expect(() => failError("call-1", "view_skill", source)).toThrow(
-			"error: boom\nsuggestions: try again",
+			"error: boom\nsuggestions: Check the file's existence and read permissions.",
 		);
 		expect(claim("call-1", "list_skills")).toBeUndefined();
 	});
 
-	it("failEmptyIndex associates INDEX_EMPTY and keeps the byte-identical empty-index text", () => {
+	it("failEmptyIndex associates INDEX_EMPTY and keeps the canonical empty-index text", () => {
 		expect(() => failEmptyIndex("call-1", "list_skills")).toThrow(
 			"error: skill index is not yet populated; the before_agent_start cache has not captured any skills\n" +
-				"suggestions: restart pi or run /reload so the before_agent_start hook fires before the next prompt",
+				"suggestions: Ask the user to restart pi or run /reload so the before_agent_start hook fires before the next prompt",
 		);
 		const failure = claim("call-1", "list_skills") as Failure;
 		expect(failure.code).toBe("INDEX_EMPTY");

@@ -24,7 +24,7 @@ import {
 import path from "node:path";
 import type { Registry, RegistryEntry } from "./registry";
 import type { SkillStorage } from "./skill-id";
-import { createFailure } from "./failure";
+import { createFailure, INDEX_EMPTY_ERROR } from "./failure";
 import type { FailureCode, FailureEvidence } from "./failure";
 
 export interface CreateSkillInput {
@@ -60,8 +60,6 @@ export interface CreateSkillFailure {
 
 export type CreateSkillResult = CreateSkillSuccess | CreateSkillFailure;
 
-const EMPTY_INDEX_ERROR =
-	"skill index is not yet populated; create_skill cannot run conflict interception against an empty index";
 
 /**
  * Create a new skill. Returns the absolute written path on success or a
@@ -87,7 +85,7 @@ export async function createSkill(
 		return { ...coded(nameError, "CREATE_NAME_REJECTED") };
 	}
 	if (deps.registry.indexEmpty) {
-		return { ...coded(EMPTY_INDEX_ERROR, "INDEX_EMPTY") };
+		return { ...coded(INDEX_EMPTY_ERROR, "INDEX_EMPTY") };
 	}
 	const existing = deps.registry.entries.filter((e) => e.name === input.name);
 	if (existing.length > 0) {

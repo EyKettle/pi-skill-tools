@@ -137,6 +137,12 @@ describe("failure vocabulary", () => {
 			}
 		});
 
+		it("gives INDEX_EMPTY an agent-executable recovery", () => {
+			expect(recoveryFor("INDEX_EMPTY")).toBe(
+				"Ask the user to restart pi or run /reload so the before_agent_start hook fires before the next prompt.",
+			);
+		});
+
 		it("isFailureCode accepts only closed-set members", () => {
 			expect(isFailureCode("ID_NOT_FOUND")).toBe(true);
 			expect(isFailureCode("BOGUS")).toBe(false);

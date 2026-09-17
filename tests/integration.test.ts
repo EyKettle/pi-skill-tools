@@ -554,7 +554,7 @@ describe("create_skill integration over the real tree", () => {
 			throw new Error("expected empty-index rejection, got success");
 		}
 		expect(result.error).toBe(
-			"skill index is not yet populated; create_skill cannot run conflict interception against an empty index",
+			"skill index is not yet populated; the before_agent_start cache has not captured any skills",
 		);
 		expect(existsSync(join(emptyDir, "skills", "anything"))).toBe(false);
 	});

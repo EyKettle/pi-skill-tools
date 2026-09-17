@@ -22,7 +22,6 @@ import type { FailureSource } from "../tools/shared";
 
 const notFound: FailureSource = {
 	error: "no skill named 'x'",
-	suggestions: "check the id with list_skills",
 	code: "ID_NOT_FOUND",
 	evidence: { kind: "none" },
 };
@@ -39,7 +38,7 @@ describe("thrown-failure stash", () => {
 
 	it("recovers the failure payload for the owning call and tool after release", () => {
 		expect(() => failError("call-1", "view_skill", notFound)).toThrow(
-			"error: no skill named 'x'\nsuggestions: check the id with list_skills",
+			"error: no skill named 'x'\nsuggestions: Check the spelling with list_skills; a bare name resolves across all locations.",
 		);
 		release("call-1");
 		expect(claim("call-1", "view_skill")).toBeUndefined();

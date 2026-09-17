@@ -143,8 +143,9 @@ export function defineSearchSkills(deps: ToolDeps) {
 			"Search skills by frontmatter. frontmatter: required filter record; keys accept dotted " +
 			"paths, scalar equality and array intersection per key, AND across keys; a missing key " +
 			"or unparsable frontmatter never matches. location: global|project|package, omitted for " +
-			"all. Returns a headerless list of blank-line-separated entries: line one is <displayId> " +
-			"<absolute path> (id-prefixed only when the same name exists in more than one location), " +
+			"all. Returns a headerless list of blank-line-separated entries: line one is the skill " +
+			"name (id-prefixed only when the same name exists in more than one location) plus the " +
+			"absolute path, " +
 			"then the matched filter parameters with their values, asterisks marking which values " +
 			"matched when a parameter has multiple values; explicit 'no matches' when none.",
 		parameters: Type.Object({

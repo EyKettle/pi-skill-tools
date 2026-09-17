@@ -69,7 +69,11 @@ export class FailureGuardError extends Error {
 	}
 }
 
-/** Fixed, actionable recovery text per code (model-channel guidance). */
+/**
+ * The single source of each code's recovery sentence: the model channel's
+ * `suggestions:` line and the structured channel's `recovery` are this same
+ * sentence, so the two channels cannot diverge.
+ */
 const RECOVERY_BY_CODE: Record<FailureCode, string> = {
 	ID_EMPTY_NAME: "Provide a skill name: '<storage>:<name>' or '<name>'.",
 	ID_INVALID_NAME:
@@ -88,7 +92,7 @@ const RECOVERY_BY_CODE: Record<FailureCode, string> = {
 	FILE_NO_FRONTMATTER: "Add a leading '---' frontmatter block to the file.",
 	DIR_UNREADABLE: "Check the skill directory's existence and read permissions.",
 	INDEX_EMPTY:
-		"Restart pi or run /reload so the before_agent_start hook captures the skill index.",
+		"Ask the user to restart pi or run /reload so the before_agent_start hook fires before the next prompt.",
 	CREATE_PACKAGE_REJECTED:
 		"Create in global or project storage; package directories are npm-managed.",
 	CREATE_NAME_REJECTED:
@@ -105,6 +109,14 @@ const RECOVERY_BY_CODE: Record<FailureCode, string> = {
 	ENTRY_UNREACHABLE:
 		"Re-run the tool; the resolved skill is missing from the index.",
 };
+
+/**
+ * Canonical INDEX_EMPTY error text. The empty-index condition has two
+ * producers (the tools' shared guard and skill-create's conflict check);
+ * both use this sentence so one code never carries two error texts.
+ */
+export const INDEX_EMPTY_ERROR =
+	"skill index is not yet populated; the before_agent_start cache has not captured any skills";
 
 /** True when `value` is one of the closed failure codes. */
 export function isFailureCode(value: unknown): value is FailureCode {

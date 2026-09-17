@@ -38,7 +38,7 @@ export type TagsByTag = ReadonlyMap<string, readonly string[]>;
  */
 export function buildTagsOutput(byTag: TagsByTag): string {
 	if (byTag.size === 0) {
-		return "no skills carry metadata.tags";
+		return "no tags";
 	}
 	return [...byTag.keys()].sort().join(", ");
 }
@@ -127,7 +127,7 @@ export function defineListSkillTags(deps: ToolDeps) {
 		name: "list_skill_tags",
 		label: "List skill tags",
 		description:
-			"List metadata.tags aggregated across skill frontmatter (design §5.2). location: global|project|" +
+			"List metadata.tags aggregated across skill frontmatter. location: global|project|" +
 			"package, omitted for all. Output is an alphabetically sorted comma-separated list of tags, useful " +
 			"for discovering searchable tags and spotting duplicate or near-synonym tags. Explicit 'no skills " +
 			"carry metadata.tags' when none.",

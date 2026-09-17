@@ -51,10 +51,8 @@ export default async function (pi: ExtensionAPI): Promise<void> {
 
 	/** view_skill adoption guidance (design §5.7; tail-prompt chaining shape). */
 	const appendedSystemPrompt =
-		"\n\nLoad skills with view_skill — it returns the full SKILL.md untruncated " +
-		"(frontmatter included), unlike the read tool which truncates. list_skills / " +
-		"list_skill_tags / search_skills / list_skill_files manage the skill index; " +
-		"create_skill scaffolds new skills with id-conflict interception.";
+		"\n\nLoad skills with view_skill: pi's read tool truncates long files, so a " +
+		"skill would arrive incomplete.";
 
 	pi.on("before_agent_start", (event) => {
 		cachedSkills = event.systemPromptOptions.skills ?? [];

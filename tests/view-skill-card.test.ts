@@ -673,7 +673,6 @@ describe("view_skill recovers a thrown failure from the shared stash", () => {
 	it("keeps not-found after failError with wiped details and empty row state", () => {
 		const source: FailureSource = {
 			error: "no skill named 'missing'",
-			suggestions: "check the id with list_skills",
 			code: "ID_NOT_FOUND",
 			evidence: { kind: "none" },
 		};
