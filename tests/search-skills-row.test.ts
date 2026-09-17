@@ -30,16 +30,6 @@ function identityCount(lines: string[]): number {
 		.length;
 }
 
-function asChild(component: unknown): {
-	render(width: number): string[];
-	invalidate(): void;
-} {
-	return component as {
-		render(width: number): string[];
-		invalidate(): void;
-	};
-}
-
 const TypeStub: ToolDeps["Type"] = {
 	Union: (schemas) => schemas,
 	Literal: (value) => value,
@@ -118,20 +108,18 @@ function compose(opts: RenderOpts): string[] {
 		isError: opts.isError ?? false,
 	};
 	const composed = new Container();
-	composed.addChild(asChild(tool.renderCall(args, theme, context)));
+	composed.addChild(tool.renderCall(args, theme, context));
 	if (opts.pending !== true) {
 		const result = opts.result ?? {
 			content: [{ type: "text", text: "no matches" }],
 			details: opts.payload === undefined ? {} : { payload: opts.payload },
 		};
 		composed.addChild(
-			asChild(
-				tool.renderResult(
-					result,
-					{ expanded: opts.expanded ?? false },
-					theme,
-					context,
-				),
+			tool.renderResult(
+				result,
+				{ expanded: opts.expanded ?? false },
+				theme,
+				context,
 			),
 		);
 	}
@@ -375,9 +363,9 @@ describe("search_skills execute hands the payload to the renderer", () => {
 			isError: false,
 		};
 		const composed = new Container();
-		composed.addChild(asChild(tool.renderCall(args, theme, context)));
+		composed.addChild(tool.renderCall(args, theme, context));
 		composed.addChild(
-			asChild(tool.renderResult(result, { expanded: false }, theme, context)),
+			tool.renderResult(result, { expanded: false }, theme, context),
 		);
 		const lines = composed.render(80);
 		expect(visible(lines)).toEqual([
@@ -419,9 +407,9 @@ describe("search_skills recovers a thrown failure from the shared stash", () => 
 				isError: true,
 			};
 			const composed = new Container();
-			composed.addChild(asChild(tool.renderCall(args, theme, context)));
+			composed.addChild(tool.renderCall(args, theme, context));
 			composed.addChild(
-				asChild(tool.renderResult(wiped, { expanded: false }, theme, context)),
+				tool.renderResult(wiped, { expanded: false }, theme, context),
 			);
 			return { lines: composed.render(80), state };
 		};

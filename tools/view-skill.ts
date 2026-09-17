@@ -83,12 +83,7 @@ function cardBackground(
 }
 
 function slotComponents(deps: ToolDeps): SlotComponents {
-	// SAFETY: ToolDeps constructors omit render() so vitest can compile
-	// without pi-tui; runtime Text/Container from index.ts always have it.
-	return {
-		Text: deps.Text as unknown as SlotComponents["Text"],
-		Container: deps.Container as unknown as SlotComponents["Container"],
-	};
+	return { Text: deps.Text, Container: deps.Container };
 }
 
 function paintSkillCard(

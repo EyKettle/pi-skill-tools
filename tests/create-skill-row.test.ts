@@ -35,6 +35,10 @@ function keyHint(binding: string, fallback: string): string {
 class DummyBox {
 	addChild(_component: unknown): void {}
 	clear(): void {}
+	render(): string[] {
+		return [];
+	}
+	invalidate() {}
 }
 
 const dummyType: ToolDeps["Type"] = {
@@ -88,7 +92,7 @@ function makeTool(
 			Type: dummyType,
 			Text,
 			Container,
-			Box: DummyBox as unknown as ToolDeps["Box"],
+			Box: DummyBox,
 			expandKeyHint: keyHint,
 			registryDeps: () => makeRegistry({ entries: [makeEntry()] }),
 			withFileMutationQueue: async (_path, fn) => fn(),
@@ -448,12 +452,14 @@ describe("create_skill settled rows", () => {
 			constructor(_content: string, _paddingX?: number, _paddingY?: number) {
 				throw new Error("permanent component failure");
 			}
+			setText(_text: string): void {}
 			render(_width: number): string[] {
 				throw new Error("unreachable");
 			}
+			invalidate() {}
 		}
 		const tool = makeTool({
-			Text: ThrowingText as unknown as ToolDeps["Text"],
+			Text: ThrowingText,
 		});
 		const args = { id: "notes", content };
 		const ctx = makeCtx({

@@ -94,12 +94,10 @@ function presentSearch(
 	input: ProjectInput,
 	theme: unknown,
 ) {
-	// SAFETY: ToolDeps Text/Container are the real pi-tui classes at runtime;
-	// their structural ToolDeps types omit `render` so vitest can compile.
 	return presentRow(
 		input,
 		theme as { fg(role: string, text: string): string },
-		{ Text: deps.Text, Container: deps.Container } as unknown as SlotComponents,
+		{ Text: deps.Text, Container: deps.Container },
 	);
 }
 

@@ -11,6 +11,7 @@
  * helpers that only shape strings/objects stay here and are unit-testable
  * without a terminal.
  */
+import type { PiComponent } from "../deps/pi-tui";
 import type { ThemeLike } from "../render";
 import type { Registry } from "../registry";
 import { buildFailurePayload } from "../transport";
@@ -281,7 +282,7 @@ export { countTextLines } from "../transport";
 /* ---------------------------------------------------------------------- */
 
 /** Minimal textual component: enough of pi-tui's Text to set text. */
-export interface TextNode {
+export interface TextNode extends PiComponent {
 	setText(text: string): void;
 	setBgFn?(fn?: (text: string) => string): void;
 }
@@ -297,7 +298,7 @@ export interface TextCtor {
 }
 
 /** Minimal boxed component: children + dynamic background (Box has no setText). */
-export interface BoxNode {
+export interface BoxNode extends PiComponent {
 	addChild(component: unknown): void;
 	clear(): void;
 	setBgFn?(fn?: (text: string) => string): void;
@@ -313,7 +314,7 @@ export interface BoxCtor {
 }
 
 /** Minimal container: children only (no background). */
-export interface ContainerNode {
+export interface ContainerNode extends PiComponent {
 	addChild(component: unknown): void;
 	clear(): void;
 }

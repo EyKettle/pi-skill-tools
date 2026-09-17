@@ -26,6 +26,10 @@ function unusedBox(): ToolDeps["Box"] {
 	return class {
 		addChild(_component: unknown) {}
 		clear() {}
+		render(): string[] {
+			return [];
+		}
+		invalidate() {}
 	};
 }
 
@@ -59,14 +63,6 @@ function countVisible(lines: string[], snippet: string): number {
 	return visible(lines).join("\n").split(snippet).length - 1;
 }
 
-function addSlot(parent: Container, child: unknown): void {
-	// SAFETY: presentRow / Container both expose render(width); pi-tui's
-	// Component also has invalidate, which the composed dump never calls.
-	parent.addChild(
-		child as { render(width: number): string[]; invalidate(): void },
-	);
-}
-
 function compose(options: {
 	args?: unknown;
 	isPartial: boolean;
@@ -79,13 +75,9 @@ function compose(options: {
 	const tool = defineListSkills(deps());
 	const args = options.args ?? {};
 	const composed = new Container();
-	addSlot(
-		composed,
-		tool.renderCall(args, theme, { isPartial: options.isPartial }),
-	);
+	composed.addChild(tool.renderCall(args, theme, { isPartial: options.isPartial }));
 	if (!options.isPartial) {
-		addSlot(
-			composed,
+		composed.addChild(
 			tool.renderResult(
 				{
 					content: [{ type: "text", text: options.content ?? "model unused" }],
@@ -299,17 +291,14 @@ describe("list_skills recovers a thrown failure from the shared stash", () => {
 		const paint = () => {
 			const state: { payload?: TransportPayload } = {};
 			const composed = new Container();
-			addSlot(composed, tool.renderCall(args, theme, { isPartial: false }));
+			composed.addChild(tool.renderCall(args, theme, { isPartial: false }));
 			const context = {
 				args,
 				toolCallId: "call-seam",
 				isError: true,
 				state,
 			};
-			addSlot(
-				composed,
-				tool.renderResult(wiped, { expanded: false }, theme, context),
-			);
+			composed.addChild(tool.renderResult(wiped, { expanded: false }, theme, context));
 			return { lines: composed.render(80), state };
 		};
 		const first = paint();

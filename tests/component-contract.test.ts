@@ -8,7 +8,9 @@
  * mode switch — into `TypeError: this.child.invalidate is not a function`
  * and leaves the persisted session unresumable.
  *
- * Every product this extension returns to pi must satisfy that contract.
+ * Every product this extension returns to pi must satisfy that contract, so
+ * each renderer is called through its own signature and its product is
+ * checked for the contract at run time. No cast stands in for the check.
  */
 import { describe, expect, it } from "vitest";
 import { Box, Container, Text } from "../deps/pi-tui";
@@ -25,20 +27,11 @@ import { defineViewSkill } from "../tools/view-skill";
 
 const theme = testTheme("dark");
 const config = { agentDir: "/tmp/skill-tools-agent", configDirName: ".pi" };
-
-interface ContractCandidate {
-	render?: unknown;
-	invalidate?: unknown;
-}
-
-interface Renderer {
-	renderCall(...args: unknown[]): unknown;
-	renderResult(...args: unknown[]): unknown;
-}
+const result = { content: [{ type: "text", text: "model unused" }], details: {} };
 
 function expectComponentContract(label: string, product: unknown): void {
-	const candidate = product as ContractCandidate;
-	expect(candidate, `${label} must be an object`).toBeTypeOf("object");
+	expect(product, `${label} must be an object`).toBeTypeOf("object");
+	const candidate = product as Record<string, unknown>;
 	expect(typeof candidate.render, `${label}.render`).toBe("function");
 	expect(typeof candidate.invalidate, `${label}.invalidate`).toBe("function");
 }
@@ -65,69 +58,148 @@ function deps(): ToolDeps {
 	};
 }
 
-function renderers(): Array<[string, Renderer]> {
-	const d = deps();
-	return [
-		["list_skills", defineListSkills(d) as unknown as Renderer],
-		["list_skill_tags", defineListSkillTags(d) as unknown as Renderer],
-		["search_skills", defineSearchSkills(d) as unknown as Renderer],
-		["view_skill", defineViewSkill(d, config) as unknown as Renderer],
-		["list_skill_files", defineListSkillFiles(d) as unknown as Renderer],
-		["create_skill", defineCreateSkill(d, config) as unknown as Renderer],
-	];
-}
-
-function context(isPartial: boolean): Record<string, unknown> {
+function viewContext(overrides: { isPartial?: boolean }) {
 	return {
 		args: {},
-		toolCallId: "contract-1",
-		invalidate: () => {},
-		lastComponent: undefined,
+		toolCallId: "contract",
 		state: {},
-		cwd: "/tmp",
-		executionStarted: !isPartial,
-		argsComplete: !isPartial,
-		isPartial,
-		expanded: false,
-		showImages: false,
+		isPartial: overrides.isPartial ?? false,
 		isError: false,
 	};
 }
 
-const result = { content: [{ type: "text", text: "model unused" }], details: {} };
-
 describe("every renderer product satisfies pi's Component contract", () => {
-	for (const [name, tool] of renderers()) {
-		describe(name, () => {
-			it("renderCall while pending implements invalidate", () => {
-				expectComponentContract(
-					`${name}.renderCall(pending)`,
-					tool.renderCall({}, theme, context(true)),
-				);
-			});
+	const d = deps();
 
-			it("renderCall once settled implements invalidate", () => {
-				expectComponentContract(
-					`${name}.renderCall(settled)`,
-					tool.renderCall({}, theme, context(false)),
-				);
-			});
+	it("list_skills", () => {
+		const tool = defineListSkills(d);
+		expectComponentContract(
+			"list_skills.renderCall(pending)",
+			tool.renderCall({}, theme, { isPartial: true }),
+		);
+		expectComponentContract(
+			"list_skills.renderCall(settled)",
+			tool.renderCall({}, theme, { isPartial: false }),
+		);
+		expectComponentContract(
+			"list_skills.renderResult(collapsed)",
+			tool.renderResult(result, { expanded: false }, theme, {
+				args: {},
+				isError: false,
+				state: {},
+				toolCallId: "contract",
+			}),
+		);
+		expectComponentContract(
+			"list_skills.renderResult(expanded)",
+			tool.renderResult(result, { expanded: true }, theme, {
+				args: {},
+				isError: false,
+				state: {},
+				toolCallId: "contract",
+			}),
+		);
+	});
 
-			it("renderResult collapsed implements invalidate", () => {
-				expectComponentContract(
-					`${name}.renderResult(collapsed)`,
-					tool.renderResult(result, { expanded: false }, theme, context(false)),
-				);
-			});
+	it("list_skill_tags", () => {
+		const tool = defineListSkillTags(d);
+		expectComponentContract(
+			"list_skill_tags.renderCall(pending)",
+			tool.renderCall({}, theme, { state: {} }),
+		);
+		expectComponentContract(
+			"list_skill_tags.renderCall(settled)",
+			tool.renderCall({}, theme, { state: { settled: true } }),
+		);
+		expectComponentContract(
+			"list_skill_tags.renderResult(collapsed)",
+			tool.renderResult(result, { expanded: false }, theme, { state: {} }),
+		);
+		expectComponentContract(
+			"list_skill_tags.renderResult(expanded)",
+			tool.renderResult(result, { expanded: true }, theme, { state: {} }),
+		);
+	});
 
-			it("renderResult expanded implements invalidate", () => {
-				expectComponentContract(
-					`${name}.renderResult(expanded)`,
-					tool.renderResult(result, { expanded: true }, theme, context(false)),
-				);
-			});
-		});
-	}
+	it("search_skills", () => {
+		const tool = defineSearchSkills(d);
+		expectComponentContract(
+			"search_skills.renderCall(pending)",
+			tool.renderCall({}, theme, {}),
+		);
+		expectComponentContract(
+			"search_skills.renderCall(settled)",
+			tool.renderCall({}, theme, { isPartial: false }),
+		);
+		expectComponentContract(
+			"search_skills.renderResult(collapsed)",
+			tool.renderResult(result, { expanded: false }, theme, {}),
+		);
+		expectComponentContract(
+			"search_skills.renderResult(expanded)",
+			tool.renderResult(result, { expanded: true }, theme, {}),
+		);
+	});
+
+	it("view_skill", () => {
+		const tool = defineViewSkill(d, config);
+		expectComponentContract(
+			"view_skill.renderCall(pending)",
+			tool.renderCall({}, theme, viewContext({ isPartial: true })),
+		);
+		expectComponentContract(
+			"view_skill.renderCall(settled)",
+			tool.renderCall({}, theme, viewContext({ isPartial: false })),
+		);
+		expectComponentContract(
+			"view_skill.renderResult(collapsed)",
+			tool.renderResult(result, { expanded: false, isPartial: false }, theme, viewContext({})),
+		);
+		expectComponentContract(
+			"view_skill.renderResult(expanded)",
+			tool.renderResult(result, { expanded: true, isPartial: false }, theme, viewContext({})),
+		);
+	});
+
+	it("list_skill_files", () => {
+		const tool = defineListSkillFiles(d);
+		expectComponentContract(
+			"list_skill_files.renderCall(pending)",
+			tool.renderCall({}, theme, { state: {} }),
+		);
+		expectComponentContract(
+			"list_skill_files.renderCall(settled)",
+			tool.renderCall({}, theme, { state: { input: { phase: "collapsed" } } }),
+		);
+		expectComponentContract(
+			"list_skill_files.renderResult(collapsed)",
+			tool.renderResult(result, { expanded: false }, theme, { state: {} }),
+		);
+		expectComponentContract(
+			"list_skill_files.renderResult(expanded)",
+			tool.renderResult(result, { expanded: true }, theme, { state: {} }),
+		);
+	});
+
+	it("create_skill", () => {
+		const tool = defineCreateSkill(d, config);
+		expectComponentContract(
+			"create_skill.renderCall(pending)",
+			tool.renderCall({}, theme, { state: {}, isPartial: true }),
+		);
+		expectComponentContract(
+			"create_skill.renderCall(settled)",
+			tool.renderCall({}, theme, { state: {}, isPartial: false }),
+		);
+		expectComponentContract(
+			"create_skill.renderResult(collapsed)",
+			tool.renderResult(result, { expanded: false, isPartial: false }, theme, { state: {} }),
+		);
+		expectComponentContract(
+			"create_skill.renderResult(expanded)",
+			tool.renderResult(result, { expanded: true, isPartial: false }, theme, { state: {} }),
+		);
+	});
 });
 
 describe("presentation products satisfy pi's Component contract", () => {

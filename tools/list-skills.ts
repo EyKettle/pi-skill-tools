@@ -85,14 +85,7 @@ function renderEntryLine(
 
 
 function slotComponents(deps: ToolDeps): SlotComponents {
-	return {
-		// SAFETY: production and tests inject real pi-tui Text; ToolDeps only
-		// exposes setText so vitest can compile without pi-tui types.
-		Text: deps.Text as unknown as SlotComponents["Text"],
-		// SAFETY: production and tests inject real pi-tui Container; ToolDeps only
-		// exposes addChild/clear so vitest can compile without pi-tui types.
-		Container: deps.Container as unknown as SlotComponents["Container"],
-	};
+	return { Text: deps.Text, Container: deps.Container };
 }
 
 interface ListSkillsRowState {

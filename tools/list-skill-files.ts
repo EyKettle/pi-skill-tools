@@ -19,7 +19,7 @@ import {
 	textResult,
 	themeLike,
 } from "./shared";
-import { presentRow } from "../presentation";
+import { presentRow, renderedComponent } from "../presentation";
 import type { ProjectInput, SlotComponents, ThemeFg } from "../presentation";
 import { buildListSkillFilesPayload } from "../transport";
 import type { TransportPayload } from "../transport";
@@ -64,8 +64,7 @@ export function buildFilesOutput(entries: readonly RenderFileEntry[]): string {
 
 
 function slotsOf(deps: ToolDeps): SlotComponents {
-	// SAFETY: index.ts injects the real pi-tui Text/Container, which implement render().
-	return { Text: deps.Text, Container: deps.Container } as unknown as SlotComponents;
+	return { Text: deps.Text, Container: deps.Container };
 }
 
 function themeFg(theme: unknown): ThemeFg {
@@ -119,16 +118,6 @@ function rowState(context: { state?: unknown }): FilesRowState {
 	const state: FilesRowState = {};
 	context.state = state;
 	return state;
-}
-
-/** Pi's Component requires invalidate(); presentRow re-projects on render. */
-function lazyRow(
-	paint: () => { render(width: number): string[] },
-): { render(width: number): string[]; invalidate(): void } {
-	return {
-		render: (width) => paint().render(width),
-		invalidate: () => {},
-	};
 }
 
 export function defineListSkillFiles(deps: ToolDeps) {
@@ -230,12 +219,12 @@ export function defineListSkillFiles(deps: ToolDeps) {
 			if (state.input === undefined || state.input.phase === "pending") {
 				state.input = pendingInput(args, deps.expandKeyHint);
 			}
-			return lazyRow(() =>
+			return renderedComponent((width) =>
 				presentRow(
 					state.input ?? pendingInput(args, deps.expandKeyHint),
 					themeFg(theme),
 					components,
-				),
+				).render(width),
 			);
 		},
 		renderResult: (

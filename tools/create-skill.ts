@@ -140,10 +140,8 @@ export function defineCreateSkill(
 	const createSkillSuggestions =
 		"Check existing names with list_skills; pick a different name or a storage prefix.";
 	const components: SlotComponents = {
-		// SAFETY: ToolDeps Text/Container are the same pi-tui classes SlotComponents names; the deps types omit render().
-		Text: deps.Text as unknown as SlotComponents["Text"],
-		// SAFETY: same pi-tui Container class; ToolDeps omits render().
-		Container: deps.Container as unknown as SlotComponents["Container"],
+		Text: deps.Text,
+		Container: deps.Container,
 	};
 
 	function failCreate(toolCallId: string, source: FailureSource): never {

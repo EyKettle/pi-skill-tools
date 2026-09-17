@@ -15,6 +15,7 @@ import {
 } from "./shared";
 import {
 	presentRow,
+	renderedComponent,
 	type ProjectInput,
 	type SlotComponents,
 	type ThemeFg,
@@ -113,16 +114,6 @@ function paintSlot(
 	return child === undefined ? [] : child.render(width);
 }
 
-function slotView(paint: (width: number) => string[]): {
-	render(width: number): string[];
-	invalidate(): void;
-} {
-	return {
-		render: paint,
-		invalidate() {},
-	};
-}
-
 export function defineListSkillTags(deps: ToolDeps) {
 	const Type = deps.Type as ToolDeps["Type"];
 	const locationSchema = Type.Union([
@@ -130,8 +121,7 @@ export function defineListSkillTags(deps: ToolDeps) {
 		Type.Literal("project"),
 		Type.Literal("package"),
 	]);
-	// SAFETY: ToolDeps.Text is the structural vitest-safe ctor; runtime is pi-tui Text with render().
-	const Text = deps.Text as unknown as SlotComponents["Text"];
+	const Text = deps.Text;
 
 	return {
 		name: "list_skill_tags",
@@ -172,7 +162,7 @@ export function defineListSkillTags(deps: ToolDeps) {
 		renderCall: (args: unknown, theme: unknown, context: RenderContext) => {
 			const state = (context.state ??= {});
 			const like = themeLike(theme);
-			return slotView((width) => {
+			return renderedComponent((width) => {
 				const phase: ProjectInput["phase"] = state.settled
 					? context.expanded === true
 						? "expanded"
@@ -207,7 +197,7 @@ export function defineListSkillTags(deps: ToolDeps) {
 			});
 			const like = themeLike(theme);
 			const args = context.args ?? {};
-			return slotView((width) => {
+			return renderedComponent((width) => {
 				const phase: ProjectInput["phase"] =
 					options.expanded ? "expanded" : "collapsed";
 				return paintSlot(

@@ -49,6 +49,10 @@ const tool = defineListSkillTags({
 	Box: class {
 		addChild() {}
 		clear() {}
+		render(): string[] {
+			return [];
+		}
+		invalidate() {}
 	},
 	Container,
 	expandKeyHint: keyHint,

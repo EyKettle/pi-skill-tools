@@ -19,3 +19,16 @@ export {
 	sliceByColumn,
 	visibleWidth,
 } from "@earendil-works/pi-tui";
+
+/**
+ * The pi-tui `Component` contract: what every injected node and every product
+ * handed back to pi must satisfy. `invalidate` is not optional — pi's
+ * `MouseRegion` calls `child.invalidate()` without a guard (pi-tui 0.85.1
+ * components/mouse-region.ts:31), so a product implementing only `render`
+ * takes the process down on any whole-tree invalidation (exit, `/reload`, or
+ * a fullscreen mode switch) and leaves the persisted session unresumable.
+ */
+export interface PiComponent {
+	render(width: number): string[];
+	invalidate(): void;
+}

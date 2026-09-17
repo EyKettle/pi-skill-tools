@@ -142,16 +142,6 @@ function countVisible(lines: string[], snippet: string): number {
 	return lines.join("\n").split(snippet).length - 1;
 }
 
-function asChild(component: unknown): {
-	render(width: number): string[];
-	invalidate(): void;
-} {
-	return component as {
-		render(width: number): string[];
-		invalidate(): void;
-	};
-}
-
 interface DocumentedState {
 	id: string;
 	tool: ToolKey;
@@ -187,21 +177,17 @@ function compose(
 		isError: state.isError === true,
 	};
 	const composed = new Container();
-	composed.addChild(
-		asChild(tool.renderCall(state.args as never, usedTheme, ctx as never)),
-	);
+	composed.addChild(tool.renderCall(state.args as never, usedTheme, ctx as never));
 	if (!pending) {
 		composed.addChild(
-			asChild(
-				tool.renderResult(
-					{
-						content: [{ type: "text", text: "model unused" }],
-						details: state.payload === undefined ? {} : { payload: state.payload },
-					},
-					{ expanded, isPartial: false },
-					usedTheme,
-					ctx as never,
-				),
+			tool.renderResult(
+				{
+					content: [{ type: "text", text: "model unused" }],
+					details: state.payload === undefined ? {} : { payload: state.payload },
+				},
+				{ expanded, isPartial: false },
+				usedTheme,
+				ctx as never,
 			),
 		);
 	}
@@ -1082,21 +1068,17 @@ function paint(opts: PaintOpts): {
 	};
 	const usedTheme = opts.theme ?? theme;
 	const composed = new Container();
-	composed.addChild(
-		asChild(tool.renderCall(args as never, usedTheme, ctx as never)),
-	);
+	composed.addChild(tool.renderCall(args as never, usedTheme, ctx as never));
 	if (!pending) {
 		composed.addChild(
-			asChild(
-				tool.renderResult(
-					{
-						content: [{ type: "text", text: opts.content ?? "model unused" }],
-						details: opts.details ?? {},
-					},
-					{ expanded: opts.expanded === true, isPartial },
-					usedTheme,
-					ctx as never,
-				),
+			tool.renderResult(
+				{
+					content: [{ type: "text", text: opts.content ?? "model unused" }],
+					details: opts.details ?? {},
+				},
+				{ expanded: opts.expanded === true, isPartial },
+				usedTheme,
+				ctx as never,
 			),
 		);
 	}

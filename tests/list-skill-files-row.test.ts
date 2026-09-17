@@ -44,6 +44,10 @@ function unusedType(): ToolDeps["Type"] {
 class UnusedBox {
 	addChild(_component: unknown): void {}
 	clear(): void {}
+	render(): string[] {
+		return [];
+	}
+	invalidate() {}
 }
 
 function defineTool() {
@@ -51,7 +55,7 @@ function defineTool() {
 		Type: unusedType(),
 		Text,
 		Container,
-		Box: UnusedBox as unknown as ToolDeps["Box"],
+		Box: UnusedBox,
 		expandKeyHint: keyHint,
 		registryDeps: () => {
 			throw new Error("execute is not under test");
@@ -83,10 +87,7 @@ function compose(args: { id?: string }, settled?: Settled): string[] {
 		showImages: false,
 		isError: settled?.isError ?? false,
 	};
-	const composed = new Container() as {
-		addChild(component: unknown): void;
-		render(width: number): string[];
-	};
+	const composed = new Container();
 	composed.addChild(tool.renderCall!(args, theme, ctx));
 	if (settled !== undefined) {
 		composed.addChild(
@@ -125,10 +126,7 @@ function composeOn(
 		showImages: false,
 		isError: settled?.isError ?? false,
 	};
-	const composed = new Container() as {
-		addChild(component: unknown): void;
-		render(width: number): string[];
-	};
+	const composed = new Container();
 	composed.addChild(tool.renderCall!(args, theme, ctx));
 	if (settled !== undefined && !callOnly) {
 		composed.addChild(
@@ -347,10 +345,7 @@ describe("list_skill_files recovers a thrown failure from the shared stash", () 
 				showImages: false,
 				isError: true,
 			};
-			const composed = new Container() as {
-				addChild(component: unknown): void;
-				render(width: number): string[];
-			};
+			const composed = new Container();
 			composed.addChild(tool.renderCall!(args, theme, ctx));
 			composed.addChild(
 				tool.renderResult!(wiped, { expanded: false }, theme, ctx),

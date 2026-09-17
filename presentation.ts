@@ -32,6 +32,7 @@ import type {
 } from "./transport";
 import type { ThemeColor } from "@earendil-works/pi-coding-agent";
 import { sliceByColumn, visibleWidth } from "./deps/pi-tui";
+import type { PiComponent } from "./deps/pi-tui";
 
 /** Roles this module paints, taken from Pi's public `ThemeColor` union. */
 export type ThemeRole = Extract<
@@ -105,21 +106,20 @@ export interface RetainedPresentation {
 	readonly input: ProjectInput;
 }
 
-/**
- * The pi-tui `Component` contract this boundary hands to pi. `invalidate` is
- * not optional: pi's `MouseRegion` calls `child.invalidate()` without a guard
- * (pi-tui 0.85.1 components/mouse-region.ts:31), so a product implementing
- * only `render` takes the process down on any whole-tree invalidation —
- * exit, `/reload`, or a fullscreen mode switch.
- */
-export interface PresentedComponent {
-	render(width: number): string[];
-	invalidate(): void;
+/** A projected row plus the semantic input it was projected from. */
+export interface PresentedRow extends PiComponent {
+	readonly retained: RetainedPresentation;
 }
 
-/** A projected row plus the semantic input it was projected from. */
-export interface PresentedRow extends PresentedComponent {
-	readonly retained: RetainedPresentation;
+/**
+ * Wrap a width-driven render closure as the component this boundary hands to
+ * pi. A projected row caches nothing between frames, so invalidation is a
+ * no-op.
+ */
+export function renderedComponent(
+	render: (width: number) => string[],
+): PiComponent {
+	return { render, invalidate() {} };
 }
 
 /**
@@ -839,38 +839,32 @@ function fallbackRow(input: ProjectInput): ProjectedRow {
 function widthSafePlain(
 	row: ProjectedRow,
 	width: number,
-): PresentedComponent {
+): PiComponent {
 	const text = boundDisplayValue(
 		sanitizeDisplayText(row.call.map(unstyledLine).join("\n")),
 		width,
 	);
-	return {
-		render: () => [text],
-		invalidate() {},
-	};
+	return renderedComponent(() => [text]);
 }
 
 function paintSafely(
 	input: ProjectInput,
 	theme: ThemeFg,
 	components: SlotComponents,
-): PresentedComponent {
-	return {
-		render(width: number): string[] {
-			const row = boundRow(projectRow(input), width);
+): PiComponent {
+	return renderedComponent((width) => {
+		const row = boundRow(projectRow(input), width);
+		try {
+			return paintProjectedRow(row, theme, components).render(width);
+		} catch {
+			const fallback = boundRow(fallbackRow(input), width);
 			try {
-				return paintProjectedRow(row, theme, components).render(width);
+				return paintProjectedRow(fallback, theme, components).render(width);
 			} catch {
-				const fallback = boundRow(fallbackRow(input), width);
-				try {
-					return paintProjectedRow(fallback, theme, components).render(width);
-				} catch {
-					return widthSafePlain(fallback, width).render(width);
-				}
+				return widthSafePlain(fallback, width).render(width);
 			}
-		},
-		invalidate() {},
-	};
+		}
+	});
 }
 
 export function retainPresentation(input: ProjectInput): RetainedPresentation {
@@ -884,17 +878,13 @@ export function presentRow(
 ): PresentedRow {
 	const retained = retainPresentation(input);
 	const painted = paintSafely(input, theme, components);
-	return {
-		retained,
-		render: (width) => painted.render(width),
-		invalidate: () => painted.invalidate(),
-	};
+	return { retained, ...painted };
 }
 
 export function rebuildPresentation(
 	retained: RetainedPresentation,
 	theme: ThemeFg,
 	components: SlotComponents,
-): PresentedComponent {
+): PiComponent {
 	return paintSafely(retained.input, theme, components);
 }
