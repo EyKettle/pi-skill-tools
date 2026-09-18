@@ -18,6 +18,14 @@ describe("parseSkillId", () => {
 		});
 	});
 
+	it("parses the temp storage prefix", () => {
+		expect(parseSkillId("temp:identity")).toEqual({
+			storage: "temp",
+			name: "identity",
+			refPath: undefined,
+		});
+	});
+
 	it("parses a ref path with nested segments", () => {
 		expect(parseSkillId("global:skill-authoring/references/a/b.md")).toEqual({
 			storage: "global",

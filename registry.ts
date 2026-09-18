@@ -1,13 +1,13 @@
 /**
  * The skill index: pi's loaded set plus per-location shadow discovery
  * (design.md §3). `buildRegistry` classifies each active skill into
- * `global` / `project` / `package`, derives the scan roots pi itself would
+ * `global` / `project` / `package` / `temp`, derives the scan roots pi itself would
  * have visited, re-runs the injected `scanDir` (pi's `loadSkillsFromDir`) on
  * every root, and surfaces same-name duplicates as `shadowed` entries with
  * the winning active skill's prefixed id. The scan is neither a second
  * location authority nor an exhaustive disk walk: skills pi never loaded
  * (disabled by settings, missing description, ignore files, outside the
- * three managed locations) never appear here — the observed scope is exactly
+ * four storages) never appear here — the observed scope is exactly
  * "pi's loaded set, plus shadowed duplicates" (§3.3).
  *
  * `disableModelInvocation` skills stay in the index and are flagged
@@ -80,9 +80,9 @@ export interface Registry {
 }
 
 /**
- * Build the index. Active skills are classified into the three storages;
- * temporary-scope and otherwise-unclassifiable skills are dropped (§1.2,
- * §3.2). Scan roots follow pi's own locations: the two global roots, the
+ * Build the index. Active skills are classified into the four storages;
+ * unclassifiable skills are dropped (§1.2, §3.2). Temporary scope maps to `temp`.
+ * Scan roots follow pi's own locations: the two global roots, the
  * project root plus each existing `<ancestor>/.agents/skills` (walking up
  * from `cwd` to the git root, or the filesystem root) — the entire project
  * walk is skipped when `isProjectTrusted()` is false — and one root per
@@ -205,7 +205,7 @@ function classify(skill: PiSkill): SkillStorage | undefined {
 		return "package";
 	}
 	if (scope === "temporary") {
-		return undefined;
+		return "temp";
 	}
 	if (scope === "user" && origin === "top-level") {
 		return "global";
@@ -251,6 +251,7 @@ function scanRoots(deps: RegistryDeps): ScanRoot[] {
 		roots.push(...ancestorAgentsSkillRoots(deps.cwd));
 	}
 	roots.push(...packageRoots(deps.activeSkills));
+	roots.push(...tempRoots(deps.activeSkills));
 	return roots;
 }
 
@@ -286,10 +287,33 @@ function ancestorAgentsSkillRoots(cwd: string): ScanRoot[] {
  * (design.md §3.3).
  */
 function packageRoots(activeSkills: PiSkill[]): ScanRoot[] {
+	return derivedSkillsRoots(
+		activeSkills,
+		"package",
+		(skill) => skill.sourceInfo.origin === "package",
+	);
+}
+
+function tempRoots(activeSkills: PiSkill[]): ScanRoot[] {
+	return derivedSkillsRoots(
+		activeSkills,
+		"temp",
+		(skill) =>
+			skill.sourceInfo.scope === "temporary" &&
+			skill.sourceInfo.origin !== "package",
+	);
+}
+
+/** `<dir>/skills/<name>/SKILL.md` → `<dir>/skills` when the basename is `skills`. */
+function derivedSkillsRoots(
+	activeSkills: PiSkill[],
+	storage: SkillStorage,
+	include: (skill: PiSkill) => boolean,
+): ScanRoot[] {
 	const roots: ScanRoot[] = [];
 	const seen = new Set<string>();
 	for (const skill of activeSkills) {
-		if (skill.sourceInfo.origin !== "package") {
+		if (!include(skill)) {
 			continue;
 		}
 		const root = path.dirname(path.dirname(skill.filePath));
@@ -297,7 +321,7 @@ function packageRoots(activeSkills: PiSkill[]): ScanRoot[] {
 			continue;
 		}
 		seen.add(root);
-		roots.push({ storage: "package", dir: root });
+		roots.push({ storage, dir: root });
 	}
 	return roots;
 }
@@ -348,7 +372,7 @@ function conflictsOf(entries: RegistryEntry[]): RegistryConflict[] {
 	return conflicts;
 }
 
-/** Stable presentation order: global, project, package, then name, path. */
+/** Stable presentation order: global, project, package, temp, then name, path. */
 function compareEntries(a: RegistryEntry, b: RegistryEntry): number {
 	const rank = storageRank(a.storage) - storageRank(b.storage);
 	if (rank !== 0) {

@@ -8,6 +8,7 @@ import { Text, Container, Box } from "../deps/pi-tui";
 import { testTheme } from "../deps/pi-theme";
 import { defineSearchSkills } from "../tools/search-skills";
 import type { ToolDeps } from "../tools/shared";
+import type { SkillStorage } from "../skill-id";
 import { clearThrownFailures, failEmptyIndex } from "../tools/shared";
 import { buildSearchSkillsPayload } from "../transport";
 import type { TransportPayload } from "../transport";
@@ -71,7 +72,7 @@ function makeTool(registry: Registry = emptyRegistry()) {
 interface RenderOpts {
 	args?: {
 		frontmatter?: Record<string, unknown>;
-		location?: "global" | "project" | "package";
+		location?: SkillStorage;
 	};
 	payload?: TransportPayload;
 	expanded?: boolean;
@@ -146,7 +147,7 @@ const gitMatch = {
 
 function gitPayload(
 	count: number,
-	location: "global" | "project" | "package" | null,
+	location: SkillStorage | null,
 	filters: Record<string, unknown> = { name: "git" },
 ) {
 	const matches = Array.from({ length: count }, (_, i) =>

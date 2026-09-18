@@ -13,11 +13,15 @@
 import type { ToolDeps, ToolTextResult } from "./shared";
 import {
 	failEmptyIndex,
+	parseSkillLocation,
 	resolveCallPayload,
+	skillLocationSchema,
+	SKILL_LOCATION_LIST,
 	textResult,
 } from "./shared";
 import type { ProjectInput, SlotComponents, ThemeFg } from "../presentation";
 import { presentRow } from "../presentation";
+import type { SkillStorage } from "../skill-id";
 import type { TransportPayload } from "../transport";
 import { buildListSkillsPayload } from "../transport";
 
@@ -108,34 +112,25 @@ function locationArgs(args: unknown): ProjectInput["args"] {
 	if (typeof args !== "object" || args === null) {
 		return undefined;
 	}
-	// SAFETY: args are untyped tool parameters; only the three position
-	// literals are kept, everything else is dropped.
-	const location = (args as { location?: unknown }).location;
-	if (
-		location === "global" ||
-		location === "project" ||
-		location === "package"
-	) {
-		return { location };
-	}
-	return undefined;
+	// SAFETY: args are untyped tool parameters; only SkillStorage markers
+	// are kept, everything else is dropped.
+	const location = parseSkillLocation(
+		(args as { location?: unknown }).location,
+	);
+	return location === undefined ? undefined : { location };
 }
 
 export function defineListSkills(deps: ToolDeps) {
 	const Type = deps.Type as ToolDeps["Type"];
 	const paint = (input: ProjectInput, theme: unknown) =>
 		presentRow(input, theme as ThemeFg, slotComponents(deps));
-	const locationSchema = Type.Union([
-		Type.Literal("global"),
-		Type.Literal("project"),
-		Type.Literal("package"),
-	]);
+	const locationSchema = skillLocationSchema(Type);
 
 	return {
 		name: "list_skills",
 		label: "List skills",
 		description:
-			"List skills from the pi skill index. location: global | project | package, omitted for all. " +
+			`List skills from the pi skill index. location: ${SKILL_LOCATION_LIST}, omitted for all. ` +
 			"One line per skill: <name> [active|hidden|shadowed] <absolute path>; a name is id-prefixed " +
 			"(e.g. global:name) only when the same name exists in more than one location; detail: true " +
 			"appends the description. An unpopulated index is an explicit error, never a silent empty list.",
@@ -147,7 +142,7 @@ export function defineListSkills(deps: ToolDeps) {
 		}),
 		async execute(
 			toolCallId: string,
-			params: { location?: "global" | "project" | "package"; detail?: boolean },
+			params: { location?: SkillStorage; detail?: boolean },
 			_signal: unknown,
 			_onUpdate: unknown,
 			ctx: { cwd: string; isProjectTrusted(): boolean },

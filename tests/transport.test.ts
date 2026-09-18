@@ -210,6 +210,16 @@ describe("malformed nested values", () => {
 		expect(() => assertValidPayload(payload)).toThrow(TransportGuardError);
 	});
 
+	it("accepts temp as a location enum", () => {
+		const payload = {
+			version: 1,
+			tool: "list_skills",
+			outcome: "empty",
+			data: { count: 0, location: "temp", skills: [] },
+		};
+		expect(() => assertValidPayload(payload)).not.toThrow();
+	});
+
 	it("rejects an unknown location enum", () => {
 		const payload = {
 			version: 1,

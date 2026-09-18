@@ -24,6 +24,8 @@ import type {
 import { createFailure, INDEX_EMPTY_ERROR } from "../failure";
 import type { FailureCode, FailureEvidence } from "../failure";
 import { associate } from "../correlation";
+import { isSkillStorage, SKILL_STORAGES } from "../skill-id";
+import type { SkillStorage } from "../skill-id";
 
 /** Tool result shape (pi's AgentToolResult with text content). */
 export interface ToolTextResult {
@@ -351,4 +353,16 @@ export interface ToolDeps {
 		path: string,
 		fn: () => Promise<unknown>,
 	) => Promise<unknown>;
+}
+
+export const SKILL_LOCATION_LIST = SKILL_STORAGES.join(" | ");
+
+export function skillLocationSchema(Type: ToolDeps["Type"]): unknown {
+	return Type.Union(SKILL_STORAGES.map((s) => Type.Literal(s)));
+}
+
+export function parseSkillLocation(
+	value: unknown,
+): SkillStorage | undefined {
+	return isSkillStorage(value) ? value : undefined;
 }

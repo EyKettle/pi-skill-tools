@@ -31,12 +31,14 @@
  */
 import { FAILURE_CODES } from "./failure";
 import type { Failure, FailureEvidence } from "./failure";
+import { SKILL_STORAGES } from "./skill-id";
+import type { SkillStorage } from "./skill-id";
 
 /** The only supported transport version. */
 export const TRANSPORT_VERSION = 1 as const;
 export type TransportVersion = typeof TRANSPORT_VERSION;
 
-export type SkillPosition = "global" | "project" | "package";
+export type SkillPosition = SkillStorage;
 /** `null` = no selection (design: location omitted for all). */
 export type Scope = SkillPosition | null;
 
@@ -181,7 +183,7 @@ const TOOL_NAMES: readonly string[] = [
 	"create_skill",
 	"view_skill",
 ];
-const POSITIONS: readonly string[] = ["global", "project", "package"];
+const POSITIONS: readonly string[] = SKILL_STORAGES;
 const LIST_OUTCOMES: readonly string[] = ["success", "empty"];
 
 /**
@@ -346,7 +348,7 @@ function assertScope(value: unknown): Scope {
 	if (typeof value === "string" && POSITIONS.includes(value)) {
 		return value as SkillPosition;
 	}
-	failGuard("location must be global, project, package, or null");
+	failGuard(`location must be ${SKILL_STORAGES.join(", ")}, or null`);
 }
 
 function assertSkillRows(value: unknown, context: string): readonly SkillRow[] {

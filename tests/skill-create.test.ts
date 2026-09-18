@@ -383,6 +383,19 @@ describe("failure vocabulary integration", () => {
 		expect(result.evidence).toEqual({ kind: "none" });
 	});
 
+	it("classifies temp storage as CREATE_TEMP_REJECTED", async () => {
+		const agentDir = makeTempDir();
+		const result = await createSkill(
+			{ storage: "temp", name: "nope", content: SAMPLE_CONTENT },
+			makeDeps({ agentDir }),
+		);
+		expect(result.path).toBeUndefined();
+		if (result.path !== undefined) return;
+		expect(result.code).toBe("CREATE_TEMP_REJECTED");
+		expect(result.evidence).toEqual({ kind: "none" });
+		expect(existsSync(join(agentDir, "skills"))).toBe(false);
+	});
+
 	it("classifies an invalid name as CREATE_NAME_REJECTED", async () => {
 		const result = await createSkill(
 			{ name: "../uppercase", content: SAMPLE_CONTENT },

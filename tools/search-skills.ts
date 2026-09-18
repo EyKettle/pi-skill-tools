@@ -13,8 +13,11 @@ import type { ToolDeps, ToolTextResult } from "./shared";
 import {
 	failEmptyIndex,
 	resolveCallPayload,
+	skillLocationSchema,
+	SKILL_LOCATION_LIST,
 	textResult,
 } from "./shared";
+import type { SkillStorage } from "../skill-id";
 import { presentRow } from "../presentation";
 import type { ProjectInput, SlotComponents } from "../presentation";
 import { buildSearchSkillsPayload } from "../transport";
@@ -80,7 +83,7 @@ interface SearchRenderState {
 interface SearchRenderContext {
 	args?: {
 		frontmatter?: Record<string, unknown>;
-		location?: "global" | "project" | "package";
+		location?: SkillStorage;
 	};
 	toolCallId: string;
 	state: SearchRenderState;
@@ -130,11 +133,7 @@ function searchProjectInput(
 
 export function defineSearchSkills(deps: ToolDeps) {
 	const Type = deps.Type as ToolDeps["Type"];
-	const locationSchema = Type.Union([
-		Type.Literal("global"),
-		Type.Literal("project"),
-		Type.Literal("package"),
-	]);
+	const locationSchema = skillLocationSchema(Type);
 
 	return {
 		name: "search_skills",
@@ -142,7 +141,7 @@ export function defineSearchSkills(deps: ToolDeps) {
 		description:
 			"Search skills by frontmatter. frontmatter: required filter record; keys accept dotted " +
 			"paths, scalar equality and array intersection per key, AND across keys; a missing key " +
-			"or unparsable frontmatter never matches. location: global|project|package, omitted for " +
+			`or unparsable frontmatter never matches. location: ${SKILL_LOCATION_LIST}, omitted for ` +
 			"all. Returns a headerless list of blank-line-separated entries: line one is the skill " +
 			"name (id-prefixed only when the same name exists in more than one location) plus the " +
 			"absolute path, " +
@@ -159,7 +158,7 @@ export function defineSearchSkills(deps: ToolDeps) {
 			toolCallId: string,
 			params: {
 				frontmatter: Record<string, unknown>;
-				location?: "global" | "project" | "package";
+				location?: SkillStorage;
 			},
 			_signal: unknown,
 			_onUpdate: unknown,
@@ -210,7 +209,7 @@ export function defineSearchSkills(deps: ToolDeps) {
 		renderCall: (
 			args: {
 				frontmatter?: Record<string, unknown>;
-				location?: "global" | "project" | "package";
+				location?: SkillStorage;
 			},
 			theme: unknown,
 			context: unknown,

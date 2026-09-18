@@ -1,4 +1,4 @@
-export type SkillStorage = "global" | "project" | "package";
+export type SkillStorage = "global" | "project" | "package" | "temp";
 import { createFailure } from "./failure";
 import type { FailureCode, FailureEvidence } from "./failure";
 
@@ -6,7 +6,15 @@ export const SKILL_STORAGES: readonly SkillStorage[] = [
 	"global",
 	"project",
 	"package",
+	"temp",
 ];
+
+export function isSkillStorage(value: unknown): value is SkillStorage {
+	return (
+		typeof value === "string" &&
+		(SKILL_STORAGES as readonly string[]).includes(value)
+	);
+}
 
 export interface SkillIdRef {
 	storage?: SkillStorage;
@@ -36,8 +44,8 @@ const NAME_PATTERN = /^[a-z0-9-]+$/;
 /**
  * Parse `{storage}:{name}/{ref_path}`. Both `{storage}:` and `/{ref_path}`
  * are optional (design.md §4). The prefix is consumed only when it is exactly
- * one of the three storage markers; otherwise the whole string is the name
- * part. The name is validated against pi's `/^[a-z0-9-]+$/`.
+ * one of the storage markers in SKILL_STORAGES; otherwise the whole string
+ * is the name part. The name is validated against pi's `/^[a-z0-9-]+$/`.
  */
 export function parseSkillId(id: string): {
 	storage?: SkillStorage;
@@ -266,4 +274,3 @@ export function resolveSkillId(
 	};
 
 }
-

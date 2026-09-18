@@ -80,6 +80,14 @@ export async function createSkill(
 			),
 		};
 	}
+	if (storage === "temp") {
+		return {
+			...coded(
+				"temp storage is rejected: temporary skill paths are not writable skill roots",
+				"CREATE_TEMP_REJECTED",
+			),
+		};
+	}
 	const nameError = validateName(input.name);
 	if (nameError !== undefined) {
 		return { ...coded(nameError, "CREATE_NAME_REJECTED") };
@@ -123,13 +131,14 @@ function runDirect<T>(fn: () => Promise<T>): Promise<T> {
 }
 
 /** Write root per design §5.6: global → agentDir/skills, project → cwd/<configDirName>/skills. */
-function writeRoot(storage: SkillStorage, deps: CreateSkillDeps): string {
-	switch (storage) {
-		case "project":
-			return path.join(deps.cwd, deps.configDirName, "skills");
-		default:
-			return path.join(deps.agentDir, "skills");
+function writeRoot(
+	storage: "global" | "project",
+	deps: CreateSkillDeps,
+): string {
+	if (storage === "project") {
+		return path.join(deps.cwd, deps.configDirName, "skills");
 	}
+	return path.join(deps.agentDir, "skills");
 }
 
 /** Reject names that could escape the skills root; names are `/^[a-z0-9-]+$/` upstream. */

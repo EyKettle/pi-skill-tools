@@ -7,9 +7,13 @@
  */
 
 import type { ToolDeps, ToolTextResult } from "./shared";
+import type { SkillStorage } from "../skill-id";
 import {
 	failEmptyIndex,
+	parseSkillLocation,
 	resolveCallPayload,
+	skillLocationSchema,
+	SKILL_LOCATION_LIST,
 	textResult,
 	themeLike,
 } from "./shared";
@@ -60,17 +64,9 @@ type RenderContext = {
 
 function locationFrom(
 	args: unknown,
-): "global" | "project" | "package" | undefined {
+): ReturnType<typeof parseSkillLocation> {
 	if (typeof args !== "object" || args === null) return undefined;
-	const location = (args as { location?: unknown }).location;
-	if (
-		location === "global" ||
-		location === "project" ||
-		location === "package"
-	) {
-		return location;
-	}
-	return undefined;
+	return parseSkillLocation((args as { location?: unknown }).location);
 }
 
 function tagsInput(
@@ -116,19 +112,15 @@ function paintSlot(
 
 export function defineListSkillTags(deps: ToolDeps) {
 	const Type = deps.Type as ToolDeps["Type"];
-	const locationSchema = Type.Union([
-		Type.Literal("global"),
-		Type.Literal("project"),
-		Type.Literal("package"),
-	]);
+	const locationSchema = skillLocationSchema(Type);
 	const Text = deps.Text;
 
 	return {
 		name: "list_skill_tags",
 		label: "List skill tags",
 		description:
-			"List metadata.tags aggregated across skill frontmatter. location: global|project|" +
-			"package, omitted for all. Output is an alphabetically sorted comma-separated list of tags, useful " +
+			`List metadata.tags aggregated across skill frontmatter. location: ${SKILL_LOCATION_LIST}, omitted for all. ` +
+			"Output is an alphabetically sorted comma-separated list of tags, useful " +
 			"for discovering searchable tags and spotting duplicate or near-synonym tags. Explicit 'no skills " +
 			"carry metadata.tags' when none.",
 		parameters: Type.Object({
@@ -136,7 +128,7 @@ export function defineListSkillTags(deps: ToolDeps) {
 		}),
 		async execute(
 			toolCallId: string,
-			params: { location?: "global" | "project" | "package" },
+			params: { location?: SkillStorage },
 			_signal: unknown,
 			_onUpdate: unknown,
 			ctx: { cwd: string; isProjectTrusted(): boolean },

@@ -30,6 +30,7 @@ export const FAILURE_CODES = [
 	// Creation (skill-create.ts createSkill)
 	"INDEX_EMPTY",
 	"CREATE_PACKAGE_REJECTED",
+	"CREATE_TEMP_REJECTED",
 	"CREATE_NAME_REJECTED",
 	"CREATE_NAME_EXISTS",
 	"CREATE_TARGET_EXISTS",
@@ -79,7 +80,7 @@ const RECOVERY_BY_CODE: Record<FailureCode, string> = {
 	ID_INVALID_NAME:
 		"Use a name matching /^[a-z0-9-]+$/ (lowercase letters, digits, hyphens).",
 	ID_INVALID_STORAGE:
-		"Qualify with a valid storage prefix: global, project, package.",
+		"Qualify with a valid storage prefix: global, project, package, temp.",
 	ID_AMBIGUOUS: "Qualify the name with a storage prefix to pick one location.",
 	ID_NOT_FOUND:
 		"Check the spelling with list_skills; a bare name resolves across all locations.",
@@ -95,6 +96,8 @@ const RECOVERY_BY_CODE: Record<FailureCode, string> = {
 		"Ask the user to restart pi or run /reload so the before_agent_start hook fires before the next prompt.",
 	CREATE_PACKAGE_REJECTED:
 		"Create in global or project storage; package directories are npm-managed.",
+	CREATE_TEMP_REJECTED:
+		"Create in global or project storage; temp paths are not writable skill roots.",
 	CREATE_NAME_REJECTED:
 		"Use a single name segment without path separators or dot segments.",
 	CREATE_NAME_EXISTS:

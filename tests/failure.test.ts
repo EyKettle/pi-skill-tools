@@ -7,8 +7,8 @@ describe("failure vocabulary", () => {
 		expect(new Set(FAILURE_CODES).size).toBe(FAILURE_CODES.length);
 		// 21 owned failure origins across the six tools (identity parsing 3,
 		// identity resolution 2, path containment 3, file reading 3, listing 1,
-		// creation 7, tool seam 2).
-		expect(FAILURE_CODES.length).toBe(21);
+		// creation 8, tool seam 2).
+		expect(FAILURE_CODES.length).toBe(22);
 	});
 
 	it("carries a code, an actionable recovery, and typed evidence", () => {
@@ -113,6 +113,7 @@ describe("failure vocabulary", () => {
 			"listSkillFiles readdir failure": "DIR_UNREADABLE",
 			"empty skill index": "INDEX_EMPTY",
 			"createSkill package storage": "CREATE_PACKAGE_REJECTED",
+			"createSkill temp storage": "CREATE_TEMP_REJECTED",
 			"createSkill invalid name": "CREATE_NAME_REJECTED",
 			"createSkill duplicate name": "CREATE_NAME_EXISTS",
 			"createSkill existing target dir": "CREATE_TARGET_EXISTS",

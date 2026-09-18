@@ -92,7 +92,7 @@ describe("buildRegistry", () => {
 	});
 
 	it("classifies a package-origin skill as package regardless of scope", () => {
-		for (const scope of ["user", "project"] as const) {
+		for (const scope of ["user", "project", "temporary"] as const) {
 			const registry = buildRegistry(
 				makeDeps({
 					activeSkills: [
@@ -108,18 +108,21 @@ describe("buildRegistry", () => {
 		}
 	});
 
-	it("excludes a temporary-scope skill from the index", () => {
+	it("classifies a temporary-scope skill as temp", () => {
 		const registry = buildRegistry(
 			makeDeps({
 				activeSkills: [
 					makeSkill({
+						name: "identity",
 						sourceInfo: { scope: "temporary", origin: "top-level" },
 					}),
 				],
 			}),
 		);
-		expect(registry.entries).toHaveLength(0);
-		expect(registry.indexEmpty).toBe(true);
+		expect(registry.entries).toHaveLength(1);
+		expect(registry.entries[0].storage).toBe("temp");
+		expect(registry.entries[0].id).toBe("temp:identity");
+		expect(registry.indexEmpty).toBe(false);
 	});
 
 	it("keeps disableModelInvocation skills and flags them hidden", () => {
@@ -263,6 +266,48 @@ describe("buildRegistry", () => {
 			}),
 		);
 		expect(calls).toContain(join("/pkg", "skills"));
+	});
+
+	it("derives a temp scan root from an active temporary skill inside skills/", () => {
+		const calls: string[] = [];
+		const tempSkill = makeSkill({
+			name: "identity",
+			filePath: join("/ext", "skills", "identity", "SKILL.md"),
+			baseDir: join("/ext", "skills", "identity"),
+			sourceInfo: { scope: "temporary", origin: "top-level" },
+		});
+		buildRegistry(
+			makeDeps({
+				activeSkills: [tempSkill],
+				scanDir: (dir) => {
+					calls.push(dir);
+					return [];
+				},
+			}),
+		);
+		expect(calls).toContain(join("/ext", "skills"));
+	});
+
+	it("yields no temp root when the temporary skill's grandparent is not named skills", () => {
+		const calls: string[] = [];
+		buildRegistry(
+			makeDeps({
+				activeSkills: [
+					makeSkill({
+						name: "one-off",
+						filePath: join("/tmp", "one-off", "SKILL.md"),
+						baseDir: join("/tmp", "one-off"),
+						sourceInfo: { scope: "temporary", origin: "top-level" },
+					}),
+				],
+				scanDir: (dir) => {
+					calls.push(dir);
+					return [];
+				},
+			}),
+		);
+		expect(calls).not.toContain(join("/tmp", "one-off"));
+		expect(calls).not.toContain("/tmp");
 	});
 
 	it("yields no package root when the package skill's grandparent is not named skills", () => {

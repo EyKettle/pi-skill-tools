@@ -11,6 +11,7 @@ import { testTheme } from "../deps/pi-theme";
 import { createFailure } from "../failure";
 import { defineListSkillTags } from "../tools/list-skill-tags";
 import type { ToolDeps } from "../tools/shared";
+import type { SkillStorage } from "../skill-id";
 import { clearThrownFailures, failEmptyIndex } from "../tools/shared";
 import {
 	buildFailurePayload,
@@ -67,7 +68,7 @@ function countVisible(lines: string[], snippet: string): number {
 }
 
 function renderContext(options: {
-	args?: { location?: "global" | "project" | "package" };
+	args?: { location?: SkillStorage };
 	expanded?: boolean;
 	isError?: boolean;
 	state?: Record<string, unknown>;
@@ -89,7 +90,7 @@ function renderContext(options: {
 }
 
 function compose(options: {
-	args?: { location?: "global" | "project" | "package" };
+	args?: { location?: SkillStorage };
 	expanded?: boolean;
 	isError?: boolean;
 	result?: {
