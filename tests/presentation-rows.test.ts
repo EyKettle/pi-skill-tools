@@ -16,6 +16,7 @@ import {
 	buildListSkillsPayload,
 	buildSearchSkillsPayload,
 	buildViewSkillPayload,
+	buildPeekSkillPayload,
 } from "../transport";
 
 const theme = testTheme("dark");
@@ -588,4 +589,93 @@ describe("generic failure and safety", () => {
 		});
 		expect(visible(lines)[0]).toBe("[Skill] git\uFFFD[31m ...");
 	});
+
+describe("peek_skill row shapes", () => {
+	it("pending shows [Skill] {id} ... when id is provided", () => {
+		const lines = compose({
+			tool: "peek_skill",
+			phase: "pending",
+			args: { id: "git" },
+			keyHint,
+		});
+		expect(visible(lines)).toEqual(["[Skill] git ..."]);
+	});
+
+	it("pending shows peek_skill ... when id is omitted", () => {
+		const lines = compose({
+			tool: "peek_skill",
+			phase: "pending",
+			keyHint,
+		});
+		expect(visible(lines)).toEqual(["peek_skill ..."]);
+	});
+
+	it("collapsed shows call line with expand hint and result line with line count", () => {
+		const payload = buildPeekSkillPayload(
+			"git",
+			"/skills/git/SKILL.md",
+			"## When to Use\n- Use when committing code\n- Don't use for PR review",
+		);
+		const lines = compose({
+			tool: "peek_skill",
+			phase: "collapsed",
+			payload,
+			keyHint,
+		});
+		expect(visible(lines)).toEqual([
+			"[Skill] git · Ctrl+O to expand",
+			"peeked When to Use (3 lines)",
+		]);
+	});
+
+	it("expanded shows identity with path and the extracted section body", () => {
+		const payload = buildPeekSkillPayload(
+			"git",
+			"/skills/git/SKILL.md",
+			"## When to Use\n- Use when committing code",
+		);
+		const lines = compose({
+			tool: "peek_skill",
+			phase: "expanded",
+			payload,
+			keyHint,
+		});
+		expect(visible(lines)).toEqual([
+			"[Skill] git (/skills/git/SKILL.md)",
+			"",
+			"## When to Use",
+			"- Use when committing code",
+		]);
+	});
+
+	it("renders SKILL_NO_WHEN_TO_USE failure correctly", () => {
+		const payload = buildFailurePayload(
+			"peek_skill",
+			createFailure("SKILL_NO_WHEN_TO_USE"),
+		);
+		const lines = compose({
+			tool: "peek_skill",
+			phase: "collapsed",
+			payload,
+			args: { id: "git" },
+			keyHint,
+		});
+		expect(visible(lines)).toEqual(["[Skill] git · no 'When to Use' section"]);
+	});
+
+	it("renders ID_NOT_FOUND failure correctly", () => {
+		const payload = buildFailurePayload(
+			"peek_skill",
+			createFailure("ID_NOT_FOUND"),
+		);
+		const lines = compose({
+			tool: "peek_skill",
+			phase: "collapsed",
+			payload,
+			args: { id: "unknown" },
+			keyHint,
+		});
+		expect(visible(lines)).toEqual(["[Skill] unknown not found"]);
+	});
+});
 });

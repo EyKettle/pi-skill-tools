@@ -29,6 +29,7 @@ import type {
 	ToolName,
 	TransportPayload,
 	ViewSkillData,
+	PeekSkillData,
 } from "./transport";
 import type { ThemeColor } from "@earendil-works/pi-coding-agent";
 import { sliceByColumn, visibleWidth } from "./deps/pi-tui";
@@ -451,6 +452,21 @@ function projectPending(input: ProjectInput): ProjectedRow {
 				),
 			);
 		}
+		case "peek_skill": {
+			const id = input.args?.id;
+			if (id === undefined || id.length === 0) {
+				return callOnly(
+					spanned(span("peek_skill", "toolTitle"), span(" ...", "muted")),
+				);
+			}
+			return callOnly(
+				spanned(
+					skillPrefix("call"),
+					span(display(id), "toolTitle"),
+					span(" ...", "muted"),
+				),
+			);
+		}
 	}
 }
 
@@ -472,6 +488,8 @@ function projectSuccess(input: ProjectInput): ProjectedRow {
 			return projectCreateSkill(input.phase, payload.data, input.keyHint);
 		case "view_skill":
 			return projectViewSkill(input.phase, payload.data, input.keyHint);
+		case "peek_skill":
+			return projectPeekSkill(input.phase, payload.data, input.keyHint);
 	}
 }
 
@@ -697,12 +715,71 @@ function projectViewSkill(
 	);
 }
 
+function projectPeekSkill(
+	phase: RowPhase,
+	data: PeekSkillData,
+	keyHint: ProjectInput["keyHint"],
+): ProjectedRow {
+	const id = display(data.id);
+	if (phase === "expanded") {
+		return both(
+			spanned(
+				skillPrefix("call"),
+				span(id, "toolTitle"),
+				span(" (", "muted"),
+				span(display(data.path), "muted"),
+				span(")", "muted"),
+			),
+			[blankLine(), ...contentBody(data.content)],
+		);
+	}
+	return both(
+		spanned(
+			skillPrefix("call"),
+			span(id, "toolTitle"),
+			expandAffordance(keyHint, "to expand"),
+		),
+		[
+			line(
+				`peeked When to Use (${data.lines} ${noun(data.lines, "line", "lines")})`,
+				"toolOutput",
+			),
+		],
+	);
+}
+
 function projectFailure(input: ProjectInput, failure: Failure): ProjectedRow {
-	if (input.tool === "view_skill" && failure.code === "ID_NOT_FOUND") {
+	if (
+		(input.tool === "view_skill" || input.tool === "peek_skill") &&
+		failure.code === "ID_NOT_FOUND"
+	) {
 		return projectNotFound(input, failure);
 	}
-	if (input.tool === "view_skill" && failure.code === "ID_AMBIGUOUS") {
+	if (
+		(input.tool === "view_skill" || input.tool === "peek_skill") &&
+		failure.code === "ID_AMBIGUOUS"
+	) {
 		return projectAmbiguous(input, failure);
+	}
+	if (input.tool === "peek_skill" && failure.code === "SKILL_NO_WHEN_TO_USE") {
+		const id = identityOf(input);
+		return callOnly(
+			spanned(
+				skillPrefix("error"),
+				span(id, "toolTitle"),
+				span(" · no 'When to Use' section", "error"),
+			),
+		);
+	}
+	if (input.tool === "peek_skill" && failure.code === "TOOL_REF_PATH_UNSUPPORTED") {
+		const id = identityOf(input);
+		return callOnly(
+			spanned(
+				skillPrefix("error"),
+				span(id, "toolTitle"),
+				span(" · ref path unsupported", "error"),
+			),
+		);
 	}
 	if (
 		input.tool === "create_skill" &&
