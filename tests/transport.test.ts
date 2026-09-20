@@ -8,6 +8,7 @@ import {
 	buildListSkillTagsPayload,
 	buildSearchSkillsPayload,
 	buildViewSkillPayload,
+	buildPeekSkillPayload,
 	TRANSPORT_VERSION,
 	TransportGuardError,
 } from "../transport";
@@ -292,6 +293,39 @@ describe("malformed nested values", () => {
 				code: "ID_NOT_FOUND",
 				recovery: "recover",
 				evidence: { kind: "candidates", candidates: [{ id: "git" }] },
+			},
+		};
+		expect(() => assertValidPayload(payload)).toThrow(TransportGuardError);
+	});
+
+	it("builds and validates a peek_skill payload", () => {
+		const payload = buildPeekSkillPayload(
+			"git",
+			"/skills/git/SKILL.md",
+			"## When to Use\n- doing git stuff",
+		);
+		expect(payload.version).toBe(TRANSPORT_VERSION);
+		expect(payload.tool).toBe("peek_skill");
+		expect(payload.outcome).toBe("success");
+		expect(payload.data.id).toBe("git");
+		expect(payload.data.path).toBe("/skills/git/SKILL.md");
+		expect(payload.data.content).toBe("## When to Use\n- doing git stuff");
+		expect(payload.data.lines).toBe(2);
+		expect(payload.data.bytes).toBe(Buffer.byteLength(payload.data.content, "utf8"));
+		expect(() => assertValidPayload(payload)).not.toThrow();
+	});
+
+	it("rejects peek_skill with mismatched lines or bytes count", () => {
+		const payload = {
+			version: 1,
+			tool: "peek_skill",
+			outcome: "success",
+			data: {
+				id: "git",
+				path: "/skills/git/SKILL.md",
+				content: "## When to Use\nLine 2",
+				lines: 99,
+				bytes: 10,
 			},
 		};
 		expect(() => assertValidPayload(payload)).toThrow(TransportGuardError);

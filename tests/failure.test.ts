@@ -5,10 +5,10 @@ import { FailureGuardError } from "../failure";
 describe("failure vocabulary", () => {
 	it("is a closed code set with no duplicates", () => {
 		expect(new Set(FAILURE_CODES).size).toBe(FAILURE_CODES.length);
-		// 21 owned failure origins across the six tools (identity parsing 3,
-		// identity resolution 2, path containment 3, file reading 3, listing 1,
+		// 22 owned failure origins across the seven tools (identity parsing 3,
+		// identity resolution 2, path containment 3, file reading 4, listing 1,
 		// creation 8, tool seam 2).
-		expect(FAILURE_CODES.length).toBe(22);
+		expect(FAILURE_CODES.length).toBe(23);
 	});
 
 	it("carries a code, an actionable recovery, and typed evidence", () => {
@@ -121,6 +121,7 @@ describe("failure vocabulary", () => {
 			"createSkill post-write verify failure": "CREATE_VERIFY_FAILED",
 			"create_skill ref path unsupported": "TOOL_REF_PATH_UNSUPPORTED",
 			"resolved entry not in registry": "ENTRY_UNREACHABLE",
+			"peekSkill missing when to use": "SKILL_NO_WHEN_TO_USE",
 		} as const;
 
 		it("maps every owned failure origin to exactly one closed code", () => {
@@ -141,6 +142,12 @@ describe("failure vocabulary", () => {
 		it("gives INDEX_EMPTY an agent-executable recovery", () => {
 			expect(recoveryFor("INDEX_EMPTY")).toBe(
 				"Ask the user to restart pi or run /reload so the before_agent_start hook fires before the next prompt.",
+			);
+		});
+
+		it("gives SKILL_NO_WHEN_TO_USE an actionable heading tree check recovery", () => {
+			expect(recoveryFor("SKILL_NO_WHEN_TO_USE")).toBe(
+				"The skill does not contain a '## When to Use' section. Check its heading tree if you need.",
 			);
 		});
 

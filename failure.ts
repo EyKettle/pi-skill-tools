@@ -25,6 +25,7 @@ export const FAILURE_CODES = [
 	"FILE_UNREADABLE",
 	"FILE_NOT_TEXT",
 	"FILE_NO_FRONTMATTER",
+	"SKILL_NO_WHEN_TO_USE",
 	// Directory listing (skill-files.ts listSkillFiles)
 	"DIR_UNREADABLE",
 	// Creation (skill-create.ts createSkill)
@@ -91,6 +92,8 @@ const RECOVERY_BY_CODE: Record<FailureCode, string> = {
 	FILE_UNREADABLE: "Check the file's existence and read permissions.",
 	FILE_NOT_TEXT: "Request a text file; binary content is not supported.",
 	FILE_NO_FRONTMATTER: "Add a leading '---' frontmatter block to the file.",
+	SKILL_NO_WHEN_TO_USE:
+		"The skill does not contain a '## When to Use' section. Check its heading tree if you need.",
 	DIR_UNREADABLE: "Check the skill directory's existence and read permissions.",
 	INDEX_EMPTY:
 		"Ask the user to restart pi or run /reload so the before_agent_start hook fires before the next prompt.",

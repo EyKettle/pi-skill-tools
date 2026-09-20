@@ -48,7 +48,8 @@ export type ToolName =
 	| "search_skills"
 	| "list_skill_files"
 	| "create_skill"
-	| "view_skill";
+	| "view_skill"
+	| "peek_skill";
 
 /** One expanded skill row: `- {dynamic-skill-id} {/absolute/path}`. */
 export interface SkillRow {
@@ -105,6 +106,14 @@ export interface ViewSkillData {
 	path: string;
 	content: string;
 }
+export interface PeekSkillData {
+	/** Display id per `{dynamic-skill-id}`: bare name unless in conflict. */
+	id: string;
+	path: string;
+	content: string;
+	lines: number;
+	bytes: number;
+}
 
 /** The closed, discriminated payload family (one variant per tool + failure). */
 export type TransportPayload =
@@ -139,6 +148,7 @@ export type TransportPayload =
 			data: CreateSkillData;
 	  }
 	| { version: 1; tool: "view_skill"; outcome: "success"; data: ViewSkillData }
+	| { version: 1; tool: "peek_skill"; outcome: "success"; data: PeekSkillData }
 	| { version: 1; tool: ToolName; outcome: "failure"; failure: Failure };
 
 export type ListSkillsPayload = Extract<
@@ -165,6 +175,10 @@ export type ViewSkillPayload = Extract<
 	TransportPayload,
 	{ tool: "view_skill" }
 >;
+export type PeekSkillPayload = Extract<
+	TransportPayload,
+	{ tool: "peek_skill" }
+>;
 export type FailurePayload = Extract<TransportPayload, { outcome: "failure" }>;
 
 /** Thrown by `assertValidPayload` when a guard rejects a malformed payload. */
@@ -182,6 +196,7 @@ const TOOL_NAMES: readonly string[] = [
 	"list_skill_files",
 	"create_skill",
 	"view_skill",
+	"peek_skill",
 ];
 const POSITIONS: readonly string[] = SKILL_STORAGES;
 const LIST_OUTCOMES: readonly string[] = ["success", "empty"];
@@ -283,6 +298,24 @@ export function buildViewSkillPayload(
 		tool: "view_skill",
 		outcome: "success",
 		data: { id, path, content },
+	};
+}
+export function buildPeekSkillPayload(
+	id: string,
+	path: string,
+	content: string,
+): PeekSkillPayload {
+	return {
+		version: TRANSPORT_VERSION,
+		tool: "peek_skill",
+		outcome: "success",
+		data: {
+			id,
+			path,
+			content,
+			lines: countTextLines(content),
+			bytes: Buffer.byteLength(content, "utf8"),
+		},
 	};
 }
 
@@ -576,6 +609,29 @@ export function assertValidPayload(
 			assertNonEmptyString(data.id, "id");
 			assertNonEmptyString(data.path, "path");
 			assertString(data.content, "content");
+			return;
+		}
+		case "peek_skill": {
+			if (value.outcome !== "success") {
+				failGuard("peek_skill has no empty outcome");
+			}
+			const data = value.data;
+			assertExactKeys(
+				data,
+				["id", "path", "content", "lines", "bytes"],
+				"peek_skill data",
+			);
+			assertNonEmptyString(data.id, "id");
+			assertNonEmptyString(data.path, "path");
+			const content = assertString(data.content, "content");
+			const lines = assertNonNegativeInteger(data.lines, "lines");
+			const bytes = assertNonNegativeInteger(data.bytes, "bytes");
+			if (lines !== countTextLines(content)) {
+				failGuard("lines must match the written content");
+			}
+			if (bytes !== Buffer.byteLength(content, "utf8")) {
+				failGuard("bytes must match the written content");
+			}
 			return;
 		}
 	}

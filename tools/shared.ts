@@ -20,6 +20,7 @@ import type {
 	ToolName,
 	TransportPayload,
 	ViewSkillPayload,
+	PeekSkillPayload,
 } from "../transport";
 import { createFailure, INDEX_EMPTY_ERROR } from "../failure";
 import type { FailureCode, FailureEvidence } from "../failure";
@@ -46,6 +47,19 @@ export interface ViewSkillDetails {
 	payload: ViewSkillPayload;
 	/** Declared during execute; the renderer must not infer this from content. */
 	format: "full" | "frontmatter";
+}
+
+/** peek_skill `details` consumed by its renderer. */
+export interface PeekSkillDetails {
+	name: string;
+	storage: string;
+	path: string;
+	bytes: number;
+	lines: number;
+	/** Model-channel payload: wrapSkillPeekBlock(...) of the section. */
+	content: string;
+	/** Versioned transport payload for the TUI card. */
+	payload: PeekSkillPayload;
 }
 
 /** `source` marker for the registry shadow scan (design §3.3). */
