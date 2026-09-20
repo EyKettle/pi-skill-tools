@@ -5,8 +5,8 @@
 > [!note]
 > AI-generated artifacts. May include low-quality code.
 
-A [Pi](https://github.com/earendil-works/pi) extension that registers six
-tools for managing skills: list, search, view (untruncated), and create.
+A [Pi](https://github.com/earendil-works/pi) extension that registers seven
+tools for managing skills: list, search, view (untruncated), peek, and create.
 
 Pi's native `read` truncates at 2000 lines / 50KB. A skill has to reach the
 model whole. `view_skill` returns `SKILL.md` verbatim — frontmatter included —
@@ -21,6 +21,7 @@ wrapped in an attributed `<SKILL>` block.
 | `search_skills` | Filter skills by frontmatter fields |
 | `list_skill_files` | List files under a skill directory as `{type/file-name}` refs |
 | `view_skill` | Load a skill's `SKILL.md` untruncated |
+| `peek_skill` | Preview a skill's `When to Use` section without loading the full file |
 | `create_skill` | Scaffold a new skill with id-conflict interception and no-overwrite |
 
 Row layout for the interactive TUI is specified by

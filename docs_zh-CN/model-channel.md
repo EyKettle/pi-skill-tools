@@ -48,7 +48,7 @@
 | Q5 | 失败时——为什么、接下来做什么？ | 失败上下文：失败的操作、类别、代理可执行的恢复 | 重犯同一失败调用 |
 | Q6 | 结果接下来怎么用？ | 接续：下一个调用可直接取用的 path、ref id 或 id | 多一次查询或猜测 |
 
-六工具的形态：
+七工具的形态：
 
 | 工具 | 成功载荷 | 空态 |
 | --- | --- | --- |
@@ -58,11 +58,12 @@
 | `list_skill_files` | 每行 `- {type/file-name} {absolute-path}` | `no files` |
 | `create_skill` | `created skill '{id}' at {absolute-path}` | 写入零字节仍是成功 |
 | `view_skill` | `<SKILL name="…" location="…">` 包裹的全文；`frontmatterOnly` 为真时包裹 frontmatter 段 | 空文件：包裹内为空即答案 |
+| `peek_skill` | `<SKILL_PEEK name="…" location="…">` 包裹的 `## When to Use` 章节内容 | 无（章节缺失时抛出失败） |
 
 空态规则：空态是成功的一种，用短句 `no {对象}` 明说；空白文本不可用作空态。空态与失败可辨——失败抛出，
 带 `error:`。
 
-保证类信息在此处不可验证，必须在通道里声明。本项目的保证实例：`view_skill` 全文不截断；一切定位行给绝对路径；
+保证类信息在此处不可验证，必须在通道里声明。本项目的保证实例：`view_skill` 与 `peek_skill` 内容不截断；`peek_skill` 仅提取 `SKILL.md` 根文件的 `## When to Use` 章节；一切定位行给绝对路径；
 tag 检索只认 `metadata.tags`，其余来源不报。
 
 ## 失败

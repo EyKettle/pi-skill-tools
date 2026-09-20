@@ -33,6 +33,7 @@
 | `list_skill_files` | `[Skill] {dynamic-skill-id} ...`；id 未知则 `list_skill_files ...` | 同左；展开为 `[Skill] {dynamic-skill-id} ({n})` |
 | `create_skill` | `[NewSkill] {dynamic-skill-id} ({n} lines · {m} B)` | `[NewSkill] {dynamic-skill-id}`；展开身份行加 `({path})` |
 | `view_skill` | `[Skill] {dynamic-skill-id} ...`；id 未知则 `view_skill ...` | 同左；展开身份行加 `({path})` |
+| `peek_skill` | `[Skill] {dynamic-skill-id} ...`；id 未知则 `peek_skill ...` | 同左；展开身份行加 `({path})` |
 
 ## 答案
 
@@ -120,6 +121,8 @@ TUI 消费与当前 `toolCallId` 和工具名匹配的结构化结果；模型�
 - `view_skill` 找不到：`[Skill] {id} not found`；有近邻则收起 `Found {n} similar skills · Ctrl+O to show`，展开列出近邻。
 - `view_skill` 歧义：`[Skill] {id} is ambiguous`；收起 `{n} same skills in different position · Ctrl+O to show`，展开 `There's {n} versions:` 加候选列表。
 - `create_skill` 目标已存在：`create_skill · {name} already exists`。
+- `peek_skill` 缺失章节：`[Skill] {id} · no 'When to Use' section`。
+- `peek_skill` 传入子路径：`[Skill] {id} · ref path unsupported`。
 
 失败态的 `[Skill]` 前缀降为次级色。其余失败用 `{tool} · {Error info}`，工具名标题色，信息错误色。
 
