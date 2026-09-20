@@ -33,6 +33,8 @@ import type { PiSkill, RegistryDeps } from "../registry";
 import { parseSkillId, resolveSkillId } from "../skill-id";
 import { readSkillFile, resolveSkillFile } from "../skill-file";
 import { wrapSkillBlock } from "../tools/view-skill";
+import { wrapSkillPeekBlock } from "../tools/peek-skill";
+import { extractSection } from "../skill-section";
 import { listSkillFiles } from "../skill-files";
 import { createSkill } from "../skill-create";
 import type { CreateSkillDeps } from "../skill-create";
@@ -417,6 +419,35 @@ describe("integration: skill tools pipeline over a real skills tree", () => {
 			.replace(/^<SKILL\b[^>]*>\n/, "")
 			.replace(/\n<\/SKILL>$/, "");
 		expect(inner).toBe(diskText); // full file, no truncation
+	});
+
+	it("peek_skill extracts ## When to Use from disk and wraps with <SKILL_PEEK>", () => {
+		const registry = buildRegistry(registryDepsOf(tree));
+		const entry = registry.entries.find(
+			(e) => e.storage === "global" && e.name === "git-utils",
+		);
+		expect(entry).toBeDefined();
+		if (entry === undefined) return;
+
+		const resolvedFile = resolveSkillFile(entry.baseDir);
+		expect(resolvedFile.error).toBeUndefined();
+		if (resolvedFile.error !== undefined) return;
+
+		const read = readSkillFile(resolvedFile.path);
+		expect(read.error).toBeUndefined();
+		if (read.error !== undefined) return;
+
+		const section = extractSection(read.text, "When to Use");
+		expect(section).toBeDefined();
+		if (section === undefined) return;
+
+		expect(section.content).toContain("## When to Use");
+		expect(section.content).toContain("Reference-backed reads.");
+
+		const content = wrapSkillPeekBlock(entry.name, resolvedFile.path, section.content);
+		expect(content).toContain('<SKILL_PEEK name="git-utils" location="');
+		expect(content).toContain("</SKILL_PEEK>");
+		expect(content).toContain("Reference-backed reads.");
 	});
 
 	it("list_skill_files ids resolve through parseSkillId + resolveSkillFile to existing paths", () => {

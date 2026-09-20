@@ -1,6 +1,6 @@
 /**
- * skill-tools extension entry: registers the six skill tools (list_skills,
- * list_skill_tags, search_skills, view_skill, list_skill_files, create_skill)
+ * skill-tools extension entry: registers the seven skill tools (list_skills,
+ * list_skill_tags, search_skills, view_skill, peek_skill, list_skill_files, create_skill)
  * plus a `before_agent_start` hook that caches pi's loaded skill set and
  * appends the view_skill adoption guidance to the system prompt (design §5.7).
  *
@@ -32,6 +32,7 @@ import { defineListSkills } from "./tools/list-skills";
 import { defineListSkillTags } from "./tools/list-skill-tags";
 import { defineSearchSkills } from "./tools/search-skills";
 import { defineViewSkill } from "./tools/view-skill";
+import { definePeekSkill } from "./tools/peek-skill";
 import { defineListSkillFiles } from "./tools/list-skill-files";
 import { defineCreateSkill } from "./tools/create-skill";
 import { release, clear } from "./correlation";
@@ -128,6 +129,11 @@ export default async function (pi: ExtensionAPI): Promise<void> {
 	);
 	register(
 		defineViewSkill(deps, config) as unknown as Parameters<
+			typeof pi.registerTool
+		>[0],
+	);
+	register(
+		definePeekSkill(deps, config) as unknown as Parameters<
 			typeof pi.registerTool
 		>[0],
 	);
