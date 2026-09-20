@@ -1,38 +1,45 @@
-# skill-tools
+# skill-tools extension
 
-[![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-%23FE5196?logo=conventionalcommits&logoColor=white)](https://conventionalcommits.org)
+[![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-%23FE5196?logo=conventionalcommits&logoColor=white)](https://conventionalcommits.org) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+English | [中文](README.zh-CN.md)
 
 > [!note]
 > AI-generated artifacts. May include low-quality code.
 
-A [Pi](https://github.com/earendil-works/pi) extension that registers seven
-tools for managing skills: list, search, view (untruncated), peek, and create.
+A [Pi](https://github.com/earendil-works/pi) extension that improves the skill
+usage experience. Key features:
+
+- List all known skills
+- Search skills with filters
+- View skills without truncation
+- Peek a skill's scope via 'When to Use' preview
+- Create skill with id-conflict protection
 
 Pi's native `read` truncates at 2000 lines / 50KB. A skill has to reach the
-model whole. `view_skill` returns `SKILL.md` verbatim — frontmatter included —
-wrapped in an attributed `<SKILL>` block.
+model whole. `view_skill` returns `SKILL.md` verbatim (frontmatter included).
 
 ## Tools
 
-| Tool | Purpose |
-| --- | --- |
-| `list_skills` | List loaded skills (global / project / package), with shadow and conflict state |
-| `list_skill_tags` | List `metadata.tags` values across the skill index |
-| `search_skills` | Filter skills by frontmatter fields |
-| `list_skill_files` | List files under a skill directory as `{type/file-name}` refs |
-| `view_skill` | Load a skill's `SKILL.md` untruncated |
-| `peek_skill` | Preview a skill's `When to Use` section without loading the full file |
-| `create_skill` | Scaffold a new skill with id-conflict interception and no-overwrite |
+| Tool               | Purpose                                                                                     |
+| ------------------ | ------------------------------------------------------------------------------------------- |
+| `list_skills`      | List loaded skills (global / project / package / temp), with shadow and conflict state |
+| `list_skill_tags`  | List `metadata.tags` values across the skill index                                          |
+| `search_skills`    | Filter skills by frontmatter fields                                                         |
+| `list_skill_files` | List files under a skill directory as `{type/file-name}` refs                               |
+| `view_skill`       | Load a skill's `SKILL.md` untruncated                                                       |
+| `peek_skill`       | Preview a skill's `When to Use` section without loading the full file                       |
+| `create_skill`     | Scaffold a new skill with id-conflict interception and no-overwrite                         |
 
-Row layout for the interactive TUI is specified by
-[TUI Render Principle](docs_zh-CN/tui-render.md). That
-document is the layout authority.
+## Docs
+
+- [Architecture Blueprint](docs/architecture.md)
+- [TUI Render Standard](docs/tui-render.md)
+- [Model Channel Standard](docs/model-channel.md)
 
 ## Install
 
-Clone into Pi's user-extension directory, then install this package's own
-runtime dependency. `js-yaml` is a real runtime dependency the host does
-not provide or alias.
+Clone into Pi's user-extension directory.
 
 ```bash
 git clone https://github.com/EyKettle/pi-skill-tools.git ~/.pi/agent/extensions/skill-tools
@@ -41,9 +48,7 @@ npm install
 ```
 
 Pi loads `index.ts` from each directory under `~/.pi/agent/extensions/`.
-Reload Pi after installing. Host-provided packages
-(`@earendil-works/pi-coding-agent`, `@earendil-works/pi-tui`, `typebox`)
-are declared as optional peers so a live load shares the host TUI instance.
+Reload Pi after installing.
 
 ## Develop
 
