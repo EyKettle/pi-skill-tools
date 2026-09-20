@@ -1,5 +1,7 @@
 # 工具卡片
 
+[English](../docs/tui-render.md) | 中文
+
 本文档描述面向终端用户的工具卡片，模型通道的文本与恢复建议见 [`模型通道`](model-channel.md)。
 
 **RP#Visible** — 有效信息必须在某处展示。

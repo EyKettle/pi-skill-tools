@@ -1,5 +1,7 @@
 # 模型通道
 
+[English](../docs/model-channel.md) | 中文
+
 本文档描述面向代理的信息规范，工具卡片的行形与配色见 [`TUI 渲染`](tui-render.md)。
 
 模型通道由工具结果的 `content` 承载：`content` 进入模型上下文，`details` 供卡片与结构化消费。
