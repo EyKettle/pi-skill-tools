@@ -31,7 +31,12 @@ import {
 } from "../presentation";
 import type { TransportPayload } from "../transport";
 import { buildViewSkillPayload } from "../transport";
-import { formatSkillId, parseSkillId, resolveSkillId } from "../skill-id";
+import {
+	formatSkillId,
+	parseSkillId,
+	refPathOf,
+	resolveSkillId,
+} from "../skill-id";
 import { readSkillFile, resolveSkillFile } from "../skill-file";
 import { parseFrontmatterBlock } from "../frontmatter";
 
@@ -65,10 +70,20 @@ function failViewSkill(toolCallId: string, source: FailureSource): never {
 	return failError(toolCallId, "view_skill", source);
 }
 
+type CardBg =
+	| "customMessageBg"
+	| "toolErrorBg"
+	| "toolSuccessBg"
+	| "toolPendingBg";
+
+/** The read mode a call is in; `unknown` when the id is not a string. */
+type CardMode = "skill" | "document" | "unknown";
+
 function cardBackground(
 	payload: TransportPayload | undefined,
 	isError: boolean,
-): "customMessageBg" | "toolErrorBg" {
+	mode: CardMode,
+): CardBg {
 	// Local union: ThemeBg is not on the public entry.
 	if (payload !== undefined && payload.outcome === "failure") {
 		return "toolErrorBg";
@@ -76,7 +91,14 @@ function cardBackground(
 	if (payload === undefined && isError) {
 		return "toolErrorBg";
 	}
-	return "customMessageBg";
+	return mode === "skill" ? "customMessageBg" : "toolSuccessBg";
+}
+
+function cardMode(id: unknown): CardMode {
+	if (typeof id !== "string") {
+		return "unknown";
+	}
+	return refPathOf(id) === undefined ? "skill" : "document";
 }
 
 function slotComponents(deps: ToolDeps): SlotComponents {
@@ -87,7 +109,7 @@ function paintSkillCard(
 	input: ProjectInput,
 	theme: ThemeLike,
 	deps: ToolDeps,
-	bgRole: "customMessageBg" | "toolErrorBg",
+	bgRole: CardBg,
 ) {
 	const presented = presentRow(input, theme, slotComponents(deps));
 	const card = new deps.Box(1, 1, (text: string) => theme.bg(bgRole, text));
@@ -244,7 +266,7 @@ export function defineViewSkill(
 				pendingInput(args, deps.expandKeyHint),
 				themeLike(theme),
 				deps,
-				"customMessageBg",
+				"toolPendingBg",
 			);
 		},
 		renderResult: (
@@ -281,7 +303,7 @@ export function defineViewSkill(
 				input,
 				themeLike(theme),
 				deps,
-				cardBackground(payload, context.isError),
+				cardBackground(payload, context.isError, cardMode(id)),
 			);
 		},
 	};

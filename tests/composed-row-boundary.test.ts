@@ -211,6 +211,11 @@ const viewPayload = buildViewSkillPayload(
 	"/skills/git/SKILL.md",
 	"# Git\n",
 );
+const documentViewPayload = buildViewSkillPayload(
+	"git",
+	"/skills/git/references/GUIDE.md",
+	"# Guide\n",
+);
 const emptyCreatePayload = buildCreateSkillPayload(
 	"notes",
 	"/skills/notes/SKILL.md",
@@ -613,6 +618,28 @@ const DOCUMENTED: DocumentedState[] = [
 		expanded: true,
 		payload: viewPayload,
 		expected: ["[Skill] git (/skills/git/SKILL.md)", "", "# Git"],
+	},
+	{
+		id: "view_skill/document/collapsed",
+		tool: "view_skill",
+		identity: "[Skill]",
+		args: { id: "global:git/references/GUIDE.md" },
+		payload: documentViewPayload,
+		expected: ["[Skill] git/references/GUIDE.md · Ctrl+O to expand"],
+	},
+	{
+		id: "view_skill/document/expanded",
+		tool: "view_skill",
+		identity: "[Skill]",
+		args: { id: "global:git/references/GUIDE.md" },
+		expanded: true,
+		payload: documentViewPayload,
+		expected: [
+			"[Skill] git/references/GUIDE.md",
+			"(/skills/git/references/GUIDE.md)",
+			"",
+			"# Guide",
+		],
 	},
 	{
 		id: "view_skill/empty",
@@ -1660,6 +1687,20 @@ describe("composed rows stay within width", () => {
 			assertBounded(raw, WIDE);
 		},
 	);
+
+	it("bounds the document-mode identity and its path line", () => {
+		const state: DocumentedState = {
+			id: "width/view_skill/document",
+			tool: "view_skill",
+			identity: "[Skill]",
+			args: { id: `git/${LONG_ID}` },
+			expanded: true,
+			payload: buildViewSkillPayload("git", LONG_PATH, `${LONG_LINE}\n`),
+			expected: [],
+		};
+		assertBounded(compose(state, NARROW), NARROW);
+		assertBounded(compose(state, WIDE), WIDE);
+	});
 });
 
 describe("presentRow bounding route truncates before paint", () => {

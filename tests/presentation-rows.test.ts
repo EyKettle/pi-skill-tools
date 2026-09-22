@@ -404,6 +404,49 @@ describe("view_skill row shapes", () => {
 		).toEqual(["[Skill] git (/skills/git/SKILL.md)", "", "# Git"]);
 	});
 
+	it("document mode collapsed shows the ref in the identity", () => {
+		const payload = buildViewSkillPayload(
+			"git",
+			"/skills/git/references/GUIDE.md",
+			"# Guide\n",
+		);
+		expect(
+			visible(
+				compose({
+					tool: "view_skill",
+					phase: "collapsed",
+					payload,
+					args: { id: "global:git/references/GUIDE.md" },
+					keyHint,
+				}),
+			),
+		).toEqual(["[Skill] git/references/GUIDE.md · Ctrl+O to expand"]);
+	});
+
+	it("document mode expanded puts the path on its own line after the identity", () => {
+		const payload = buildViewSkillPayload(
+			"git",
+			"/skills/git/references/GUIDE.md",
+			"# Guide\n",
+		);
+		expect(
+			visible(
+				compose({
+					tool: "view_skill",
+					phase: "expanded",
+					payload,
+					args: { id: "global:git/references/GUIDE.md" },
+					keyHint,
+				}),
+			),
+		).toEqual([
+			"[Skill] git/references/GUIDE.md",
+			"(/skills/git/references/GUIDE.md)",
+			"",
+			"# Guide",
+		]);
+	});
+
 	it("not-found without similar names is a single line and has no expand hint", () => {
 		const payload = buildFailurePayload(
 			"view_skill",

@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { formatSkillId, parseSkillId, resolveSkillId } from "../skill-id";
+import {
+	formatSkillId,
+	parseSkillId,
+	refPathOf,
+	resolveSkillId,
+} from "../skill-id";
 
 describe("parseSkillId", () => {
 	it("parses a bare name", () => {
@@ -64,6 +69,29 @@ describe("formatSkillId", () => {
 		expect(formatSkillId("package", "pi-subagents", "references/a.md")).toBe(
 			"package:pi-subagents/references/a.md",
 		);
+	});
+});
+
+describe("refPathOf", () => {
+	it("returns undefined for a skill-only id", () => {
+		expect(refPathOf("git")).toBeUndefined();
+	});
+
+	it("returns the ref path for a storage-prefixed document id", () => {
+		expect(refPathOf("global:git/references/GUIDE.md")).toBe(
+			"references/GUIDE.md",
+		);
+	});
+
+	it("returns undefined for a malformed id", () => {
+		expect(refPathOf("a:b:c")).toBeUndefined();
+	});
+
+	it("returns undefined for a non-string id", () => {
+		expect(refPathOf(123)).toBeUndefined();
+		expect(refPathOf(null)).toBeUndefined();
+		expect(refPathOf(undefined)).toBeUndefined();
+		expect(refPathOf({})).toBeUndefined();
 	});
 });
 

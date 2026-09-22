@@ -139,6 +139,19 @@ export function formatSkillId(
 	return refPath === undefined ? base : `${base}/${refPath}`;
 }
 
+/**
+ * The ref path an id carries, or undefined when the id is not a string or
+ * names only the skill. A malformed id carries no ref (its error is
+ * classified elsewhere).
+ */
+export function refPathOf(id: unknown): string | undefined {
+	if (typeof id !== "string") {
+		return undefined;
+	}
+	const parsed = parseSkillId(id);
+	return parsed.error === undefined ? parsed.refPath : undefined;
+}
+
 function levenshtein(a: string, b: string): number {
 	const m = a.length;
 	const n = b.length;

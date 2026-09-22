@@ -128,7 +128,7 @@ function countIdentity(lines: string[]): number {
 
 function hasBg(
 	lines: string[],
-	role: "customMessageBg" | "toolErrorBg",
+	role: "customMessageBg" | "toolErrorBg" | "toolPendingBg" | "toolSuccessBg",
 ): boolean {
 	const sample = theme.bg(role, " ");
 	const open = sample.slice(0, sample.indexOf(" ") + 1);
@@ -158,15 +158,15 @@ afterEach(() => {
 });
 
 describe("view_skill card — pending", () => {
-	it("pending with an id is the title only on a lavender card", () => {
+	it("pending with an id is the title only on the default pending shell", () => {
 		const tool = defineTool();
 		const ctx = renderContext({ isPartial: true });
 		const lines = compose(tool.renderCall!({ id: "git" }, theme, ctx));
 		expect(cardBody(lines)).toEqual(["[Skill] git ..."]);
 		expect(countIdentity(lines)).toBe(1);
 		expect(lines.join("\n")).not.toContain("to expand");
-		expect(hasBg(lines, "customMessageBg")).toBe(true);
-		expect(hasBg(lines, "toolErrorBg")).toBe(false);
+		expect(hasBg(lines, "toolPendingBg")).toBe(true);
+		expect(hasBg(lines, "customMessageBg")).toBe(false);
 	});
 
 	it("pending with no id shows the tool name only", () => {
@@ -175,6 +175,156 @@ describe("view_skill card — pending", () => {
 		const lines = compose(tool.renderCall!({}, theme, ctx));
 		expect(cardBody(lines)).toEqual(["view_skill ..."]);
 		expect(countIdentity(lines)).toBe(1);
+	});
+});
+
+describe("view_skill card — document mode", () => {
+	it("collapsed shows the ref identity on the default success shell", () => {
+		const tool = defineTool();
+		const payload = buildViewSkillPayload(
+			"git",
+			"/skills/git/references/GUIDE.md",
+			"# Guide\n",
+		);
+		const details: ViewSkillDetails = {
+			name: "git",
+			storage: "global",
+			path: "/skills/git/references/GUIDE.md",
+			bytes: 8,
+			lines: 1,
+			content: `<SKILL name="git" location="/skills/git/references/GUIDE.md">\n# Guide\n\n</SKILL>`,
+			payload,
+			format: "full",
+		};
+		const state: Record<string, unknown> = {};
+		const args = { id: "global:git/references/GUIDE.md" };
+		const lines = compose(
+			tool.renderCall!(
+				args,
+				theme,
+				renderContext({ args, isPartial: false, state }),
+			),
+			tool.renderResult!(
+				{ content: [{ type: "text", text: details.content }], details },
+				{ expanded: false, isPartial: false },
+				theme,
+				renderContext({ args, isPartial: false, expanded: false, state }),
+			),
+		);
+		expect(cardBody(lines)).toEqual([
+			"[Skill] git/references/GUIDE.md · Ctrl+O to expand",
+		]);
+		expect(hasBg(lines, "toolSuccessBg")).toBe(true);
+		expect(hasBg(lines, "customMessageBg")).toBe(false);
+	});
+
+	it("expanded puts the path on its own line and keeps the default success shell", () => {
+		const tool = defineTool();
+		const payload = buildViewSkillPayload(
+			"git",
+			"/skills/git/references/GUIDE.md",
+			"# Guide\n",
+		);
+		const details: ViewSkillDetails = {
+			name: "git",
+			storage: "global",
+			path: "/skills/git/references/GUIDE.md",
+			bytes: 8,
+			lines: 1,
+			content: `<SKILL name="git" location="/skills/git/references/GUIDE.md">\n# Guide\n\n</SKILL>`,
+			payload,
+			format: "full",
+		};
+		const state: Record<string, unknown> = {};
+		const args = { id: "global:git/references/GUIDE.md" };
+		const lines = compose(
+			tool.renderCall!(
+				args,
+				theme,
+				renderContext({ args, isPartial: false, state }),
+			),
+			tool.renderResult!(
+				{ content: [{ type: "text", text: details.content }], details },
+				{ expanded: true, isPartial: false },
+				theme,
+				renderContext({ args, isPartial: false, expanded: true, state }),
+			),
+		);
+		expect(cardBody(lines)).toEqual([
+			"[Skill] git/references/GUIDE.md",
+			"(/skills/git/references/GUIDE.md)",
+			"",
+			"# Guide",
+		]);
+		expect(hasBg(lines, "toolSuccessBg")).toBe(true);
+	});
+});
+
+describe("view_skill card — undeterminable mode", () => {
+	it.each([123, true, null, {}])(
+		"a non-string id (%s) does not throw and uses the default success shell",
+		(nonStringId) => {
+			const tool = defineTool();
+			const args = { id: nonStringId } as unknown as { id?: string };
+			const state: Record<string, unknown> = {};
+			const lines = compose(
+				tool.renderCall!(
+					args,
+					theme,
+					renderContext({ args, isPartial: false, state }),
+				),
+				tool.renderResult!(
+					{ content: [], details: {} },
+					{ expanded: false, isPartial: false },
+					theme,
+					renderContext({ args, isPartial: false, state }),
+				),
+			);
+			expect(hasBg(lines, "toolSuccessBg")).toBe(true);
+			expect(hasBg(lines, "customMessageBg")).toBe(false);
+		},
+	);
+
+	it.each([123, null])(
+		"a non-string id (%s) on a thrown failure does not throw and uses the error shell",
+		(nonStringId) => {
+			const tool = defineTool();
+			const args = { id: nonStringId } as unknown as { id?: string };
+			const state: Record<string, unknown> = {};
+			const lines = compose(
+				tool.renderCall!(
+					args,
+					theme,
+					renderContext({ args, isPartial: false, state }),
+				),
+				tool.renderResult!(
+					{ content: [], details: {} },
+					{ expanded: false, isPartial: false },
+					theme,
+					renderContext({ args, isPartial: false, isError: true, state }),
+				),
+			);
+			expect(hasBg(lines, "toolErrorBg")).toBe(true);
+		},
+	);
+	it("malformed success with no call id uses the default success shell", () => {
+		const tool = defineTool();
+		const state: Record<string, unknown> = {};
+		const lines = compose(
+			tool.renderCall!(
+				{},
+				theme,
+				renderContext({ args: {}, isPartial: false, state }),
+			),
+			tool.renderResult!(
+				{ content: [], details: {} },
+				{ expanded: false, isPartial: false },
+				theme,
+				renderContext({ args: {}, isPartial: false, state }),
+			),
+		);
+		expect(hasBg(lines, "toolSuccessBg")).toBe(true);
+		expect(hasBg(lines, "customMessageBg")).toBe(false);
 	});
 });
 
@@ -611,7 +761,7 @@ describe("view_skill card — rebuild and partial", () => {
 		expect(countIdentity(lines)).toBe(1);
 		expect(visible(lines).join("\n")).not.toContain("to expand");
 		expect(visible(lines).join("\n")).not.toContain("# Git");
-		expect(hasBg(lines, "customMessageBg")).toBe(true);
+		expect(hasBg(lines, "toolPendingBg")).toBe(true);
 	});
 });
 

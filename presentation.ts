@@ -17,6 +17,7 @@
  */
 
 import type { Failure } from "./failure";
+import { refPathOf } from "./skill-id";
 import type {
 	CreateSkillData,
 	FileRow,
@@ -487,7 +488,12 @@ function projectSuccess(input: ProjectInput): ProjectedRow {
 		case "create_skill":
 			return projectCreateSkill(input.phase, payload.data, input.keyHint);
 		case "view_skill":
-			return projectViewSkill(input.phase, payload.data, input.keyHint);
+			return projectViewSkill(
+				input.phase,
+				payload.data,
+				input.keyHint,
+				input.args?.id,
+			);
 		case "peek_skill":
 			return projectPeekSkill(input.phase, payload.data, input.keyHint);
 	}
@@ -692,9 +698,21 @@ function projectViewSkill(
 	phase: RowPhase,
 	data: ViewSkillData,
 	keyHint: ProjectInput["keyHint"],
+	callId?: unknown,
 ): ProjectedRow {
-	const id = display(data.id);
+	const refPath = refPathOf(callId);
+	const id =
+		refPath === undefined
+			? display(data.id)
+			: `${display(data.id)}/${display(refPath)}`;
 	if (phase === "expanded") {
+		if (refPath !== undefined) {
+			return both(spanned(skillPrefix("call"), span(id, "toolTitle")), [
+				line(`(${display(data.path)})`, "muted"),
+				blankLine(),
+				...contentBody(data.content),
+			]);
+		}
 		return both(
 			spanned(
 				skillPrefix("call"),
