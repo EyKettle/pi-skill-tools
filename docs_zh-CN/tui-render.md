@@ -12,8 +12,12 @@
 
 **RP#Shell** — 壳表达状态，行表达内容。
 进行中、成功、失败由壳的背景色表达；行文本只承载内容，不重复状态，不因状态叠色。
-五个工具用默认壳的三态背景。`view_skill` 自绘壳模仿默认壳：成功淡紫，
-失败用与默认壳相同的错误背景，进行中与成功同用淡紫。
+所有工具都沿用默认三态配色，除 `view_skill` (技能模式) 成功态需要特殊色强调。
+
+**RP#Mode** — 工具的不同模式即不同身份，拥有不同外观。
+`view_skill` 按 id 分为两种读取模式：不带 ref 路径的 id 读取 `SKILL.md` (技能模式)；
+带 ref 路径的 id 读取技能目录内的该文件 (文档模式)。技能模式自绘壳：进行中与失败沿用默认背景，
+成功用淡紫。文档模式在任何状态下都沿用默认三态壳。
 
 ## 身份
 
@@ -34,8 +38,9 @@
 | `search_skills` | `search_skills ...` | 同 `list_skills` 形态 |
 | `list_skill_files` | `[Skill] {dynamic-skill-id} ...`；id 未知则 `list_skill_files ...` | 同左；展开为 `[Skill] {dynamic-skill-id} ({n})` |
 | `create_skill` | `[NewSkill] {dynamic-skill-id} ({n} lines · {m} B)` | `[NewSkill] {dynamic-skill-id}`；展开身份行加 `({path})` |
-| `view_skill` | `[Skill] {dynamic-skill-id} ...`；id 未知则 `view_skill ...` | 同左；展开身份行加 `({path})` |
-| `peek_skill` | `[Skill] {dynamic-skill-id} ...`；id 未知则 `peek_skill ...` | 同左；展开身份行加 `({path})` |
+| `view_skill` (技能) | `view_skill ...`；id 已知：`[Skill] {dynamic-skill-id} ...` | `[Skill] {dynamic-skill-id}`；展开身份行加 `({path})` |
+| `view_skill` (文档) | `view_skill ...`；id 已知：`[Skill] {dynamic-skill-id} ...`；ref 已知：`[Skill] {dynamic-skill-id}/{type/file-name} ...` | `[Skill] {dynamic-skill-id}/{type/file-name}`；展开后身份行后一行是 `({path})` |
+| `peek_skill` | `peek_skill ...`；id 已知：`[Skill] {dynamic-skill-id} ...` | 同左；展开身份行加 `({path})` |
 
 ## 答案
 

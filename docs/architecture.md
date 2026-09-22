@@ -202,7 +202,7 @@ Tools transmit execution outcomes to the TUI presentation layer via typed, versi
 ## 5. Presentation Layer (`presentation.ts`)
 
 Terminal rendering adheres to the [TUI Render Standard](tui-render.md), composing pure data projections into stateless components:
-- **Shell vs. Content (RP#Shell)**: Background color indicates execution phase (pending, success, failure); text lines convey semantic content without redundant status words. Except for `view_skill` (custom card), all tools use Pi's default three-state shells.
+- **Shell vs. Content (RP#Shell)**: Background color indicates execution phase (pending, success, failure); text lines convey semantic content without redundant status words. Every tool uses Pi's default pending background. `view_skill` splits by mode (`RP#Mode`): skill mode paints a self-drawn card with purple success; document mode keeps the default three-state shell.
 - **Granularity Splitting (RP#Granule)**:
   - Pending: Call line with progress indicator.
   - Collapsed: Minimal complete summary statement (e.g. item count, byte readout, `peeked When to Use (N lines)`), with expand hints when extra details exist.

@@ -11,7 +11,10 @@ Valuable and necessary information must have a designated home. Information inte
 
 **RP#Shell** — The shell expresses state; lines express content.
 Pending, success, and failure are expressed via the shell background color; text lines convey content only, without repeating status or stacking colors.
-Five tools use default shells with three-state backgrounds. `view_skill` uses a self-drawn card mimicking the default shell: purple on success, toolErrorBg on failure, and purple while pending.
+All tools use the default three-state colors, except `view_skill` (skill mode), whose success state takes a special color emphasis.
+
+**RP#Mode** — A tool's different modes are different identities, each with a different appearance.
+`view_skill` reads in one of two modes, split by the id: an id without a ref path reads `SKILL.md` (skill mode); an id with a ref path reads that file inside the skill directory (document mode). Skill mode paints a self-drawn card: the default pending and error backgrounds, purple on success. Document mode keeps the default three-state shell in every state.
 
 ## Identity
 
@@ -30,7 +33,8 @@ The call line answers "who was used." It need not be the tool name; take the hig
 | `search_skills` | `search_skills ...` | Same format as `list_skills` |
 | `list_skill_files` | `[Skill] {dynamic-skill-id} ...`; if ID unknown, `list_skill_files ...` | Same as left; expands to `[Skill] {dynamic-skill-id} ({n})` |
 | `create_skill` | `[NewSkill] {dynamic-skill-id} ({n} lines · {m} B)` | `[NewSkill] {dynamic-skill-id}`; expanded identity appends `({path})` |
-| `view_skill` | `[Skill] {dynamic-skill-id} ...`; if ID unknown, `view_skill ...` | Same as left; expanded identity appends `({path})` |
+| `view_skill` (skill) | `view_skill ...`; id known: `[Skill] {dynamic-skill-id} ...` | `[Skill] {dynamic-skill-id}`; expanded identity appends `({path})` |
+| `view_skill` (document) | `view_skill ...`; id known: `[Skill] {dynamic-skill-id} ...`; ref known: `[Skill] {dynamic-skill-id}/{type/file-name} ...` | `[Skill] {dynamic-skill-id}/{type/file-name}`; expanded, the line after the identity line is `({path})` |
 | `peek_skill` | `[Skill] {dynamic-skill-id} ...`; if ID unknown, `peek_skill ...` | Same as left; expanded identity appends `({path})` |
 
 ## Answer
