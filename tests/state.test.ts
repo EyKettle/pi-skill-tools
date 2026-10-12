@@ -270,6 +270,22 @@ describe("batch atomicity", () => {
 		expect(loaded.set.entries).toEqual([entry()]);
 	});
 
+
+	it("a load batch does not land when a path is relative", () => {
+		const loaded = load(EMPTY_SET, [entry()]);
+		if (!loaded.ok) throw new Error("setup load failed");
+
+		const result = load(loaded.set, [
+			entry({ name: "other" }),
+			entry({ name: "third", path: "skills/git/SKILL.md" }),
+		]);
+
+		expect(result.ok).toBe(false);
+		if (result.ok) return;
+		expect(result.failures).toEqual([{ index: 1, error: expect.any(String) }]);
+		expect(loaded.set.entries).toEqual([entry()]);
+	});
+
 	it("a cancel batch with any failing id removes nothing", () => {
 		const skill = entry();
 		const guide = entry({
@@ -345,6 +361,16 @@ describe("serialization", () => {
 		expect(decode("nope")).toEqual(EMPTY_SET);
 		expect(decode({ version: STATE_VERSION, entries: "nope" })).toEqual(EMPTY_SET);
 		expect(decode({ version: STATE_VERSION, entries: [], extra: 1 })).toEqual(EMPTY_SET);
+	});
+
+
+	it("decodes a relative path as an empty set", () => {
+		expect(
+			decode({
+				version: STATE_VERSION,
+				entries: [entry({ path: "skills/git/SKILL.md" })],
+			}),
+		).toEqual(EMPTY_SET);
 	});
 });
 

@@ -35,6 +35,9 @@ export interface StateEntry {
 	volume: EntryVolume;
 }
 
+/** The identity fields of an entry. */
+export type EntryIdentity = Pick<StateEntry, "storage" | "name" | "refPath">;
+
 /** The loaded set, in load order. */
 export interface LoadedSet {
 	entries: readonly StateEntry[];
@@ -106,7 +109,7 @@ export function load(
 	const next = [...set.entries];
 	const outcomes: LoadOutcome[] = [];
 	for (const entry of entries) {
-		const at = next.findIndex((existing) => sameIdentity(existing, entry));
+		const at = next.findIndex((existing) => identityKey(existing) === identityKey(entry));
 		if (at === -1) {
 			next.push(entry);
 			outcomes.push("added");
@@ -120,9 +123,9 @@ export function load(
 	return { ok: true, set: { entries: next }, outcomes };
 }
 
-/** Whether two entries name the same loaded file. */
-function sameIdentity(a: StateEntry, b: StateEntry): boolean {
-	return a.storage === b.storage && a.name === b.name && a.refPath === b.refPath;
+/** The canonical key of an identity: its id through the skill-id authority. */
+export function identityKey(identity: EntryIdentity): string {
+	return formatSkillId(identity.storage, identity.name, identity.refPath);
 }
 
 /** Whether two entries with the same identity carry the same data. */
@@ -267,8 +270,8 @@ function malformedEntryReason(value: unknown): string | undefined {
 	if (typeof entry.displayId !== "string" || entry.displayId.length === 0) {
 		return "displayId is empty";
 	}
-	if (typeof entry.path !== "string" || entry.path.length === 0) {
-		return "path is empty";
+	if (typeof entry.path !== "string" || !entry.path.startsWith("/")) {
+		return "path is not absolute";
 	}
 	if (typeof entry.body !== "string") {
 		return "body is not a string";
@@ -328,7 +331,7 @@ export function decode(value: unknown): LoadedSet {
 		if (!isWellFormedEntry(raw)) {
 			return EMPTY_SET;
 		}
-		const id = formatSkillId(raw.storage, raw.name, raw.refPath);
+		const id = identityKey(raw);
 		if (identities.has(id)) {
 			return EMPTY_SET;
 		}
