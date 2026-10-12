@@ -3,14 +3,15 @@
  *
  * A delta is a list of hunks in the old text's line coordinates: each hunk
  * gives its 1-based start line, the number of replaced old lines, and the text
- * it inserts. Only the inserted text is stored — kept and deleted lines come
- * from the accumulating state. The change comes from Myers's O(ND) family
+ * it inserts. The hunk list — coordinates included — is what lands; kept and
+ * deleted lines come from the accumulating state. The change comes from
+ * Myers's O(ND) family
  * through jsdiff's `diffLines`, whose defaults keep a missing final newline
  * and a CR as differences, so reconstruction is exact.
  *
  * A replacement never costs more than the document: an abort (`timeout` or
- * `maxEditLength`) or a hunk list whose text does not beat the replacement
- * body sends the whole body instead.
+ * `maxEditLength`), or a stored delta not smaller than the whole body's,
+ * sends the whole body instead.
  *
  * Pure module: no filesystem, no Pi import; its only dependency is the diff
  * library.
@@ -38,7 +39,8 @@ const DEFAULT_MAX_EDIT_LENGTH = 10000;
 
 /**
  * The hunks that turn `oldText` into `newText`. On abort, or when the stored
- * text would not beat the replacement body, one hunk replaces the whole text.
+ * delta would not come out smaller than the whole body's, one hunk replaces
+ * the whole text.
  */
 export function diffText(
 	oldText: string,
@@ -53,9 +55,14 @@ export function diffText(
 		return [wholeHunk(oldText, newText)];
 	}
 	const hunks = hunksOf(changes);
-	const stored = hunks.reduce((total, hunk) => total + hunk.text.length, 0);
-	if (hunks.length > 0 && stored >= newText.length) {
-		return [wholeHunk(oldText, newText)];
+	const whole = wholeHunk(oldText, newText);
+	// The bound measures what lands: the hunk list with its coordinates,
+	// against the whole body as one hunk.
+	if (
+		hunks.length > 0 &&
+		JSON.stringify(hunks).length >= JSON.stringify([whole]).length
+	) {
+		return [whole];
 	}
 	return hunks;
 }

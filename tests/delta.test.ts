@@ -64,14 +64,22 @@ describe("a delta reconstructs the new text exactly", () => {
 	});
 
 	it("finds scattered changes as several hunks", () => {
-		const hunks = diffText("l1\nl2\nl3\nl4\nl5\n", "L1\nl2\nL3\nl4\nL5\n");
+		const lines = Array.from({ length: 40 }, (_, i) => `line-${i}\n`);
+		const next = [...lines];
+		next[1] = "LINE-1\n";
+		next[19] = "LINE-19\n";
+		next[37] = "LINE-37\n";
+		const oldText = lines.join("");
+		const newText = next.join("");
+
+		const hunks = diffText(oldText, newText);
 
 		expect(hunks).toEqual([
-			{ start: 1, count: 1, text: "L1\n" },
-			{ start: 3, count: 1, text: "L3\n" },
-			{ start: 5, count: 1, text: "L5\n" },
+			{ start: 2, count: 1, text: "LINE-1\n" },
+			{ start: 20, count: 1, text: "LINE-19\n" },
+			{ start: 38, count: 1, text: "LINE-37\n" },
 		]);
-		expect(applyHunks("l1\nl2\nl3\nl4\nl5\n", hunks)).toBe("L1\nl2\nL3\nl4\nL5\n");
+		expect(applyHunks(oldText, hunks)).toBe(newText);
 	});
 
 	it("leaves a text without changes as no hunks", () => {
@@ -94,6 +102,19 @@ describe("a delta stays within the document", () => {
 		const hunks = diffText("a\nb\n", "x\ny\n");
 
 		expect(hunks).toEqual([{ start: 1, count: 2, text: "x\ny\n" }]);
+	});
+
+
+	it("carries the whole text when the encoded diff would not beat it", () => {
+		const lines = Array.from({ length: 40 }, (_, i) => `line-${i}\n`);
+		const next = lines.map((line, i) => (i % 2 === 0 ? `changed-${i}\n` : line));
+		const oldText = lines.join("");
+		const newText = next.join("");
+
+		const hunks = diffText(oldText, newText);
+
+		expect(hunks).toEqual([{ start: 1, count: 40, text: newText }]);
+		expect(applyHunks(oldText, hunks)).toBe(newText);
 	});
 });
 
