@@ -293,13 +293,12 @@ export function encode(state: LoadedSet): EncodedState {
 }
 
 /**
- * Decode a stored value. A value whose version or shape is unrecognized —
- * a malformed or duplicate entry included — decodes as an empty set, never
- * as a partial one.
+ * The set a stored value encodes, or undefined when the value is not one. An
+ * unrecognized version or shape yields undefined, never a partial set.
  */
-export function decode(value: unknown): LoadedSet {
+export function tryDecode(value: unknown): LoadedSet | undefined {
 	if (typeof value !== "object" || value === null) {
-		return EMPTY_SET;
+		return undefined;
 	}
 	const record = value as Record<string, unknown>;
 	if (
@@ -307,22 +306,31 @@ export function decode(value: unknown): LoadedSet {
 		record.version !== STATE_VERSION ||
 		!Array.isArray(record.entries)
 	) {
-		return EMPTY_SET;
+		return undefined;
 	}
 	const entries: StateEntry[] = [];
 	const identities = new Set<string>();
 	for (const raw of record.entries) {
 		if (!isWellFormedEntry(raw)) {
-			return EMPTY_SET;
+			return undefined;
 		}
 		const id = raw.id;
 		if (identities.has(id)) {
-			return EMPTY_SET;
+			return undefined;
 		}
 		identities.add(id);
 		entries.push(raw);
 	}
 	return { entries };
+}
+
+/**
+ * Decode a stored value. A value whose version or shape is unrecognized —
+ * a malformed or duplicate entry included — decodes as an empty set, never
+ * as a partial one.
+ */
+export function decode(value: unknown): LoadedSet {
+	return tryDecode(value) ?? EMPTY_SET;
 }
 
 /** Whether `value` is a well-formed entry. */

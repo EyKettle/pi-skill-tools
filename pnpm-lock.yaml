@@ -172,6 +172,9 @@ importers:
       js-yaml:
         specifier: ^4.3.1
         version: 4.3.2
+      pi-session-state:
+        specifier: ^0.1.1
+        version: 0.1.1(@earendil-works/pi-coding-agent@0.84.4(ws@8.22.0))
     devDependencies:
       '@earendil-works/pi-coding-agent':
         specifier: ^0.84.2
@@ -956,6 +959,15 @@ packages:
 
   pathe@2.0.3:
     resolution: {integrity: sha512-WUjGcAqP1gQacoQe+OBJsFA7Ld4DyXuUIjZ5cc75cLHvJ7dtNsTugphxIADwspS+AraAUePCKrSVtPLFj/F88w==}
+
+  pi-session-state@0.1.1:
+    resolution: {integrity: sha512-ROn5hrCOl1NXL7u67uT3NShAkUfNbIfmH3nOC66A+nov8BOdYYmT3qsnYl92TZJVpWgD0qN8qcihRnF0CqgpSA==}
+    engines: {node: '>=22.13'}
+    peerDependencies:
+      '@earendil-works/pi-coding-agent': '*'
+    peerDependenciesMeta:
+      '@earendil-works/pi-coding-agent':
+        optional: true
 
   picocolors@1.1.1:
     resolution: {integrity: sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==}
@@ -1967,6 +1979,10 @@ snapshots:
   path-key@3.1.1: {}
 
   pathe@2.0.3: {}
+
+  pi-session-state@0.1.1(@earendil-works/pi-coding-agent@0.84.4(ws@8.22.0)):
+    optionalDependencies:
+      '@earendil-works/pi-coding-agent': 0.84.4(ws@8.22.0)
 
   picocolors@1.1.1: {}
 

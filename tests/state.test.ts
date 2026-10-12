@@ -4,7 +4,15 @@
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { EMPTY_SET, STATE_VERSION, cancel, decode, encode, load } from "../state";
+import {
+	EMPTY_SET,
+	STATE_VERSION,
+	cancel,
+	decode,
+	encode,
+	load,
+	tryDecode,
+} from "../state";
 import type { LoadedSet, StateEntry } from "../state";
 
 function entry(overrides: Partial<StateEntry> = {}): StateEntry {
@@ -354,6 +362,11 @@ describe("serialization", () => {
 		expect(
 			decode({ version: STATE_VERSION, entries: [entry(), entry()] }),
 		).toEqual(EMPTY_SET);
+	});
+
+	it("tryDecode distinguishes an unrecognized value from an empty set", () => {
+		expect(tryDecode({ version: STATE_VERSION, entries: "nope" })).toBeUndefined();
+		expect(tryDecode({ version: STATE_VERSION, entries: [] })).toEqual(EMPTY_SET);
 	});
 
 	it("decodes a value that is not an encoded set as an empty set", () => {
