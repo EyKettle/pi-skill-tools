@@ -9,7 +9,7 @@ import type { StateEntry } from "../state";
 
 function entry(overrides: Partial<StateEntry> = {}): StateEntry {
 	return {
-		id: "git",
+		id: "global:git",
 		path: "/skills/git/SKILL.md",
 		body: "# Git\n",
 		volume: { bytes: 6, lines: 1 },
@@ -19,7 +19,7 @@ function entry(overrides: Partial<StateEntry> = {}): StateEntry {
 
 describe("renderSkillBlock", () => {
 	it("renders one entry as one attributed block", () => {
-		const text = renderSkillBlock({ entries: [entry()] });
+		const text = renderSkillBlock({ entries: [entry()] }, new Set());
 
 		expect(text).toBe(
 			'<SKILL id="git" location="/skills/git/SKILL.md">\n# Git\n\n</SKILL>',
@@ -28,13 +28,13 @@ describe("renderSkillBlock", () => {
 
 	it("renders several entries in load order joined by a blank line", () => {
 		const ref = entry({
-			id: "git/references/GUIDE.md",
+			id: "global:git/references/GUIDE.md",
 			path: "/skills/git/references/GUIDE.md",
 			body: "# Guide\n",
 			volume: { bytes: 8, lines: 1 },
 		});
 
-		const text = renderSkillBlock({ entries: [entry(), ref] });
+		const text = renderSkillBlock({ entries: [entry(), ref] }, new Set());
 
 		expect(text).toBe(
 			'<SKILL id="git" location="/skills/git/SKILL.md">\n# Git\n\n</SKILL>\n\n' +
@@ -43,7 +43,15 @@ describe("renderSkillBlock", () => {
 	});
 
 	it("renders the empty set as an empty string", () => {
-		expect(renderSkillBlock({ entries: [] })).toBe("");
+		expect(renderSkillBlock({ entries: [] }, new Set())).toBe("");
+	});
+
+	it("projects a conflicted id with its position prefix", () => {
+		const text = renderSkillBlock({ entries: [entry()] }, new Set(["git"]));
+
+		expect(text).toBe(
+			'<SKILL id="global:git" location="/skills/git/SKILL.md">\n# Git\n\n</SKILL>',
+		);
 	});
 });
 

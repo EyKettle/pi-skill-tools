@@ -17,7 +17,7 @@ import type { LoadedSet, StateEntry } from "../state";
 
 function entry(overrides: Partial<StateEntry> = {}): StateEntry {
 	return {
-		id: "git",
+		id: "global:git",
 		path: "/skills/git/SKILL.md",
 		body: "# Git\n",
 		volume: { bytes: 6, lines: 1 },
@@ -29,7 +29,7 @@ describe("loading", () => {
 	it("adds every file as its own entry, in load order", () => {
 		const skill = entry();
 		const ref = entry({
-			id: "git/references/GUIDE.md",
+			id: "global:git/references/GUIDE.md",
 			path: "/skills/git/references/GUIDE.md",
 			body: "# Guide\n",
 			volume: { bytes: 8, lines: 1 },
@@ -48,7 +48,7 @@ describe("reloading", () => {
 	it("replaces a matching identity in place and reports replaced", () => {
 		const skill = entry();
 		const guide = entry({
-			id: "git/references/GUIDE.md",
+			id: "global:git/references/GUIDE.md",
 			path: "/skills/git/references/GUIDE.md",
 			body: "# Guide\n",
 			volume: { bytes: 8, lines: 1 },
@@ -89,13 +89,13 @@ describe("cancelling", () => {
 	} {
 		const skill = entry();
 		const guide = entry({
-			id: "git/references/GUIDE.md",
+			id: "global:git/references/GUIDE.md",
 			path: "/skills/git/references/GUIDE.md",
 			body: "# Guide\n",
 			volume: { bytes: 8, lines: 1 },
 		});
 		const api = entry({
-			id: "git/references/API.md",
+			id: "global:git/references/API.md",
 			path: "/skills/git/references/API.md",
 			body: "# API\n",
 			volume: { bytes: 6, lines: 1 },
@@ -133,7 +133,7 @@ describe("cancel failures", () => {
 		const result = load(EMPTY_SET, [
 			entry(),
 			entry({
-				id: "git/references/GUIDE.md",
+				id: "global:git/references/GUIDE.md",
 				path: "/skills/git/references/GUIDE.md",
 				body: "# Guide\n",
 				volume: { bytes: 8, lines: 1 },
@@ -241,7 +241,7 @@ describe("batch atomicity", () => {
 		if (!loaded.ok) throw new Error("setup load failed");
 
 		const result = load(loaded.set, [
-			entry({ id: "other" }),
+			entry({ id: "global:other" }),
 			entry({ id: "Bad Name" }),
 		]);
 
@@ -251,15 +251,21 @@ describe("batch atomicity", () => {
 		expect(loaded.set.entries).toEqual([entry()]);
 	});
 
-	it("a load batch does not land when an id does not reproduce", () => {
+	it("a load batch does not land when an id is not fully expanded", () => {
 		const loaded = load(EMPTY_SET, [entry()]);
 		if (!loaded.ok) throw new Error("setup load failed");
 
-		const result = load(loaded.set, [entry({ id: "other" }), entry({ id: "git/" })]);
+		const trailing = load(loaded.set, [
+			entry({ id: "global:other" }),
+			entry({ id: "global:git/" }),
+		]);
+		const bare = load(loaded.set, [
+			entry({ id: "global:other" }),
+			entry({ id: "git" }),
+		]);
 
-		expect(result.ok).toBe(false);
-		if (result.ok) return;
-		expect(result.failures).toEqual([{ index: 1, error: expect.any(String) }]);
+		expect(trailing.ok).toBe(false);
+		expect(bare.ok).toBe(false);
 		expect(loaded.set.entries).toEqual([entry()]);
 	});
 
@@ -268,9 +274,9 @@ describe("batch atomicity", () => {
 		if (!loaded.ok) throw new Error("setup load failed");
 
 		const result = load(loaded.set, [
-			entry({ id: "other" }),
+			entry({ id: "global:other" }),
 			entry({
-				id: "git/references/GUIDE.md",
+				id: "global:git/references/GUIDE.md",
 				volume: { bytes: -1, lines: 1 },
 			}),
 		]);
@@ -286,8 +292,8 @@ describe("batch atomicity", () => {
 		if (!loaded.ok) throw new Error("setup load failed");
 
 		const result = load(loaded.set, [
-			entry({ id: "other" }),
-			entry({ id: "third", path: "skills/git/SKILL.md" }),
+			entry({ id: "global:other" }),
+			entry({ id: "global:third", path: "skills/git/SKILL.md" }),
 		]);
 
 		expect(result.ok).toBe(false);
@@ -299,7 +305,7 @@ describe("batch atomicity", () => {
 	it("a cancel batch with any failing id removes nothing", () => {
 		const skill = entry();
 		const guide = entry({
-			id: "git/references/GUIDE.md",
+			id: "global:git/references/GUIDE.md",
 			path: "/skills/git/references/GUIDE.md",
 			body: "# Guide\n",
 			volume: { bytes: 8, lines: 1 },
@@ -330,7 +336,7 @@ describe("serialization", () => {
 			entries: [
 				entry(),
 				entry({
-					id: "git/references/GUIDE.md",
+					id: "global:git/references/GUIDE.md",
 					path: "/skills/git/references/GUIDE.md",
 					body: "# Guide\n",
 					volume: { bytes: 8, lines: 1 },

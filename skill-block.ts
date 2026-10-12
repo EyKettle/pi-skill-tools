@@ -8,6 +8,7 @@
  *
  * Pure module: no filesystem, no Pi import.
  */
+import { parseSkillId, reproduceSkillId } from "./skill-id";
 import type { LoadedSet } from "./state";
 
 /**
@@ -22,9 +23,29 @@ export function wrapSkillBlock(
 	return `<SKILL id="${id}" location="${path}">\n${text}\n</SKILL>`;
 }
 
-/** The state's render, in load order. */
-export function renderSkillBlock(set: LoadedSet): string {
+/**
+ * The id as it displays: the full id while its name has a location conflict,
+ * the bare form otherwise (the `{dynamic-skill-id}` projection).
+ */
+function displayId(id: string, conflicts: ReadonlySet<string>): string {
+	const parsed = parseSkillId(id);
+	if (parsed.error !== undefined) {
+		return id;
+	}
+	if (conflicts.has(parsed.name)) {
+		return id;
+	}
+	return reproduceSkillId({ name: parsed.name, refPath: parsed.refPath });
+}
+
+/** The state's render, in load order; each id projects to its display form. */
+export function renderSkillBlock(
+	set: LoadedSet,
+	conflicts: ReadonlySet<string>,
+): string {
 	return set.entries
-		.map((entry) => wrapSkillBlock(entry.id, entry.path, entry.body))
+		.map((entry) =>
+			wrapSkillBlock(displayId(entry.id, conflicts), entry.path, entry.body),
+		)
 		.join("\n\n");
 }

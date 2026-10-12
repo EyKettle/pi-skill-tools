@@ -92,6 +92,7 @@ export interface AssemblyPorts {
 	leafId(ctx: ExtensionContext): string | undefined;
 	appendCommit(entry: CommitEntry): void;
 	registerSegment(text: string): void;
+	conflictNames(): ReadonlySet<string>;
 	notify(ctx: ExtensionContext, message: string): void;
 }
 
@@ -204,7 +205,7 @@ export function createAssembly(ports: AssemblyPorts): SkillStateAssembly {
 	}
 
 	function republish(): void {
-		ports.registerSegment(renderSkillBlock(state));
+		ports.registerSegment(renderSkillBlock(state, ports.conflictNames()));
 	}
 
 	function start(ctx: ExtensionContext): void {
@@ -336,13 +337,19 @@ export default async function (pi: ExtensionAPI): Promise<void> {
 	/** pi's loaded skill set, captured on every before_agent_start. */
 	let cachedSkills: Skill[] = [];
 
+	/** The names whose skills hold more than one location. */
+	let conflictNames: ReadonlySet<string> = new Set();
+
 	/** view_skill adoption guidance (design §5.7; tail-prompt chaining shape). */
 	const appendedSystemPrompt =
 		"\n\nLoad skills with view_skill: pi's read tool truncates long files, so a " +
 		"skill would arrive incomplete.";
 
-	pi.on("before_agent_start", (event) => {
+	pi.on("before_agent_start", (event, ctx) => {
 		cachedSkills = event.systemPromptOptions.skills ?? [];
+		conflictNames = new Set(
+			registryDeps(ctx).conflicts.map((conflict) => conflict.name),
+		);
 		// The return chains with tail-prompt's own modification through the
 		// runner's per-handler systemPrompt rebuild (design §5.7-5.8).
 		return { systemPrompt: event.systemPrompt + appendedSystemPrompt };
@@ -436,6 +443,7 @@ export default async function (pi: ExtensionAPI): Promise<void> {
 		appendCommit: (entry) => pi.appendEntry(COMMIT_ENTRY_TYPE, entry),
 		registerSegment: (text) =>
 			pi.events.emit(TAIL_PROMPT_REGISTER_EVENT, buildSkillToolsSegment(text)),
+		conflictNames: () => conflictNames,
 		notify: (ctx, message) => {
 			if (ctx.hasUI) {
 				ctx.ui.notify(message, "warning");

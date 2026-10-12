@@ -2,8 +2,8 @@
  * state.ts — the loaded skill set and its algebra (plan Task 1).
  *
  * The unit is one file: a skill's SKILL.md and each of its related files are
- * separate entries. A skill's identity is its id alone — bare until a
- * location conflict prefixes it, a related file appending its ref path; an
+ * separate entries. A skill's identity is its fully expanded id — the position
+ * prefix always present, a related file appending its ref path; an
  * entry carries that id, the absolute path it was read from, the frozen body,
  * and the volume the tool result reports. Loading returns added, replaced, or
  * unchanged; a replacement keeps its slot, so the order is the load order.
@@ -251,8 +251,12 @@ export function malformedEntryReason(value: unknown): string | undefined {
 		return "id is not a string";
 	}
 	const parsed = parseSkillId(id);
-	if (parsed.error !== undefined || reproduceSkillId(parsed) !== id) {
-		return "id is not a skill id";
+	if (
+		parsed.error !== undefined ||
+		parsed.storage === undefined ||
+		reproduceSkillId(parsed) !== id
+	) {
+		return "id is not a fully expanded skill id";
 	}
 	if (typeof entry.path !== "string" || !entry.path.startsWith("/")) {
 		return "path is not absolute";

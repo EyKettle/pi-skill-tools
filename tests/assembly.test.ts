@@ -12,7 +12,7 @@ import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 
 function entry(overrides: Partial<StateEntry> = {}): StateEntry {
 	return {
-		id: "git",
+		id: "global:git",
 		path: "/skills/git/SKILL.md",
 		body: "# Git\n",
 		volume: { bytes: 6, lines: 1 },
@@ -35,6 +35,7 @@ interface Harness {
 	segments: string[];
 	notices: string[];
 	history: boolean;
+	conflicts: Set<string>;
 	leaf: string | undefined;
 	order: string[];
 }
@@ -50,6 +51,7 @@ function harness(): Harness {
 		segments: [] as string[],
 		notices: [] as string[],
 		history: true,
+		conflicts: new Set<string>(),
 		leaf: undefined as string | undefined,
 		order: [] as string[],
 	};
@@ -66,6 +68,7 @@ function harness(): Harness {
 			},
 		},
 		historyEnabled: () => h.history,
+		conflictNames: () => h.conflicts,
 		pathCommits: (_ctx, fromId) => (fromId == null ? h.path : h.navigatePath),
 		leafId: () => h.leaf,
 		appendCommit: (value) => {
@@ -105,6 +108,16 @@ describe("the write order", () => {
 		);
 	});
 
+	it("projects a conflicted id with its position prefix", () => {
+		const h = harness();
+		const assembly = createAssembly(h.ports);
+		h.conflicts.add("git");
+
+		assembly.change(ctx, { loads: [entry()] });
+
+		expect(h.segments.at(-1)).toContain('<SKILL id="global:git"');
+	});
+
 	it("keeps memory and the log advanced when the copy write is refused", () => {
 		const h = harness();
 		const assembly = createAssembly(h.ports);
@@ -121,7 +134,7 @@ describe("the write order", () => {
 
 		h.failWrites = false;
 		h.leaf = "leaf-2";
-		const other = entry({ id: "other", path: "/skills/other/SKILL.md" });
+		const other = entry({ id: "global:other", path: "/skills/other/SKILL.md" });
 		assembly.change(ctx, { loads: [other] });
 
 		expect(h.writes.length).toBe(1);
@@ -230,7 +243,7 @@ describe("the history switch", () => {
 		assembly.change(ctx, { loads: [entry()] });
 		h.history = true;
 		h.leaf = "leaf-2";
-		const other = entry({ id: "other", path: "/skills/other/SKILL.md" });
+		const other = entry({ id: "global:other", path: "/skills/other/SKILL.md" });
 
 		assembly.change(ctx, { loads: [other] });
 
@@ -258,7 +271,7 @@ describe("changes", () => {
 			operations: [
 				{
 					kind: "replace",
-					id: "git",
+					id: "global:git",
 					hunks: [{ start: 1, count: 1, text: "# Git v2\n" }],
 				},
 			],
@@ -269,7 +282,7 @@ describe("changes", () => {
 		const h = harness();
 		const assembly = createAssembly(h.ports);
 		const guide = entry({
-			id: "git/references/GUIDE.md",
+			id: "global:git/references/GUIDE.md",
 			path: "/skills/git/references/GUIDE.md",
 			body: "# Guide\n",
 			volume: { bytes: 8, lines: 1 },
@@ -283,8 +296,8 @@ describe("changes", () => {
 		expect(h.appends.at(-1)).toEqual({
 			kind: "delta",
 			operations: [
-				{ kind: "remove", id: "git" },
-				{ kind: "remove", id: "git/references/GUIDE.md" },
+				{ kind: "remove", id: "global:git" },
+				{ kind: "remove", id: "global:git/references/GUIDE.md" },
 			],
 		});
 	});
