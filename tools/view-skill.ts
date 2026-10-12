@@ -40,17 +40,12 @@ import {
 import { readSkillFile, resolveSkillFile } from "../skill-file";
 import { parseFrontmatterBlock } from "../frontmatter";
 
-/**
- * Model-channel wrapper: the complete file (or frontmatter) inside an
- * attributed open/close pair. `location` is the resolved absolute path.
- */
-export function wrapSkillBlock(
-	name: string,
-	path: string,
-	text: string,
-): string {
-	return `<SKILL name="${name}" location="${path}">\n${text}\n</SKILL>`;
-}
+import { wrapSkillBlock } from "../skill-block";
+
+// The wrapper's implementation lives in skill-block.ts — one implementation
+// serves this tool's model channel and the mounted block. Re-exported so this
+// module's existing importers keep working.
+export { wrapSkillBlock };
 
 
 
