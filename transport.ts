@@ -34,6 +34,8 @@ import type { Failure, FailureEvidence } from "./failure";
 import { SKILL_STORAGES } from "./skill-id";
 import type { SkillStorage } from "./skill-id";
 
+import { countTextLines } from "./delta";
+
 /** The only supported transport version. */
 export const TRANSPORT_VERSION = 1 as const;
 export type TransportVersion = typeof TRANSPORT_VERSION;
@@ -201,16 +203,9 @@ const TOOL_NAMES: readonly string[] = [
 const POSITIONS: readonly string[] = SKILL_STORAGES;
 const LIST_OUTCOMES: readonly string[] = ["success", "empty"];
 
-/**
- * Count the lines in written text: a trailing newline does not add a line
- * (shared.ts re-exports this as the single authoritative line counter).
- */
-export function countTextLines(text: string): number {
-	if (text.length === 0) return 0;
-	return text.endsWith("\n")
-		? text.split("\n").length - 1
-		: text.split("\n").length;
-}
+// The line counter lives with the line model in delta.ts; the tool layer
+// keeps importing it from here.
+export { countTextLines };
 
 /* ---------------------------------------------------------------------- */
 /* Payload builders (pure; the tools' result construction calls these)     */

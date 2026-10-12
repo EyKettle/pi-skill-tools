@@ -319,21 +319,21 @@ describe("folding fails closed", () => {
 
 describe("copyIsCurrent", () => {
 	it("is current when the marker names the path's last commit entry", () => {
-		expect(copyIsCurrent(true, "leaf-2", "leaf-2")).toBe(true);
+		expect(copyIsCurrent({ marker: "leaf-2" }, "leaf-2")).toBe(true);
 	});
 
 	it("is not current when the marker does not name it", () => {
-		expect(copyIsCurrent(true, "leaf-1", "leaf-2")).toBe(false);
-		expect(copyIsCurrent(true, undefined, "leaf-2")).toBe(false);
+		expect(copyIsCurrent({ marker: "leaf-1" }, "leaf-2")).toBe(false);
+		expect(copyIsCurrent({ marker: undefined }, "leaf-2")).toBe(false);
 	});
 
 	it("is not current without a copy", () => {
-		expect(copyIsCurrent(false, "leaf-2", "leaf-2")).toBe(false);
+		expect(copyIsCurrent(undefined, "leaf-2")).toBe(false);
 	});
 
 	it("treats a path with no commit entry as current", () => {
-		expect(copyIsCurrent(true, undefined, undefined)).toBe(true);
-		expect(copyIsCurrent(true, "leaf-1", undefined)).toBe(true);
+		expect(copyIsCurrent({ marker: undefined }, undefined)).toBe(true);
+		expect(copyIsCurrent({ marker: "leaf-1" }, undefined)).toBe(true);
 	});
 });
 

@@ -14,9 +14,8 @@
  *
  * Pure module: no filesystem, no Pi import.
  */
-import { applyHunks } from "./delta";
+import { applyHunks, countTextLines } from "./delta";
 import type { Hunk } from "./delta";
-import { countTextLines } from "./transport";
 import { identityKey, malformedEntryReason } from "./state";
 import type { EntryIdentity, LoadedSet, StateEntry } from "./state";
 
@@ -127,15 +126,14 @@ function withBody(entry: StateEntry, body: string): StateEntry {
  * entries on the path the copy is authoritative.
  */
 export function copyIsCurrent(
-	hasCopy: boolean,
-	marker: string | undefined,
+	copy: { marker: string | undefined } | undefined,
 	lastEntryId: string | undefined,
 ): boolean {
-	if (!hasCopy) {
+	if (copy === undefined) {
 		return false;
 	}
 	if (lastEntryId === undefined) {
 		return true;
 	}
-	return marker === lastEntryId;
+	return copy.marker === lastEntryId;
 }

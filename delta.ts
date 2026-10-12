@@ -146,3 +146,11 @@ function hunksOf(changes: readonly ChangeObject<string>[]): Hunk[] {
 function splitLines(text: string): string[] {
 	return text.match(/[^\n]*\n|[^\n]+$/g) ?? [];
 }
+
+/**
+ * Count the lines in written text: a trailing newline does not add a line.
+ * The tool layer re-exports this as its single authoritative line counter.
+ */
+export function countTextLines(text: string): number {
+	return splitLines(text).length;
+}
