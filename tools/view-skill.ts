@@ -2,7 +2,7 @@
  * `view_skill` tool definition (design.md §5.4, §6.1).
  *
  * Reads a skill file verbatim and untruncated. The model channel receives
- * the full file wrapped in an attributed `<SKILL name location>` block; the
+ * the full file wrapped in an attributed `<SKILL id location>` block; the
  * TUI paints a self-drawn card from presentation.ts (renderShell "self" has
  * no auto background). pi-runtime pieces (TypeBox, Text/Box/Container) come
  * through `ToolDeps`.
@@ -41,11 +41,6 @@ import { readSkillFile, resolveSkillFile } from "../skill-file";
 import { parseFrontmatterBlock } from "../frontmatter";
 
 import { wrapSkillBlock } from "../skill-block";
-
-// The wrapper's implementation lives in skill-block.ts — one implementation
-// serves this tool's model channel and the mounted block. Re-exported so this
-// module's existing importers keep working.
-export { wrapSkillBlock };
 
 
 
@@ -136,7 +131,7 @@ export function defineViewSkill(
 		label: "View skill",
 		description:
 			"Read a skill's file verbatim and untruncated, " +
-			'wrapped in an attributed <SKILL name="..." location="..."> block. ' +
+			'wrapped in an attributed <SKILL id="..." location="..."> block. ' +
 			"id without " +
 			"a ref path reads SKILL.md; an id with /<ref path> (e.g. global:git/references/GUIDE.md) reads " +
 			"that file inside the skill directory. A bare name resolves across all locations and reports " +
@@ -195,7 +190,7 @@ export function defineViewSkill(
 			const conflictNames = new Set(
 				(registry.conflicts ?? []).map((conflict) => conflict.name),
 			);
-			const displayId = conflictNames.has(entry.name) ? entry.id : entry.name;
+			const id = conflictNames.has(entry.name) ? entry.id : entry.name;
 			const resolvedFile = resolveSkillFile(entry.baseDir, parsedId.refPath);
 			if (resolvedFile.error !== undefined) {
 				return failViewSkill(
@@ -218,7 +213,7 @@ export function defineViewSkill(
 				}
 				const frontmatterText = read.text.slice(0, parsedBlock.bodyStart);
 				const content = wrapSkillBlock(
-					entry.name,
+					id,
 					resolvedFile.path,
 					frontmatterText,
 				);
@@ -230,14 +225,14 @@ export function defineViewSkill(
 					lines: countTextLines(frontmatterText),
 					content,
 					payload: buildViewSkillPayload(
-						displayId,
+						id,
 						resolvedFile.path,
 						frontmatterText,
 					),
 					format: "frontmatter",
 				} satisfies ViewSkillDetails);
 			}
-			const content = wrapSkillBlock(entry.name, resolvedFile.path, read.text);
+			const content = wrapSkillBlock(id, resolvedFile.path, read.text);
 			return textResult(content, {
 				name: entry.name,
 				storage: entry.storage,
@@ -245,7 +240,7 @@ export function defineViewSkill(
 				bytes: read.bytes,
 				lines: read.lines,
 				content,
-				payload: buildViewSkillPayload(displayId, resolvedFile.path, read.text),
+				payload: buildViewSkillPayload(id, resolvedFile.path, read.text),
 				format: "full",
 			} satisfies ViewSkillDetails);
 		},

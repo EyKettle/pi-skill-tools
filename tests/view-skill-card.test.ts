@@ -147,7 +147,7 @@ const gitDetails: ViewSkillDetails = {
 	path: "/skills/git/SKILL.md",
 	bytes: 6,
 	lines: 1,
-	content: `<SKILL name="git" location="/skills/git/SKILL.md">\n# Git\n\n</SKILL>`,
+	content: `<SKILL id="git" location="/skills/git/SKILL.md">\n# Git\n\n</SKILL>`,
 	payload: gitPayload,
 	format: "full",
 };
@@ -192,7 +192,7 @@ describe("view_skill card — document mode", () => {
 			path: "/skills/git/references/GUIDE.md",
 			bytes: 8,
 			lines: 1,
-			content: `<SKILL name="git" location="/skills/git/references/GUIDE.md">\n# Guide\n\n</SKILL>`,
+			content: `<SKILL id="git/references/GUIDE.md" location="/skills/git/references/GUIDE.md">\n# Guide\n\n</SKILL>`,
 			payload,
 			format: "full",
 		};
@@ -231,7 +231,7 @@ describe("view_skill card — document mode", () => {
 			path: "/skills/git/references/GUIDE.md",
 			bytes: 8,
 			lines: 1,
-			content: `<SKILL name="git" location="/skills/git/references/GUIDE.md">\n# Guide\n\n</SKILL>`,
+			content: `<SKILL id="git/references/GUIDE.md" location="/skills/git/references/GUIDE.md">\n# Guide\n\n</SKILL>`,
 			payload,
 			format: "full",
 		};

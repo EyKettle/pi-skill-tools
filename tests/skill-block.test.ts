@@ -9,9 +9,7 @@ import type { StateEntry } from "../state";
 
 function entry(overrides: Partial<StateEntry> = {}): StateEntry {
 	return {
-		storage: "global",
-		name: "git",
-		displayId: "git",
+		id: "git",
 		path: "/skills/git/SKILL.md",
 		body: "# Git\n",
 		volume: { bytes: 6, lines: 1 },
@@ -24,14 +22,13 @@ describe("renderSkillBlock", () => {
 		const text = renderSkillBlock({ entries: [entry()] });
 
 		expect(text).toBe(
-			'<SKILL name="git" location="/skills/git/SKILL.md">\n# Git\n\n</SKILL>',
+			'<SKILL id="git" location="/skills/git/SKILL.md">\n# Git\n\n</SKILL>',
 		);
 	});
 
 	it("renders several entries in load order joined by a blank line", () => {
 		const ref = entry({
-			refPath: "references/GUIDE.md",
-			displayId: "git/references/GUIDE.md",
+			id: "git/references/GUIDE.md",
 			path: "/skills/git/references/GUIDE.md",
 			body: "# Guide\n",
 			volume: { bytes: 8, lines: 1 },
@@ -40,8 +37,8 @@ describe("renderSkillBlock", () => {
 		const text = renderSkillBlock({ entries: [entry(), ref] });
 
 		expect(text).toBe(
-			'<SKILL name="git" location="/skills/git/SKILL.md">\n# Git\n\n</SKILL>\n\n' +
-				'<SKILL name="git" location="/skills/git/references/GUIDE.md">\n# Guide\n\n</SKILL>',
+			'<SKILL id="git" location="/skills/git/SKILL.md">\n# Git\n\n</SKILL>\n\n' +
+				'<SKILL id="git/references/GUIDE.md" location="/skills/git/references/GUIDE.md">\n# Guide\n\n</SKILL>',
 		);
 	});
 
@@ -75,6 +72,7 @@ describe("single source", () => {
 			(match) => match[1],
 		);
 
+		expect(specifiers.length).toBeGreaterThan(0);
 		for (const specifier of specifiers) {
 			expect(specifier, `unexpected import: ${specifier}`).toMatch(/^\.\//);
 			expect(specifier).not.toMatch(/node:|@earendil|session-state|\/deps\//);

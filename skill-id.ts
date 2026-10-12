@@ -140,6 +140,23 @@ export function formatSkillId(
 }
 
 /**
+ * The id the parsed parts spell: prefixed when parsed with one, bare
+ * otherwise.
+ */
+export function reproduceSkillId(parsed: {
+	storage?: SkillStorage;
+	name: string;
+	refPath?: string;
+}): string {
+	if (parsed.storage !== undefined) {
+		return formatSkillId(parsed.storage, parsed.name, parsed.refPath);
+	}
+	return parsed.refPath === undefined
+		? parsed.name
+		: `${parsed.name}/${parsed.refPath}`;
+}
+
+/**
  * The ref path an id carries, or undefined when the id is not a string or
  * names only the skill. A malformed id carries no ref (its error is
  * classified elsewhere).

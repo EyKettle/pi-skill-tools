@@ -15,16 +15,16 @@ import type { LoadedSet } from "./state";
  * attributed open/close pair. `location` is the resolved absolute path.
  */
 export function wrapSkillBlock(
-	name: string,
+	id: string,
 	path: string,
 	text: string,
 ): string {
-	return `<SKILL name="${name}" location="${path}">\n${text}\n</SKILL>`;
+	return `<SKILL id="${id}" location="${path}">\n${text}\n</SKILL>`;
 }
 
 /** The state's render, in load order. */
 export function renderSkillBlock(set: LoadedSet): string {
 	return set.entries
-		.map((entry) => wrapSkillBlock(entry.name, entry.path, entry.body))
+		.map((entry) => wrapSkillBlock(entry.id, entry.path, entry.body))
 		.join("\n\n");
 }

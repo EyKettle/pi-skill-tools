@@ -8,7 +8,7 @@ import { buildTagsOutput } from "../tools/list-skill-tags";
 import { buildSearchOutput } from "../tools/search-skills";
 import { matchedValues } from "../frontmatter";
 import { buildFilesOutput } from "../tools/list-skill-files";
-import { wrapSkillBlock } from "../tools/view-skill";
+import { wrapSkillBlock } from "../skill-block";
 
 describe("buildListOutput", () => {
 	const entries = [
@@ -271,7 +271,7 @@ describe("wrapSkillBlock", () => {
 		expect(
 			wrapSkillBlock("alpha", "/s/alpha/SKILL.md", "---\nname: alpha\n---"),
 		).toBe(
-			'<SKILL name="alpha" location="/s/alpha/SKILL.md">\n---\nname: alpha\n---\n</SKILL>',
+			'<SKILL id="alpha" location="/s/alpha/SKILL.md">\n---\nname: alpha\n---\n</SKILL>',
 		);
 	});
 });

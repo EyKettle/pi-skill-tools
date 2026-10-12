@@ -2,7 +2,7 @@
  * `peek_skill` tool definition.
  *
  * Reads only the 'When to Use' section of a skill's SKILL.md.
- * Wrapped in an attributed `<SKILL_PEEK name location>` block.
+ * Wrapped in an attributed `<SKILL_PEEK id location>` block.
  * Ref paths are rejected outright.
  */
 
@@ -32,11 +32,11 @@ import { extractSection } from "../skill-section";
  * attributed open/close pair. `location` is the resolved absolute path.
  */
 export function wrapSkillPeekBlock(
-	name: string,
+	id: string,
 	path: string,
 	text: string,
 ): string {
-	return `<SKILL_PEEK name="${name}" location="${path}">\n${text}\n</SKILL_PEEK>`;
+	return `<SKILL_PEEK id="${id}" location="${path}">\n${text}\n</SKILL_PEEK>`;
 }
 
 function failPeekSkill(toolCallId: string, source: FailureSource): never {
@@ -111,7 +111,7 @@ export function definePeekSkill(
 			const conflictNames = new Set(
 				(registry.conflicts ?? []).map((conflict) => conflict.name),
 			);
-			const displayId = conflictNames.has(entry.name) ? entry.id : entry.name;
+			const id = conflictNames.has(entry.name) ? entry.id : entry.name;
 			const resolvedFile = resolveSkillFile(entry.baseDir);
 			if (resolvedFile.error !== undefined) {
 				return failPeekSkill(toolCallId, failureSource(resolvedFile));
@@ -129,7 +129,7 @@ export function definePeekSkill(
 				});
 			}
 			const content = wrapSkillPeekBlock(
-				entry.name,
+				id,
 				resolvedFile.path,
 				section.content,
 			);
@@ -141,7 +141,7 @@ export function definePeekSkill(
 				lines: section.lines,
 				content,
 				payload: buildPeekSkillPayload(
-					displayId,
+					id,
 					resolvedFile.path,
 					section.content,
 				),

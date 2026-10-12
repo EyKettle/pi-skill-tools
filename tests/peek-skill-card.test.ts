@@ -179,7 +179,7 @@ describe("peek_skill tool", () => {
 			isProjectTrusted: () => true,
 		});
 
-		expect(result.content[0].text).toContain('<SKILL_PEEK name="git" location="');
+		expect(result.content[0].text).toContain('<SKILL_PEEK id="git" location="');
 		expect(result.content[0].text).toContain("## When to Use");
 		expect(result.content[0].text).toContain("- Use for commits");
 		expect(result.content[0].text).not.toContain("## Guidelines");

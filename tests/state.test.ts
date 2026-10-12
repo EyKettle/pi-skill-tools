@@ -1,6 +1,6 @@
 /**
- * The loaded skill set's algebra (plan Task 1): load outcomes, cancel by an
- * id's shape, and closed serialization.
+ * The loaded skill set's algebra (plan Task 1): load outcomes, cancel by id,
+ * and closed serialization.
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -9,9 +9,7 @@ import type { LoadedSet, StateEntry } from "../state";
 
 function entry(overrides: Partial<StateEntry> = {}): StateEntry {
 	return {
-		storage: "global",
-		name: "git",
-		displayId: "git",
+		id: "git",
 		path: "/skills/git/SKILL.md",
 		body: "# Git\n",
 		volume: { bytes: 6, lines: 1 },
@@ -23,8 +21,7 @@ describe("loading", () => {
 	it("adds every file as its own entry, in load order", () => {
 		const skill = entry();
 		const ref = entry({
-			refPath: "references/GUIDE.md",
-			displayId: "git/references/GUIDE.md",
+			id: "git/references/GUIDE.md",
 			path: "/skills/git/references/GUIDE.md",
 			body: "# Guide\n",
 			volume: { bytes: 8, lines: 1 },
@@ -43,8 +40,7 @@ describe("reloading", () => {
 	it("replaces a matching identity in place and reports replaced", () => {
 		const skill = entry();
 		const guide = entry({
-			refPath: "references/GUIDE.md",
-			displayId: "git/references/GUIDE.md",
+			id: "git/references/GUIDE.md",
 			path: "/skills/git/references/GUIDE.md",
 			body: "# Guide\n",
 			volume: { bytes: 8, lines: 1 },
@@ -85,15 +81,13 @@ describe("cancelling", () => {
 	} {
 		const skill = entry();
 		const guide = entry({
-			refPath: "references/GUIDE.md",
-			displayId: "git/references/GUIDE.md",
+			id: "git/references/GUIDE.md",
 			path: "/skills/git/references/GUIDE.md",
 			body: "# Guide\n",
 			volume: { bytes: 8, lines: 1 },
 		});
 		const api = entry({
-			refPath: "references/API.md",
-			displayId: "git/references/API.md",
+			id: "git/references/API.md",
 			path: "/skills/git/references/API.md",
 			body: "# API\n",
 			volume: { bytes: 6, lines: 1 },
@@ -131,8 +125,7 @@ describe("cancel failures", () => {
 		const result = load(EMPTY_SET, [
 			entry(),
 			entry({
-				refPath: "references/GUIDE.md",
-				displayId: "git/references/GUIDE.md",
+				id: "git/references/GUIDE.md",
 				path: "/skills/git/references/GUIDE.md",
 				body: "# Guide\n",
 				volume: { bytes: 8, lines: 1 },
@@ -148,17 +141,15 @@ describe("cancel failures", () => {
 		projectSkill: StateEntry;
 		set: LoadedSet;
 	} {
-		const globalSkill = entry({ displayId: "global:git" });
+		const globalSkill = entry({ id: "global:git" });
 		const globalRef = entry({
-			refPath: "references/GUIDE.md",
-			displayId: "global:git/references/GUIDE.md",
+			id: "global:git/references/GUIDE.md",
 			path: "/skills/git/references/GUIDE.md",
 			body: "# Guide\n",
 			volume: { bytes: 8, lines: 1 },
 		});
 		const projectSkill = entry({
-			storage: "project",
-			displayId: "project:git",
+			id: "project:git",
 			path: "/work/git/SKILL.md",
 		});
 		const result = load(EMPTY_SET, [globalSkill, globalRef, projectSkill]);
@@ -242,9 +233,21 @@ describe("batch atomicity", () => {
 		if (!loaded.ok) throw new Error("setup load failed");
 
 		const result = load(loaded.set, [
-			entry({ name: "other" }),
-			entry({ name: "Bad Name" }),
+			entry({ id: "other" }),
+			entry({ id: "Bad Name" }),
 		]);
+
+		expect(result.ok).toBe(false);
+		if (result.ok) return;
+		expect(result.failures).toEqual([{ index: 1, error: expect.any(String) }]);
+		expect(loaded.set.entries).toEqual([entry()]);
+	});
+
+	it("a load batch does not land when an id does not reproduce", () => {
+		const loaded = load(EMPTY_SET, [entry()]);
+		if (!loaded.ok) throw new Error("setup load failed");
+
+		const result = load(loaded.set, [entry({ id: "other" }), entry({ id: "git/" })]);
 
 		expect(result.ok).toBe(false);
 		if (result.ok) return;
@@ -257,9 +260,9 @@ describe("batch atomicity", () => {
 		if (!loaded.ok) throw new Error("setup load failed");
 
 		const result = load(loaded.set, [
-			entry({ name: "other" }),
+			entry({ id: "other" }),
 			entry({
-				refPath: "references/GUIDE.md",
+				id: "git/references/GUIDE.md",
 				volume: { bytes: -1, lines: 1 },
 			}),
 		]);
@@ -270,14 +273,13 @@ describe("batch atomicity", () => {
 		expect(loaded.set.entries).toEqual([entry()]);
 	});
 
-
 	it("a load batch does not land when a path is relative", () => {
 		const loaded = load(EMPTY_SET, [entry()]);
 		if (!loaded.ok) throw new Error("setup load failed");
 
 		const result = load(loaded.set, [
-			entry({ name: "other" }),
-			entry({ name: "third", path: "skills/git/SKILL.md" }),
+			entry({ id: "other" }),
+			entry({ id: "third", path: "skills/git/SKILL.md" }),
 		]);
 
 		expect(result.ok).toBe(false);
@@ -289,8 +291,7 @@ describe("batch atomicity", () => {
 	it("a cancel batch with any failing id removes nothing", () => {
 		const skill = entry();
 		const guide = entry({
-			refPath: "references/GUIDE.md",
-			displayId: "git/references/GUIDE.md",
+			id: "git/references/GUIDE.md",
 			path: "/skills/git/references/GUIDE.md",
 			body: "# Guide\n",
 			volume: { bytes: 8, lines: 1 },
@@ -321,8 +322,7 @@ describe("serialization", () => {
 			entries: [
 				entry(),
 				entry({
-					refPath: "references/GUIDE.md",
-					displayId: "git/references/GUIDE.md",
+					id: "git/references/GUIDE.md",
 					path: "/skills/git/references/GUIDE.md",
 					body: "# Guide\n",
 					volume: { bytes: 8, lines: 1 },
@@ -343,7 +343,7 @@ describe("serialization", () => {
 
 	it("decodes a malformed entry as an empty set, never a partial one", () => {
 		const good = entry();
-		const bad = entry({ name: "Bad Name" });
+		const bad = entry({ id: "Bad Name" });
 
 		const decoded = decode({ version: STATE_VERSION, entries: [good, bad] });
 
@@ -362,7 +362,6 @@ describe("serialization", () => {
 		expect(decode({ version: STATE_VERSION, entries: "nope" })).toEqual(EMPTY_SET);
 		expect(decode({ version: STATE_VERSION, entries: [], extra: 1 })).toEqual(EMPTY_SET);
 	});
-
 
 	it("decodes a relative path as an empty set", () => {
 		expect(

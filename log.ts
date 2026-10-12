@@ -16,14 +16,14 @@
  */
 import { applyHunks, countTextLines } from "./delta";
 import type { Hunk } from "./delta";
-import { identityKey, malformedEntryReason } from "./state";
-import type { EntryIdentity, LoadedSet, StateEntry } from "./state";
+import { malformedEntryReason } from "./state";
+import type { LoadedSet, StateEntry } from "./state";
 
 /** One unit-level operation of a change, as the commit table states it. */
 export type CommitOperation =
 	| { kind: "load"; entry: StateEntry }
-	| ({ kind: "replace"; hunks: readonly Hunk[] } & EntryIdentity)
-	| ({ kind: "remove" } & EntryIdentity);
+	| { kind: "replace"; id: string; hunks: readonly Hunk[] }
+	| { kind: "remove"; id: string };
 
 /** One appended entry: a change's operations, or a whole state. */
 export type CommitEntry =
@@ -55,9 +55,8 @@ export function fold(entries: readonly CommitEntry[]): FoldResult {
 		if (reason !== undefined) {
 			return { ok: false, index: start - 1, error: reason };
 		}
-		const key = identityKey(entry);
-		if (state.some((existing) => identityKey(existing) === key)) {
-			return { ok: false, index: start - 1, error: "identity is duplicated in the baseline" };
+		if (state.some((existing) => existing.id === entry.id)) {
+			return { ok: false, index: start - 1, error: "the id is duplicated in the baseline" };
 		}
 		state.push(entry);
 	}
@@ -78,16 +77,13 @@ export function fold(entries: readonly CommitEntry[]): FoldResult {
 				if (reason !== undefined) {
 					return { ok: false, index, error: reason };
 				}
-				const key = identityKey(operation.entry);
-				if (state.some((existing) => identityKey(existing) === key)) {
-					return { ok: false, index, error: "identity is already loaded" };
+				if (state.some((existing) => existing.id === operation.entry.id)) {
+					return { ok: false, index, error: "the id is already loaded" };
 				}
 				state.push(operation.entry);
 				continue;
 			}
-			const at = state.findIndex(
-				(existing) => identityKey(existing) === identityKey(operation),
-			);
+			const at = state.findIndex((existing) => existing.id === operation.id);
 			if (operation.kind === "replace") {
 				if (at === -1) {
 					return { ok: false, index, error: "the replaced identity is not loaded" };

@@ -32,7 +32,7 @@ import { buildRegistry, collectTags } from "../registry";
 import type { PiSkill, RegistryDeps } from "../registry";
 import { parseSkillId, resolveSkillId } from "../skill-id";
 import { readSkillFile, resolveSkillFile } from "../skill-file";
-import { wrapSkillBlock } from "../tools/view-skill";
+import { wrapSkillBlock } from "../skill-block";
 import { wrapSkillPeekBlock } from "../tools/peek-skill";
 import { extractSection } from "../skill-section";
 import { listSkillFiles } from "../skill-files";
@@ -411,9 +411,9 @@ describe("integration: skill tools pipeline over a real skills tree", () => {
 		expect(read.lines).toBe(diskText.split("\n").length - 1);
 		expect(read.lines).toBeGreaterThan(2000); // past pi's collapsed cap
 
-		// model channel: the complete file wrapped in <SKILL name location>
+		// model channel: the complete file wrapped in <SKILL id location>
 		const content = wrapSkillBlock(entry.name, resolvedFile.path, read.text);
-		expect(content).toContain('<SKILL name="');
+		expect(content).toContain('<SKILL id="');
 		expect(content).toContain("</SKILL>");
 		const inner = content
 			.replace(/^<SKILL\b[^>]*>\n/, "")
@@ -445,7 +445,7 @@ describe("integration: skill tools pipeline over a real skills tree", () => {
 		expect(section.content).toContain("Reference-backed reads.");
 
 		const content = wrapSkillPeekBlock(entry.name, resolvedFile.path, section.content);
-		expect(content).toContain('<SKILL_PEEK name="git-utils" location="');
+		expect(content).toContain('<SKILL_PEEK id="git-utils" location="');
 		expect(content).toContain("</SKILL_PEEK>");
 		expect(content).toContain("Reference-backed reads.");
 	});

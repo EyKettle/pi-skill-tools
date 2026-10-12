@@ -10,9 +10,7 @@ import type { StateEntry } from "../state";
 
 function entry(overrides: Partial<StateEntry> = {}): StateEntry {
 	return {
-		storage: "global",
-		name: "git",
-		displayId: "git",
+		id: "git",
 		path: "/skills/git/SKILL.md",
 		body: "# Git\n",
 		volume: { bytes: 6, lines: 1 },
@@ -28,8 +26,7 @@ describe("fold", () => {
 	it("replays a load as the entry it carries", () => {
 		const skill = entry();
 		const ref = entry({
-			refPath: "references/GUIDE.md",
-			displayId: "git/references/GUIDE.md",
+			id: "git/references/GUIDE.md",
 			path: "/skills/git/references/GUIDE.md",
 			body: "# Guide\n",
 			volume: { bytes: 8, lines: 1 },
@@ -46,8 +43,7 @@ describe("fold", () => {
 	it("applies a replace to the accumulating body and keeps its slot", () => {
 		const skill = entry();
 		const ref = entry({
-			refPath: "references/GUIDE.md",
-			displayId: "git/references/GUIDE.md",
+			id: "git/references/GUIDE.md",
 			path: "/skills/git/references/GUIDE.md",
 			body: "# Guide\n",
 			volume: { bytes: 8, lines: 1 },
@@ -66,8 +62,7 @@ describe("fold", () => {
 				operations: [
 					{
 						kind: "replace",
-						storage: "global",
-						name: "git",
+						id: "git",
 						hunks: [{ start: 1, count: 1, text: "# Git v2\n" }],
 					},
 				],
@@ -88,15 +83,13 @@ describe("fold", () => {
 	it("removes every unit of a cascade carried by one entry", () => {
 		const skill = entry();
 		const guide = entry({
-			refPath: "references/GUIDE.md",
-			displayId: "git/references/GUIDE.md",
+			id: "git/references/GUIDE.md",
 			path: "/skills/git/references/GUIDE.md",
 			body: "# Guide\n",
 			volume: { bytes: 8, lines: 1 },
 		});
 		const api = entry({
-			refPath: "references/API.md",
-			displayId: "git/references/API.md",
+			id: "git/references/API.md",
 			path: "/skills/git/references/API.md",
 			body: "# API\n",
 			volume: { bytes: 6, lines: 1 },
@@ -114,19 +107,9 @@ describe("fold", () => {
 			{
 				kind: "delta",
 				operations: [
-					{ kind: "remove", storage: "global", name: "git" },
-					{
-						kind: "remove",
-						storage: "global",
-						name: "git",
-						refPath: "references/GUIDE.md",
-					},
-					{
-						kind: "remove",
-						storage: "global",
-						name: "git",
-						refPath: "references/API.md",
-					},
+					{ kind: "remove", id: "git" },
+					{ kind: "remove", id: "git/references/GUIDE.md" },
+					{ kind: "remove", id: "git/references/API.md" },
 				],
 			},
 		]);
@@ -137,15 +120,13 @@ describe("fold", () => {
 	it("carries loads and removes of one change together", () => {
 		const skill = entry();
 		const guide = entry({
-			refPath: "references/GUIDE.md",
-			displayId: "git/references/GUIDE.md",
+			id: "git/references/GUIDE.md",
 			path: "/skills/git/references/GUIDE.md",
 			body: "# Guide\n",
 			volume: { bytes: 8, lines: 1 },
 		});
 		const other = entry({
-			name: "other",
-			displayId: "other",
+			id: "other",
 			path: "/skills/other/SKILL.md",
 		});
 
@@ -160,12 +141,7 @@ describe("fold", () => {
 			{
 				kind: "delta",
 				operations: [
-					{
-						kind: "remove",
-						storage: "global",
-						name: "git",
-						refPath: "references/GUIDE.md",
-					},
+					{ kind: "remove", id: "git/references/GUIDE.md" },
 					{ kind: "load", entry: other },
 				],
 			},
@@ -178,8 +154,7 @@ describe("fold", () => {
 		const early = entry({ body: "# Early\n", volume: { bytes: 8, lines: 1 } });
 		const late = entry({ body: "# Late\n", volume: { bytes: 7, lines: 1 } });
 		const guide = entry({
-			refPath: "references/GUIDE.md",
-			displayId: "git/references/GUIDE.md",
+			id: "git/references/GUIDE.md",
 			path: "/skills/git/references/GUIDE.md",
 			body: "# Guide\n",
 			volume: { bytes: 8, lines: 1 },
@@ -198,8 +173,7 @@ describe("fold", () => {
 		const early = entry({ body: "# Early\n", volume: { bytes: 8, lines: 1 } });
 		const late = entry({ body: "# Late\n", volume: { bytes: 7, lines: 1 } });
 		const guide = entry({
-			refPath: "references/GUIDE.md",
-			displayId: "git/references/GUIDE.md",
+			id: "git/references/GUIDE.md",
 			path: "/skills/git/references/GUIDE.md",
 			body: "# Guide\n",
 			volume: { bytes: 8, lines: 1 },
@@ -218,7 +192,7 @@ describe("fold", () => {
 describe("folding fails closed", () => {
 	it("reports a malformed load entry", () => {
 		const result = fold([
-			{ kind: "delta", operations: [{ kind: "load", entry: entry({ name: "Bad Name" }) }] },
+			{ kind: "delta", operations: [{ kind: "load", entry: entry({ id: "Bad Name" }) }] },
 		]);
 
 		expect(result).toEqual({ ok: false, index: 0, error: expect.any(String) });
@@ -240,10 +214,7 @@ describe("folding fails closed", () => {
 
 	it("reports a remove whose target is not loaded", () => {
 		const result = fold([
-			{
-				kind: "delta",
-				operations: [{ kind: "remove", storage: "global", name: "absent" }],
-			},
+			{ kind: "delta", operations: [{ kind: "remove", id: "absent" }] },
 		]);
 
 		expect(result).toEqual({ ok: false, index: 0, error: expect.any(String) });
@@ -256,8 +227,7 @@ describe("folding fails closed", () => {
 				operations: [
 					{
 						kind: "replace",
-						storage: "global",
-						name: "absent",
+						id: "absent",
 						hunks: [{ start: 1, count: 0, text: "x\n" }],
 					},
 				],
@@ -275,8 +245,7 @@ describe("folding fails closed", () => {
 				operations: [
 					{
 						kind: "replace",
-						storage: "global",
-						name: "git",
+						id: "git",
 						hunks: [{ start: 9, count: 1, text: "x\n" }],
 					},
 				],

@@ -2,10 +2,11 @@
  * state.ts — the loaded skill set and its algebra (plan Task 1).
  *
  * The unit is one file: a skill's SKILL.md and each of its related files are
- * separate entries. An entry carries its identity, its display id, the
- * absolute path it was read from, the frozen body, and the volume the tool
- * result reports. Loading returns added, replaced, or unchanged; a replacement
- * keeps its slot, so the order is the load order.
+ * separate entries. A skill's identity is its id alone — bare until a
+ * location conflict prefixes it, a related file appending its ref path; an
+ * entry carries that id, the absolute path it was read from, the frozen body,
+ * and the volume the tool result reports. Loading returns added, replaced, or
+ * unchanged; a replacement keeps its slot, so the order is the load order.
  *
  * This module is pure: no filesystem, no Pi import, no session-state import.
  * Identity syntax and parsing live in skill-id.ts; reaching an id by its shape
@@ -14,7 +15,7 @@
  * Serialization is versioned and decoded closed: a value whose version or
  * shape is unrecognized decodes as an empty set, never as a partial one.
  */
-import { formatSkillId, isSkillStorage, parseSkillId } from "./skill-id";
+import { parseSkillId, reproduceSkillId } from "./skill-id";
 import type { SkillStorage } from "./skill-id";
 import type { CandidateEntry, FailureCode, FailureEvidence } from "./failure";
 
@@ -26,17 +27,11 @@ export interface EntryVolume {
 
 /** One loaded file: a skill's SKILL.md or one of its related files. */
 export interface StateEntry {
-	storage: SkillStorage;
-	name: string;
-	refPath?: string;
-	displayId: string;
+	id: string;
 	path: string;
 	body: string;
 	volume: EntryVolume;
 }
-
-/** The identity fields of an entry. */
-export type EntryIdentity = Pick<StateEntry, "storage" | "name" | "refPath">;
 
 /** The loaded set, in load order. */
 export interface LoadedSet {
@@ -109,7 +104,7 @@ export function load(
 	const next = [...set.entries];
 	const outcomes: LoadOutcome[] = [];
 	for (const entry of entries) {
-		const at = next.findIndex((existing) => identityKey(existing) === identityKey(entry));
+		const at = next.findIndex((existing) => existing.id === entry.id);
 		if (at === -1) {
 			next.push(entry);
 			outcomes.push("added");
@@ -123,15 +118,9 @@ export function load(
 	return { ok: true, set: { entries: next }, outcomes };
 }
 
-/** The canonical key of an identity: its id through the skill-id authority. */
-export function identityKey(identity: EntryIdentity): string {
-	return formatSkillId(identity.storage, identity.name, identity.refPath);
-}
-
-/** Whether two entries with the same identity carry the same data. */
+/** Whether two entries with the same id carry the same data. */
 function sameEntry(a: StateEntry, b: StateEntry): boolean {
 	return (
-		a.displayId === b.displayId &&
 		a.path === b.path &&
 		a.body === b.body &&
 		a.volume.bytes === b.volume.bytes &&
@@ -140,9 +129,10 @@ function sameEntry(a: StateEntry, b: StateEntry): boolean {
 }
 
 /**
- * Cancel loaded files. An id carrying a ref path reaches that entry alone; a
- * skill id reaches the skill and every entry under it. A batch is atomic: any
- * failing id leaves the whole set untouched.
+ * Cancel loaded files. An id reaches the entry it names and every entry under
+ * it: the same name — and the same storage when the target carries one —
+ * with the entry's ref path equal to the target's or below it. A batch is
+ * atomic: any failing id leaves the whole set untouched.
  */
 export function cancel(set: LoadedSet, ids: readonly string[]): CancelResult {
 	const targets = new Set<StateEntry>();
@@ -157,61 +147,38 @@ export function cancel(set: LoadedSet, ids: readonly string[]): CancelResult {
 			failures.push({ index, id, kind: "invalid-id", error, code, evidence });
 			continue;
 		}
-		if (parsed.refPath !== undefined) {
-			const matches = set.entries.filter(
-				(entry) =>
-					entry.name === parsed.name &&
-					entry.refPath === parsed.refPath &&
-					(parsed.storage === undefined || entry.storage === parsed.storage),
-			);
-			if (matches.length === 0) {
-				failures.push({ index, id, kind: "not-loaded" });
-			} else if (matches.length > 1) {
-				failures.push({
-					index,
-					id,
-					kind: "ambiguous",
-					candidates: matches.map((entry) => ({
-						id: formatSkillId(entry.storage, entry.name, entry.refPath),
-						path: entry.path,
-					})),
-				});
-			} else {
-				targets.add(matches[0]);
-			}
+		const matches = set.entries.filter((entry) => reaches(entry.id, parsed));
+		if (matches.length === 0) {
+			failures.push({ index, id, kind: "not-loaded" });
 			continue;
 		}
-		const matches = set.entries.filter(
-			(entry) =>
-				entry.name === parsed.name &&
-				(parsed.storage === undefined || entry.storage === parsed.storage),
-		);
-		const representatives = new Map<SkillStorage, StateEntry>();
+		const representatives = new Map<string, StateEntry>();
 		for (const entry of matches) {
-			const current = representatives.get(entry.storage);
+			const identity = parsedIdentity(entry.id);
+			const key = identity.storage ?? "";
+			const current = representatives.get(key);
 			if (
 				current === undefined ||
-				(current.refPath !== undefined && entry.refPath === undefined)
+				(parsedIdentity(current.id).refPath !== undefined &&
+					identity.refPath === undefined)
 			) {
-				representatives.set(entry.storage, entry);
+				representatives.set(key, entry);
 			}
 		}
-		if (representatives.size === 0) {
-			failures.push({ index, id, kind: "not-loaded" });
-		} else if (representatives.size > 1) {
+		if (representatives.size > 1) {
 			failures.push({
 				index,
 				id,
 				kind: "ambiguous",
 				candidates: Array.from(representatives.values(), (entry) => ({
-					id: formatSkillId(entry.storage, entry.name),
+					id: entry.id,
 					path: entry.path,
 				})),
 			});
-		} else {
-			for (const entry of matches) {
-				targets.add(entry);
-			}
+			continue;
+		}
+		for (const entry of matches) {
+			targets.add(entry);
 		}
 	}
 	if (failures.length > 0) {
@@ -222,11 +189,46 @@ export function cancel(set: LoadedSet, ids: readonly string[]): CancelResult {
 	return { ok: true, set: { entries: remaining }, removed };
 }
 
+/** The parsed parts of a loaded entry's id; entries are validated. */
+function parsedIdentity(id: string): {
+	storage?: SkillStorage;
+	name: string;
+	refPath?: string;
+} {
+	const parsed = parseSkillId(id);
+	if (parsed.error !== undefined) {
+		throw new Error(`loaded entry id '${id}' does not parse`);
+	}
+	return parsed;
+}
+
+/**
+ * Whether an entry id is reached by a cancel target: the same name — and the
+ * same storage when the target names one — with the entry's id, ref path
+ * included, equal to the target's or below it.
+ */
+function reaches(
+	entryId: string,
+	target: { storage?: SkillStorage; name: string; refPath?: string },
+): boolean {
+	const entry = parsedIdentity(entryId);
+	if (entry.name !== target.name) {
+		return false;
+	}
+	if (target.storage !== undefined && entry.storage !== target.storage) {
+		return false;
+	}
+	const targetKey =
+		target.refPath === undefined
+			? target.name
+			: `${target.name}/${target.refPath}`;
+	const entryKey =
+		entry.refPath === undefined ? entry.name : `${entry.name}/${entry.refPath}`;
+	return entryKey === targetKey || entryKey.startsWith(`${targetKey}/`);
+}
+
 const ENTRY_KEYS = new Set([
-	"storage",
-	"name",
-	"refPath",
-	"displayId",
+	"id",
 	"path",
 	"body",
 	"volume",
@@ -244,31 +246,13 @@ export function malformedEntryReason(value: unknown): string | undefined {
 	if (Object.keys(entry).some((key) => !ENTRY_KEYS.has(key))) {
 		return "entry has an unknown field";
 	}
-	const storage = entry.storage;
-	if (!isSkillStorage(storage)) {
-		return "storage is not one of global, project, package, temp";
+	const id = entry.id;
+	if (typeof id !== "string") {
+		return "id is not a string";
 	}
-	const { name, refPath } = entry;
-	if (typeof name !== "string") {
-		return "name is not a string";
-	}
-	if (refPath !== undefined && typeof refPath !== "string") {
-		return "refPath is not a string";
-	}
-	if (refPath === "") {
-		return "refPath is empty";
-	}
-	const identity = parseSkillId(formatSkillId(storage, name, refPath));
-	if (
-		identity.error !== undefined ||
-		identity.storage !== storage ||
-		identity.name !== name ||
-		identity.refPath !== refPath
-	) {
-		return "identity is not a parseable skill id";
-	}
-	if (typeof entry.displayId !== "string" || entry.displayId.length === 0) {
-		return "displayId is empty";
+	const parsed = parseSkillId(id);
+	if (parsed.error !== undefined || reproduceSkillId(parsed) !== id) {
+		return "id is not a skill id";
 	}
 	if (typeof entry.path !== "string" || !entry.path.startsWith("/")) {
 		return "path is not absolute";
@@ -331,7 +315,7 @@ export function decode(value: unknown): LoadedSet {
 		if (!isWellFormedEntry(raw)) {
 			return EMPTY_SET;
 		}
-		const id = identityKey(raw);
+		const id = raw.id;
 		if (identities.has(id)) {
 			return EMPTY_SET;
 		}
