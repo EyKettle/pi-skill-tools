@@ -1,5 +1,7 @@
 # skill-tools Architecture Blueprint
 
+<!--Outdated-->
+
 English | [中文](../docs_zh-CN/architecture.md)
 
 This document serves as the authoritative architectural blueprint for the `skill-tools` extension, covering system design principles, module topology, core operational mechanisms, and error handling architecture.

@@ -1,5 +1,7 @@
 # skill-tools 架构总纲
 
+<!--Outdated-->
+
 [English](../docs/architecture.md) | 中文
 
 本文档是 `skill-tools` 扩展插件的系统级权威设计锚点，统摄系统架构原则、模块拓扑、核心业务机制与错误处理体系。
