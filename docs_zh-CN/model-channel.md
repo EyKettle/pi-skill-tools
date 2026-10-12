@@ -26,7 +26,7 @@
 同一事实只在上述一处陈述；出现在两处即独立漂移。能力事实归描述，方向理由归引导（见「引导」）。
 卡片与其信息不进入模型通道，模型通道的文本也不进入卡片（`RP#Data`）。
 
-`{dynamic-skill-id}`：含义同 `tui-render.md`；位置冲突时带前缀，如 `global:name`。
+`{dynamic-skill-id}`：含义同 `tui-render.md`；位置冲突时带前缀，如 `global:git`。
 
 ## 能力声明
 
@@ -59,8 +59,8 @@
 | `search_skills` | 空行分隔的条目：首行 `{dynamic-skill-id} {absolute-path}`，随后每个匹配参数一行；多值时星号标记命中项（`*{value}*`） | `no matches` |
 | `list_skill_files` | 每行 `- {type/file-name} {absolute-path}` | `no files` |
 | `create_skill` | `created skill '{id}' at {absolute-path}` | 写入零字节仍是成功 |
-| `view_skill` | `<SKILL name="…" location="…">` 包裹的全文；`frontmatterOnly` 为真时包裹 frontmatter 段 | 空文件：包裹内为空即答案 |
-| `peek_skill` | `<SKILL_PEEK name="…" location="…">` 包裹的 `## When to Use` 章节内容 | 无（章节缺失时抛出失败） |
+| `view_skill` | `<SKILL id="…" location="…">` 包裹的全文；`frontmatterOnly` 为真时包裹 frontmatter 段 | 空文件：包裹内为空即答案 |
+| `peek_skill` | `<SKILL_PEEK id="…" location="…">` 包裹的 `## When to Use` 章节内容 | 无（章节缺失时抛出失败） |
 
 空态规则：空态是成功的一种，用短句 `no {对象}` 明说；空白文本不可用作空态。空态与失败可辨——失败抛出，
 带 `error:`。

@@ -26,7 +26,7 @@ What cards can omit (carried by color and position) is missing here if omitted: 
 The same fact is stated in only one of the above exits; appearing in two leads to independent drift. Capability facts belong in descriptions; direction rationale belongs in guidance (see "Guidance").
 Cards and their information do not enter the model channel, nor does model-channel text enter cards (`RP#Data`).
 
-`{dynamic-skill-id}`: Identical meaning to `tui-render.md`; prefixed when positions conflict (e.g. `global:name`).
+`{dynamic-skill-id}`: Identical meaning to `tui-render.md`; prefixed when positions conflict (e.g. `global:git`).
 
 ## Capability Declarations
 
@@ -58,8 +58,8 @@ Seven tool formats:
 | `search_skills` | Blank-line-separated entries: first line `{dynamic-skill-id} {absolute-path}`, followed by matched parameters per line; asterisks mark multi-value hits (`*{value}*`) | `no matches` |
 | `list_skill_files` | One line per file: `- {type/file-name} {absolute-path}` | `no files` |
 | `create_skill` | `created skill '{id}' at {absolute-path}` | Writing zero bytes is still a success |
-| `view_skill` | Full file text wrapped in `<SKILL name="…" location="…">`; wraps frontmatter block when `frontmatterOnly: true` | Empty file: empty content inside the wrapper is the answer |
-| `peek_skill` | `## When to Use` section content wrapped in `<SKILL_PEEK name="…" location="…">` | None (throws failure when section is missing) |
+| `view_skill` | Full file text wrapped in `<SKILL id="…" location="…">`; wraps frontmatter block when `frontmatterOnly: true` | Empty file: empty content inside the wrapper is the answer |
+| `peek_skill` | `## When to Use` section content wrapped in `<SKILL_PEEK id="…" location="…">` | None (throws failure when section is missing) |
 
 Empty-state rule: Empty states are a form of success, stated explicitly with `no {object}`; blank text cannot serve as an empty state. Empty states are distinct from failures — failures throw with an `error:` prefix.
 

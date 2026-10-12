@@ -20,7 +20,7 @@ All tools use the default three-state colors, except `view_skill` (skill mode), 
 
 The call line answers "who was used." It need not be the tool name; take the highest-value identity at coarse granularity (`RP#Granule`). When identity is not yet known, draw the tool name only without guessing.
 
-`{dynamic-skill-id}`: Bare name when no location conflicts exist; prefixed ID like `global:name` when conflicts exist. Conflicts are determined by the index, not by filtered results. While pending, if the entry is not yet resolved, draw the provided ID only without guessing a prefix.
+`{dynamic-skill-id}`: The skill's ID; bare when no location conflict exists, prefixed like `global:git` when one does. Conflicts are determined by the index, not by filtered results. While pending, if the entry is not yet resolved, draw the provided ID only without guessing a prefix.
 
 `{Position}`: `Global` / `Project` / `Package` / `Temp`. A compact qualification matching the title level, permissible in collapsed answers.
 

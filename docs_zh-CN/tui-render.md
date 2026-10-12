@@ -24,7 +24,7 @@
 调用行回答「用了谁」。不必是工具名；粗粒度取最有价值的那个谁
 （`RP#Granule`）。身份尚未可知时只画工具名，不猜测。
 
-`{dynamic-skill-id}`：索引无位置冲突时为纯 name，冲突时为 `global:name` 这类带前缀 id。
+`{dynamic-skill-id}`：技能 ID；索引无位置冲突时为裸 ID，冲突时为 `global:git` 这类带位置前缀的 ID。
 冲突由索引决定，不由本次筛选结果决定。进行中若尚未解析到登记项，只画已给出的 id，不补前缀。
 
 `{Position}`：`Global` / `Project` / `Package`。它是标题同级的短小限定，可出现在收起答案里。
