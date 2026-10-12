@@ -44,7 +44,7 @@ Clone into Pi's user-extension directory.
 ```bash
 git clone https://github.com/EyKettle/pi-skill-tools.git ~/.pi/agent/extensions/skill-tools
 cd ~/.pi/agent/extensions/skill-tools
-npm install
+pnpm install
 ```
 
 Pi loads `index.ts` from each directory under `~/.pi/agent/extensions/`.
@@ -53,9 +53,9 @@ Reload Pi after installing.
 ## Develop
 
 ```bash
-npm install
-npm test
-npm run typecheck
+pnpm install
+pnpm test
+pnpm run typecheck
 ```
 
 `private: true` is intentional. This extension is not ready to publish.

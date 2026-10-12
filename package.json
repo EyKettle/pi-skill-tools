@@ -5,6 +5,7 @@
   "private": true,
   "description": "Pi extension: skill management (list, search, view untruncated, create)",
   "license": "MIT",
+  "packageManager": "pnpm@12.9.1",
   "scripts": {
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit"

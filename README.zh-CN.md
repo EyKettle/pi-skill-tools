@@ -38,7 +38,7 @@ Pi 的原生 `read` 会截断超出 2000 行 / 50KB 的内容。如果要保证�
 ```bash
 git clone https://github.com/EyKettle/pi-skill-tools.git ~/.pi/agent/extensions/skill-tools
 cd ~/.pi/agent/extensions/skill-tools
-npm install
+pnpm install
 ```
 
 Pi 会自动加载 `~/.pi/agent/extensions/` 下的 `index.ts` 作为用户插件。
@@ -53,9 +53,9 @@ Pi 会自动加载 `~/.pi/agent/extensions/` 下的 `index.ts` 作为用户插�
 ## 开发
 
 ```bash
-npm install
-npm test
-npm run typecheck
+pnpm install
+pnpm test
+pnpm run typecheck
 ```
 
 `private: true` 是有意为之。该插件尚未做好发布准备。
