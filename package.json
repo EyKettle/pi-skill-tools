@@ -36,6 +36,7 @@
     "vitest": "^4.1.11"
   },
   "dependencies": {
+    "diff": "^9.0.0",
     "js-yaml": "^4.3.1"
   }
 }

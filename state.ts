@@ -236,7 +236,7 @@ const ENTRY_KEYS = new Set([
  * Why `value` is not a well-formed entry, or undefined when it is one. The
  * same shape check guards loading and closed decoding.
  */
-function malformedEntryReason(value: unknown): string | undefined {
+export function malformedEntryReason(value: unknown): string | undefined {
 	if (typeof value !== "object" || value === null) {
 		return "entry is not an object";
 	}
