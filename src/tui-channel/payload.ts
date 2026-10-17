@@ -225,7 +225,9 @@ function dataIsValid(tool: ToolName, data: unknown): boolean {
 			return exactKeys(data, ["displayIds"]) && stringArray(data.displayIds);
 		case "create_skill":
 			return (
-				exactKeys(data, ["lines", "bytes"]) &&
+				exactKeys(data, ["path", "content", "lines", "bytes"]) &&
+				typeof data.path === "string" &&
+				typeof data.content === "string" &&
 				nonNegativeInteger(data.lines) &&
 				nonNegativeInteger(data.bytes)
 			);

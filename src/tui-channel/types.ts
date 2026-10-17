@@ -60,7 +60,14 @@ export interface CancelSkillData {
 	readonly displayIds: readonly string[];
 }
 
+/**
+ * `create_skill` is the one card whose `{output}` is not the model text: the
+ * document states the block it shows, so the path and the written body ride
+ * the payload.
+ */
 export interface CreateSkillData {
+	readonly path: string;
+	readonly content: string;
 	readonly lines: number;
 	readonly bytes: number;
 }

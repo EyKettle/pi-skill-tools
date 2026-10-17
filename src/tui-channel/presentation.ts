@@ -74,7 +74,12 @@ export function presentRow(
 	}
 
 	const view = resultOf(payload);
-	const output = outputLines(options.content);
+	// `{output}` follows the model text unless the document states the block
+	// a tool shows; `create_skill` is that case.
+	const output =
+		view.output !== undefined
+			? view.output.map((line) => [span(line, "toolOutput")])
+			: outputLines(options.content);
 	return {
 		call: screenCall(title, args, options, view.info),
 		fullArgs: options.expanded ? fullArgs(options.args) : [],
@@ -96,6 +101,8 @@ export function presentRow(
 interface ResultView {
 	readonly answer: string;
 	readonly info?: string;
+	/** The card's own `{output}`, when the document overrides the default. */
+	readonly output?: readonly string[];
 }
 
 function screenCall(
@@ -134,11 +141,20 @@ function resultOf(payload: TransportPayload): ResultView {
 		case "create_skill": {
 			const data = payload.data;
 			if (data.lines === 0) {
+				// An empty write shows nothing; the answer carries the empty state.
 				return { answer: "Nothing to write", info: "(0 B, 0 L)" };
 			}
 			return {
 				answer: `Wrote ${data.lines} ${noun(data.lines, "line", "lines")} (${data.bytes} B)`,
 				info: `(${data.bytes} B, ${data.lines} L)`,
+				output: [
+					`Path: ${data.path}`,
+					"======",
+					data.content.endsWith("\n")
+						? data.content.slice(0, -1)
+						: data.content,
+					"======",
+				],
 			};
 		}
 		case "rename_skill": {

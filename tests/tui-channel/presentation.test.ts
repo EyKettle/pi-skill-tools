@@ -239,7 +239,12 @@ describe("the empty states", () => {
 		expect(
 			joined(
 				presentRow(
-					buildCreateSkillPayload({ lines: 0, bytes: 0 }),
+					buildCreateSkillPayload({
+						path: "/skills/empty/SKILL.md",
+						content: "",
+						lines: 0,
+						bytes: 0,
+					}),
 					options({ tool: "create_skill" }),
 				),
 			).result,
@@ -284,6 +289,44 @@ describe("rename and remove", () => {
 			call: "Remove (1 files)",
 			result: ["Removed folder: /skills/git"],
 		});
+	});
+});
+
+describe("the create override", () => {
+	it("shows the path and the written body, not the model text", () => {
+		const projection = presentRow(
+			buildCreateSkillPayload({
+				path: "/skills/git/SKILL.md",
+				content: "# Git\n",
+				lines: 1,
+				bytes: 6,
+			}),
+			options({
+				tool: "create_skill",
+				args: { id: "git" },
+				expanded: true,
+				content: "Actual Wrote Path: /skills/git/SKILL.md\n",
+			}),
+		);
+		expect(joined(projection).result).toEqual([
+			"Path: /skills/git/SKILL.md",
+			"======",
+			"# Git",
+			"======",
+		]);
+	});
+
+	it("falls back to the answer for an empty write", () => {
+		const projection = presentRow(
+			buildCreateSkillPayload({
+				path: "/skills/empty/SKILL.md",
+				content: "",
+				lines: 0,
+				bytes: 0,
+			}),
+			options({ tool: "create_skill", expanded: true }),
+		);
+		expect(joined(projection).result).toEqual(["Nothing to write"]);
 	});
 });
 

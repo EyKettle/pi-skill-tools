@@ -33,8 +33,18 @@ const payloads: TransportPayload[] = [
 	buildSearchSkillPayload({ count: 0 }),
 	buildImportSkillPayload({ displayIds: ["git"] }),
 	buildCancelSkillPayload({ displayIds: ["git"] }),
-	buildCreateSkillPayload({ lines: 1, bytes: 6 }),
-	buildCreateSkillPayload({ lines: 0, bytes: 0 }),
+	buildCreateSkillPayload({
+		path: "/skills/git/SKILL.md",
+		content: "# Git\n",
+		lines: 1,
+		bytes: 6,
+	}),
+	buildCreateSkillPayload({
+		path: "/skills/empty/SKILL.md",
+		content: "",
+		lines: 0,
+		bytes: 0,
+	}),
 	buildRenameSkillPayload({
 		from: "alpha",
 		to: "beta",
