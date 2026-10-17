@@ -36,6 +36,7 @@ skill-tools/
 │   │   └── settings.ts           settings.json → 解析后的配置
 │   ├── tools/                    十个工具
 │   │   ├── types.ts              ToolDeps、ToolResult
+│   │   ├── common.ts             跨工具的复合：ID 解析、批量归一
 │   │   ├── list-skills.ts
 │   │   ├── list-skill-tags.ts
 │   │   ├── list-skill-files.ts
@@ -64,6 +65,7 @@ skill-tools/
 │   │   └── section.ts            章节抽取
 │   ├── management/               技能写操作
 │   │   ├── types.ts              ManagementPorts
+│   │   ├── support.ts            可写判定、文件枚举、行数
 │   │   ├── create.ts
 │   │   ├── rename.ts
 │   │   └── remove.ts
@@ -99,6 +101,9 @@ graph LR
   plugin --> discovery["discovery/"]
   plugin --> model["model-channel/"]
   plugin --> tui["tui-channel/"]
+  plugin --> files["files/"]
+  plugin --> management["management/"]
+  plugin --> shared
   plugin --> deps["deps/"]
 
   tools --> discovery
@@ -116,6 +121,7 @@ graph LR
   management --> failure
   skilltree --> discovery
   skilltree --> failure
+  skilltree --> model["model-channel/"]
   tui --> deps
   tui --> failure
   tui --> shared
@@ -133,16 +139,16 @@ graph LR
 
 | 模块 | 职责 | 对外关键符号 | 依赖 |
 | --- | --- | --- | --- |
-| `plugin/` | 构建 Pi 插件：宿主动态导入、装配、注册工具、钩子与命令 | `createPlugin`, `ResolvedConfig` | `tools/`, `skill-tree/`, `discovery/`, `model-channel/`, `tui-channel/`, `deps/` |
+| `plugin/` | 构建 Pi 插件：宿主动态导入、装配、注册工具、钩子与命令 | `createPlugin`, `ResolvedConfig` | `tools/`, `skill-tree/`, `discovery/`, `files/`, `management/`, `model-channel/`, `tui-channel/`, `shared/`, `deps/` |
 | `tools/` | 十个工具：参数定义、执行编排、两通道接线 | `ToolDeps`, `ToolResult`, `define*Tool` | `discovery/`, `files/`, `management/`, `skill-tree/`, `tui-channel/`, `model-channel/`, `failure/` |
-| `skill-tree/` | 已加载技能状态：两层存储、差分、折叠、写入序、导航、挂载 | `createSkillTree`, `SkillTree`, `SkillTreePorts`, `StateEntry`, `ChangeRequest` | `discovery/`, `failure/` |
+| `skill-tree/` | 已加载技能状态：两层存储、差分、折叠、写入序、导航、挂载 | `createSkillTree`, `SkillTree`, `SkillTreePorts`, `StateEntry`, `ChangeRow` | `discovery/`, `failure/`, `model-channel/` |
 | `discovery/` | 技能目录与寻址：索引构建、ID 语法、Frontmatter 元数据 | `buildIndex`, `Index`, `RegistryEntry`, `parseSkillId`, `formatSkillId`, `resolveSkillId`, `matchesFrontmatter`, `parseFrontmatterBlock`, `collectTags` | `failure/`, `shared/` |
 | `files/` | 文件读取：防逃逸、整份读取、二进制嗅探、目录遍历、章节抽取 | `resolveSkillFile`, `readSkillFile`, `listSkillFiles`, `extractSection` | `failure/` |
 | `management/` | 技能写操作：创建、重命名、移除，含原子写与覆盖保护 | `createSkill`, `renameSkill`, `removeSkill`, `ManagementPorts` | `discovery/`, `failure/` |
 | `tui-channel/` | TUI 通道：传输载荷家族、行投影、逐工具卡片、状态栏 | `TransportPayload`, `build*Payload`, `presentRow`, `renderStatus` | `deps/`, `failure/`, `shared/` |
 | `model-channel/` | 模型通道：逐工具输出文本、失败文本框架、系统提示追加 | `*Text`, `failureText`, `guidanceText` | `failure/` |
 | `failure/` | 失败词汇：闭集失败码、恢复文本、Failure 构造 | `FAILURE_CODES`, `FailureCode`, `Failure`, `createFailure`, `recoveryFor` | 无 |
-| `deps/` | 宿主边界：唯一具名宿主包处 | `Text`, `Box`, `Container`, `visibleWidth`, `sliceByColumn`, `ThemeFg`, `TAIL_PROMPT_*` | 无 |
+| `deps/` | 宿主取值边界：宿主值的唯一具名取得处 | `Text`, `Box`, `Container`, `visibleWidth`, `sliceByColumn`, `ThemeFg`, `TAIL_PROMPT_*` | 无 |
 | `shared/` | 跨模块共用的类型谓词：两个互不依赖的模块对同一种形状的判定 | `isRecord` | 无 |
 
 一个目录一个职责，模块的契约就是它导出的符号。
