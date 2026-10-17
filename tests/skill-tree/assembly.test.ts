@@ -133,7 +133,7 @@ describe("the write order", () => {
 
 		expect(result).toEqual({
 			ok: true,
-			results: [{ id: "git", outcome: "Loaded" }],
+			results: [{ displayId: "git", outcome: "Loaded" }],
 		});
 		expect(h.order).toEqual(["append", "copy", "register"]);
 		expect(h.appends[0]).toEqual({
@@ -170,7 +170,7 @@ describe("the write order", () => {
 
 		expect(result).toEqual({
 			ok: true,
-			results: [{ id: "git", outcome: "Refreshed" }],
+			results: [{ displayId: "git", outcome: "Refreshed" }],
 		});
 		expect(h.appends.at(-1)).toEqual({
 			kind: "change",
@@ -199,7 +199,7 @@ describe("the write order", () => {
 
 		expect(result).toEqual({
 			ok: true,
-			results: [{ id: "git", outcome: "Unchanged" }],
+			results: [{ displayId: "git", outcome: "Unchanged" }],
 		});
 		expect(h.order.length).toBe(orderLength);
 		expect(h.appends.length).toBe(appends);
@@ -248,7 +248,7 @@ describe("the write order", () => {
 
 		expect(result).toEqual({
 			ok: true,
-			results: [{ id: "git", outcome: "Refreshed" }],
+			results: [{ displayId: "git", outcome: "Refreshed" }],
 		});
 		expect(tree.state).toEqual([
 			{ id: "global:git", path: "/global/git/SKILL.md", body: "# Git v2\n" },
@@ -272,7 +272,7 @@ describe("the write order", () => {
 
 		expect(result).toEqual({
 			ok: true,
-			results: [{ id: "git", outcome: "Unchanged" }],
+			results: [{ displayId: "git", outcome: "Unchanged" }],
 		});
 		expect(h.appends.length).toBe(appends);
 		expect(tree.state[0].path).toBe("/global/git/SKILL.md");
@@ -554,7 +554,7 @@ describe("the import use case", () => {
 		expect(result).toEqual({
 			ok: true,
 			results: [
-				{ id: "git/references/GUIDE.md", outcome: "Loaded" },
+				{ displayId: "git/references/GUIDE.md", outcome: "Loaded" },
 			],
 		});
 		expect(tree.state[0].path).toBe("/global/git/references/GUIDE.md");
@@ -583,7 +583,7 @@ describe("the import use case", () => {
 
 		expect(result).toEqual({
 			ok: true,
-			results: [{ id: "global:git", outcome: "Loaded" }],
+			results: [{ displayId: "global:git", outcome: "Loaded" }],
 		});
 	});
 
@@ -648,7 +648,7 @@ describe("the cancel use case", () => {
 
 		expect(result).toEqual({
 			ok: true,
-			results: [{ id: "git", outcome: "Unloaded" }],
+			results: [{ displayId: "git", outcome: "Unloaded" }],
 		});
 		expect(h.appends.at(-1)).toEqual({
 			kind: "change",
@@ -703,7 +703,7 @@ describe("the cancel use case", () => {
 
 		expect(result).toEqual({
 			ok: true,
-			results: [{ id: "global:git", outcome: "Unloaded" }],
+			results: [{ displayId: "global:git", outcome: "Unloaded" }],
 		});
 	});
 

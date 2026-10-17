@@ -74,8 +74,12 @@ export type SkillTreeReport =
 export type ChangeOutcome = "Loaded" | "Refreshed" | "Unchanged" | "Unloaded";
 
 export interface ChangeReport {
-	/** The id as the reader sees it: the location prefix folds when unique. */
-	readonly id: string;
+	/**
+	 * The id's display form, not its identity: the location prefix folds when
+	 * the name is unique. Commit operations, entries, and evidence carry the
+	 * full id.
+	 */
+	readonly displayId: string;
 	readonly outcome: ChangeOutcome;
 }
 
