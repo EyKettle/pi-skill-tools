@@ -113,6 +113,9 @@ function renameFile(
 	if (existsSync(to)) {
 		return { ok: false, failure: targetExistsPath(to) };
 	}
+	// The check and the move are not one atomic step: POSIX `rename` replaces
+	// an existing target silently, and no portable exclusive rename exists.
+	// A target that appears in this window is overwritten; accepted.
 	try {
 		renameSync(source.path, to);
 	} catch (error) {

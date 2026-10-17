@@ -19,6 +19,15 @@ export type ResolvedPath =
 export interface ManagementPorts {
 	readonly index: Index;
 	readonly defaultLocation: string;
+	/**
+	 * Resolve a reference inside a skill directory.
+	 *
+	 * `PATH_NOT_FOUND` means containment passed and the target does not exist:
+	 * that is the free path creation needs. Every other failure — an absolute
+	 * reference, an escape, an unreadable target — is a refusal, and creation
+	 * passes it through unchanged. The contract holds because `files/` checks
+	 * containment before existence.
+	 */
 	readonly resolveRef: (
 		baseDir: string,
 		refPath: string,
