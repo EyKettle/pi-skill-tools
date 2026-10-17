@@ -81,6 +81,8 @@ skill-tools/
 │   │   ├── types.ts              Failure、FailureCode
 │   │   ├── codes.ts              闭集与恢复文本
 │   │   └── create.ts             Failure 构造
+│   ├── shared/                   跨模块共用的形状判定
+│   │   └── predicates.ts         类型谓词，无依赖
 │   └── deps/                     宿主边界
 │       ├── pi-tui.ts
 │       ├── pi-theme.ts
@@ -108,6 +110,7 @@ graph LR
   tools --> failure["failure/"]
 
   discovery --> failure
+  discovery --> shared["shared/"]
   files --> failure
   management --> discovery
   management --> failure
@@ -115,6 +118,7 @@ graph LR
   skilltree --> failure
   tui --> deps
   tui --> failure
+  tui --> shared
   model --> failure
 ```
 
@@ -132,13 +136,14 @@ graph LR
 | `plugin/` | 构建 Pi 插件：宿主动态导入、装配、注册工具、钩子与命令 | `createPlugin`, `ResolvedConfig` | `tools/`, `skill-tree/`, `discovery/`, `model-channel/`, `tui-channel/`, `deps/` |
 | `tools/` | 十个工具：参数定义、执行编排、两通道接线 | `ToolDeps`, `ToolResult`, `define*Tool` | `discovery/`, `files/`, `management/`, `skill-tree/`, `tui-channel/`, `model-channel/`, `failure/` |
 | `skill-tree/` | 已加载技能状态：两层存储、差分、折叠、写入序、导航、挂载 | `createSkillTree`, `SkillTree`, `SkillTreePorts`, `StateEntry`, `ChangeRequest` | `discovery/`, `failure/` |
-| `discovery/` | 技能目录与寻址：索引构建、ID 语法、Frontmatter 元数据 | `buildIndex`, `Index`, `RegistryEntry`, `parseSkillId`, `formatSkillId`, `resolveSkillId`, `matchesFrontmatter`, `parseFrontmatterBlock`, `collectTags` | `failure/` |
+| `discovery/` | 技能目录与寻址：索引构建、ID 语法、Frontmatter 元数据 | `buildIndex`, `Index`, `RegistryEntry`, `parseSkillId`, `formatSkillId`, `resolveSkillId`, `matchesFrontmatter`, `parseFrontmatterBlock`, `collectTags` | `failure/`, `shared/` |
 | `files/` | 文件读取：防逃逸、整份读取、二进制嗅探、目录遍历、章节抽取 | `resolveSkillFile`, `readSkillFile`, `listSkillFiles`, `extractSection` | `failure/` |
 | `management/` | 技能写操作：创建、重命名、移除，含原子写与覆盖保护 | `createSkill`, `renameSkill`, `removeSkill`, `ManagementPorts` | `discovery/`, `failure/` |
-| `tui-channel/` | TUI 通道：传输载荷家族、行投影、逐工具卡片、状态栏 | `TransportPayload`, `build*Payload`, `presentRow`, `renderStatus` | `deps/`, `failure/` |
+| `tui-channel/` | TUI 通道：传输载荷家族、行投影、逐工具卡片、状态栏 | `TransportPayload`, `build*Payload`, `presentRow`, `renderStatus` | `deps/`, `failure/`, `shared/` |
 | `model-channel/` | 模型通道：逐工具输出文本、失败文本框架、系统提示追加 | `*Text`, `failureText`, `guidanceText` | `failure/` |
 | `failure/` | 失败词汇：闭集失败码、恢复文本、Failure 构造 | `FAILURE_CODES`, `FailureCode`, `Failure`, `createFailure`, `recoveryFor` | 无 |
 | `deps/` | 宿主边界：唯一具名宿主包处 | `Text`, `Box`, `Container`, `visibleWidth`, `sliceByColumn`, `ThemeFg`, `TAIL_PROMPT_*` | 无 |
+| `shared/` | 跨模块共用的类型谓词：两个互不依赖的模块对同一种形状的判定 | `isRecord` | 无 |
 
 一个目录一个职责，模块的契约就是它导出的符号。
 
