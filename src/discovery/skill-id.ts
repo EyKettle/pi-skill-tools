@@ -94,7 +94,7 @@ export function formatSkillId(
  */
 export function displaySkillId(
 	index: Pick<Index, "entries">,
-	entry: RegistryEntry,
+	entry: Pick<RegistryEntry, "location" | "name">,
 	refPath?: string,
 ): string {
 	const shared = index.entries.some(
