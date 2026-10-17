@@ -45,6 +45,8 @@ function foreground(kind: TestThemeKind): Record<RequiredFg, string> {
 		muted,
 		dim,
 		text,
+		scrollbarTrack: muted,
+		scrollbarThumb: text,
 		thinkingText: muted,
 		userMessageText: text,
 		customMessageText: text,
