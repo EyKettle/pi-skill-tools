@@ -10,6 +10,7 @@
  */
 import yaml from "js-yaml";
 import { createFailure } from "../failure/create";
+import { isRecord } from "../shared/predicates";
 import type { Failure } from "../failure/types";
 
 export interface ParsedFrontmatter {
@@ -189,6 +190,4 @@ function scalarStrings(value: unknown): string[] {
 	return [];
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-	return typeof value === "object" && value !== null && !Array.isArray(value);
-}
+

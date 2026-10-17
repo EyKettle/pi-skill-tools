@@ -12,6 +12,7 @@
  * it.
  */
 import { isFailureCode } from "../failure/codes";
+import { isRecord } from "../shared/predicates";
 import type { Failure } from "../failure/types";
 import { TRANSPORT_VERSION } from "./types";
 import type {
@@ -269,9 +270,7 @@ function isToolName(value: string): value is ToolName {
 	return (TOOLS as readonly string[]).includes(value);
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-	return typeof value === "object" && value !== null && !Array.isArray(value);
-}
+
 
 function exactKeys(
 	value: Record<string, unknown>,
