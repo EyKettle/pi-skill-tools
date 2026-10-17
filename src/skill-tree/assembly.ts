@@ -242,7 +242,7 @@ export function createSkillTree(ports: SkillTreePorts): SkillTree {
 			};
 			const loaded = loadEntry(next, entry);
 			next = loaded.state;
-			results.push({ displayId: item.displayId, outcome: loaded.outcome });
+			results.push({ displayId: item.displayId, action: loaded.outcome });
 			if (loaded.outcome === "Loaded") {
 				operations.push({ kind: "load", entry });
 			} else if (loaded.outcome === "Refreshed" && before !== undefined) {
@@ -303,7 +303,7 @@ export function createSkillTree(ports: SkillTreePorts): SkillTree {
 					{ location, name: parsed.value.name },
 					parsed.value.refPath,
 				),
-				outcome: "Unloaded",
+				action: "Unloaded",
 			});
 		}
 

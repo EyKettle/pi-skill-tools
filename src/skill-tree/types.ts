@@ -3,6 +3,7 @@
  * what the stored copy holds, and what the assembly reads from the world.
  */
 import type { Index, RegistryEntry } from "../discovery/types";
+import type { ChangeRow } from "../model-channel/output";
 import type { Failure } from "../failure/types";
 
 /** One loaded file: a skill's main document or one of its related files. */
@@ -70,18 +71,16 @@ export type SkillTreeReport =
 	| { readonly kind: "fold-aborted"; readonly error: string }
 	| { readonly kind: "history-off" };
 
-/** One skill's outcome in a change. */
-export type ChangeOutcome = "Loaded" | "Refreshed" | "Unchanged" | "Unloaded";
+/** What a change did to one skill; the model text names it directly. */
+export type ChangeOutcome = ChangeRow["action"];
 
-export interface ChangeReport {
-	/**
-	 * The id's display form, not its identity: the location prefix folds when
-	 * the name is unique. Commit operations, entries, and evidence carry the
-	 * full id.
-	 */
-	readonly displayId: string;
-	readonly outcome: ChangeOutcome;
-}
+/**
+ * One row of a change's report: the display id and the action that happened.
+ *
+ * This is `model-channel`'s `ChangeRow` under the loaded set's own name, so
+ * the tools render a change without translating between two shapes.
+ */
+export type ChangeReport = ChangeRow;
 
 export type ChangeResult =
 	| { readonly ok: true; readonly results: readonly ChangeReport[] }
