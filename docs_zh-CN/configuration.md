@@ -11,7 +11,7 @@
 | 条目 | 类型 | 默认 | 作用 |
 | --- | --- | --- | --- |
 | `skills.history.enabled` | `boolean` | `true` | [历史回溯功能](arch/skill-tree.md#历史回溯)总开关 |
-| `skills.registry.disable` | `string[]` | `[]` | 关闭 Pi 内置技能发现路径 |
+| `skills.registry.disable` | `string[]` | `[]` | 关闭指定技能发现路径 |
 | `skills.registry.default` | `string` | `"global"` | 创建技能时的默认写入路径 |
 | `skills.registry.paths` | `Record<string, { writable: boolean; path: string }>` | `{}` | 注册额外的技能发现路径 |
 
