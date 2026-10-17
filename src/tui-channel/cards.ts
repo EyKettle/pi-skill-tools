@@ -15,14 +15,10 @@ export interface CardTheme {
 	fg(role: CardRole, text: string): string;
 }
 
-export interface CardComponents {
-	Text: new (text?: string) => { render(width: number): string[] };
-}
-
-export interface RenderOptions {
-	readonly theme: CardTheme;
-	readonly components: CardComponents;
-	readonly width: number;
+/** A width-driven terminal component: what the host drives itself. */
+export interface CardComponent {
+	render(width: number): string[];
+	invalidate(): void;
 }
 
 /**
@@ -59,35 +55,48 @@ export function boundToWidth(line: string, maxColumns: number): string {
 	return sliceByColumn(line, 0, cap, true);
 }
 
-/** Render one card to terminal lines. */
+/**
+ * Render one card as the component the host draws.
+ *
+ * The width is the host's, given at render time: a card never decides how wide
+ * the terminal is, it only refuses to draw past it.
+ */
 export function renderCard(
 	projection: CardProjection,
-	options: RenderOptions,
+	theme: CardTheme,
+): CardComponent {
+	return {
+		render: (width) => cardLines(projection, theme, width),
+		invalidate() {
+			// A card holds no cache between frames.
+		},
+	};
+}
+
+function cardLines(
+	projection: CardProjection,
+	theme: CardTheme,
+	width: number,
 ): string[] {
 	const lines: string[] = [];
 	const paint = (role: CardRole, text: string): string =>
-		options.theme.fg(role, sanitizeTerminalText(text));
+		theme.fg(role, sanitizeTerminalText(text));
 
 	if (projection.labels !== undefined && projection.labels.length > 0) {
 		// A load/unload card is its labels, one row, space-separated.
 		const row = projection.labels.map((label) => paint(label.role, label.text));
-		lines.push(...wrapRow(row.join(" "), options.width));
+		lines.push(...wrapRow(row.join(" "), width));
 		return lines;
 	}
 
 	if (projection.call.length > 0) {
-		lines.push(...renderSpans(projection.call, paint, options.width));
+		lines.push(...renderSpans(projection.call, paint, width));
 	}
 	for (const arg of projection.fullArgs) {
-		lines.push(
-			...wrapRow(
-				sanitizeTerminalText(arg),
-				options.width,
-			).map((line) => line),
-		);
+		lines.push(...wrapRow(sanitizeTerminalText(arg), width));
 	}
 	for (const line of projection.result) {
-		lines.push(...renderSpans(line, paint, options.width));
+		lines.push(...renderSpans(line, paint, width));
 	}
 	return lines;
 }

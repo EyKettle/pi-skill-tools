@@ -27,17 +27,7 @@ function render(
 	projection: Parameters<typeof renderCard>[0],
 	width = 120,
 ): string[] {
-	return renderCard(projection, {
-		theme,
-		components: {
-			Text: class {
-				render(): string[] {
-					return [];
-				}
-			},
-		},
-		width,
-	});
+	return renderCard(projection, theme).render(width);
 }
 
 describe("sanitizeTerminalText", () => {
