@@ -161,20 +161,14 @@ function resultOf(payload: TransportPayload): ResultView {
 			const data = payload.data;
 			return {
 				answer: `${data.from} → ${data.to}`,
-				info:
-					data.kind === "skill"
-						? `(${data.fileCount} files)`
-						: undefined,
+				info: `(${data.fileCount} files)`,
 			};
 		}
 		case "remove_skill": {
 			const data = payload.data;
 			return {
 				answer: `Removed ${data.displayId}`,
-				info:
-					data.kind === "skill"
-						? `(${data.fileCount} files)`
-						: undefined,
+				info: `(${data.fileCount} files)`,
 			};
 		}
 		case "import_skill":

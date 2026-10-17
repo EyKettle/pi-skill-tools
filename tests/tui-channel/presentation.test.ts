@@ -271,6 +271,28 @@ describe("rename and remove", () => {
 		expect(joined(projection).result).toEqual(["Moved path: /skills/beta"]);
 	});
 
+	it("shows the file count for a related file too", () => {
+		const rename = presentRow(
+			buildRenameSkillPayload({
+				from: "alpha/references/a.md",
+				to: "alpha/references/b.md",
+				kind: "file",
+				fileCount: 1,
+			}),
+			options({ tool: "rename_skill", expanded: true }),
+		);
+		const remove = presentRow(
+			buildRemoveSkillPayload({
+				displayId: "alpha/references/a.md",
+				kind: "file",
+				fileCount: 1,
+			}),
+			options({ tool: "remove_skill", expanded: true }),
+		);
+		expect(joined(rename).call).toBe("Rename (1 files)");
+		expect(joined(remove).call).toBe("Remove (1 files)");
+	});
+
 	it("answers a removal with the id and the file count", () => {
 		const projection = presentRow(
 			buildRemoveSkillPayload({

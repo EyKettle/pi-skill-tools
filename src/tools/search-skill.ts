@@ -13,9 +13,9 @@ import {
 	parseFrontmatterBlock,
 } from "../discovery/frontmatter";
 import { displaySkillId } from "../discovery/skill-id";
-import type { RegistryEntry } from "../discovery/types";
 import { readSkillFile } from "../files/read";
 import { searchSkillText } from "../model-channel/output";
+import type { SearchHit } from "../model-channel/output";
 import { buildSearchSkillPayload } from "../tui-channel/payload";
 import { failureOutcome, successOutcome } from "./types";
 import type { ToolDeps, ToolOutcome } from "./types";
@@ -68,13 +68,25 @@ export function defineSearchSkillTool(deps: ToolDeps) {
 			const index = deps.index();
 			const location =
 				typeof args.location === "string" ? args.location : undefined;
-			const hits = index.entries
-				.filter((entry) => location === undefined || entry.location === location)
-				.filter((entry) => matchesFrontmatter(entry.frontmatter, compiled.value))
-				.map((entry) => ({
-					displayId: displaySkillId(index, entry),
-					frontmatter: frontmatterOf(entry),
-				}));
+			const hits: SearchHit[] = [];
+			for (const entry of index.entries) {
+				if (location !== undefined && entry.location !== location) continue;
+				if (!matchesFrontmatter(entry.frontmatter, compiled.value)) continue;
+				// A hit's frontmatter is shown verbatim, so the file is read again:
+				// a file that became unreadable is reported, not silently dropped
+				// and not replaced by invented text.
+				const read = readSkillFile(entry.filePath);
+				if (!read.ok) {
+					return failureOutcome(TOOL, read.failure);
+				}
+				const raw = parseFrontmatterBlock(read.text).raw;
+				if (raw === undefined) {
+					// A document without a frontmatter block cannot match any filter
+					// key, so this is unreachable through a real match.
+					continue;
+				}
+				hits.push({ displayId: displaySkillId(index, entry), frontmatter: raw });
+			}
 			return successOutcome(
 				searchSkillText(hits),
 				buildSearchSkillPayload({ location, count: hits.length }),
@@ -87,14 +99,5 @@ function isFilterRecord(
 	value: unknown,
 ): value is Record<string, string | readonly string[]> {
 	return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-/** The document's frontmatter block, verbatim, or an empty block. */
-function frontmatterOf(entry: RegistryEntry): string {
-	const read = readSkillFile(entry.filePath);
-	if (!read.ok) {
-		return "---\n---";
-	}
-	return parseFrontmatterBlock(read.text).raw ?? "---\n---";
 }
 

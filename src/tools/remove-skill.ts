@@ -51,7 +51,7 @@ export function defineRemoveSkillTool(deps: ToolDeps) {
 					buildRemoveSkillPayload({
 						displayId: target.displayId,
 						kind: "file",
-						fileCount: 0,
+						fileCount: 1,
 					}),
 				);
 			}

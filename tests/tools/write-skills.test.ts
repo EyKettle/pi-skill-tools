@@ -9,6 +9,7 @@ import { defineCreateSkillTool } from "../../src/tools/create-skill";
 import { defineRenameSkillTool } from "../../src/tools/rename-skill";
 import { defineRemoveSkillTool } from "../../src/tools/remove-skill";
 import { EMPTY_CREATE } from "../../src/model-channel/output";
+import { presentRow } from "../../src/tui-channel/presentation";
 import { isTransportPayload } from "../../src/tui-channel/payload";
 import {
 	changeOk,
@@ -157,7 +158,7 @@ describe("rename_skill", () => {
 			version: 1,
 			tool: "rename_skill",
 			outcome: "success",
-			data: { from: dir, to, kind: "skill", fileCount: 2 },
+			data: { from: "alpha", to: "beta", kind: "skill", fileCount: 2 },
 		});
 	});
 
@@ -177,11 +178,40 @@ describe("rename_skill", () => {
 		);
 		if (outcome.details.outcome !== "success") throw new Error("fixture");
 		expect(outcome.details.data).toEqual({
-			from: `${dir}/references/a.md`,
-			to: `${dir}/references/b.md`,
+			from: "alpha/references/a.md",
+			to: "alpha/references/b.md",
 			kind: "file",
-			fileCount: 0,
+			fileCount: 1,
 		});
+	});
+
+	it("answers with ids the reader can type back, not absolute paths", () => {
+		const world = makeWorld();
+		writeSkill(world.globalSkills, "alpha");
+		const { rename } = toolsFor(world);
+
+		const outcome = rename.execute({ id: "alpha", name: "beta" });
+
+		if (outcome.details.outcome === "failure") throw new Error("fixture");
+		const card = presentRow(outcome.details, {
+			tool: "rename_skill",
+			args: { id: "alpha", name: "beta" },
+			expanded: false,
+			content: outcome.content,
+		});
+		expect(card.result.flat().map((span) => span.text).join("")).toBe(
+			"alpha → beta",
+		);
+	});
+
+	it("keeps the location prefix when the new name is shared across locations", () => {
+		const world = makeWorld();
+		writeSkill(world.globalSkills, "alpha");
+		writeSkill(world.projectSkills, "beta");
+		// The target name is taken, so the move is refused before it starts.
+		const { rename } = toolsFor(world);
+		const refused = rename.execute({ id: "alpha", name: "beta" });
+		expect(refused.isError).toBe(true);
 	});
 
 	it("refuses a name already taken", () => {
