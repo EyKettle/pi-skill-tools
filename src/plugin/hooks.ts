@@ -34,10 +34,13 @@ export function installContextHooks<C>(
 	source.on("session_shutdown", (ctx) => handlers.shutdown(ctx));
 }
 
-/** The guidance appended to every system prompt, on its own lines. */
-export function appendGuidance(systemPrompt: string, guidance: string): string {
-	if (systemPrompt.length === 0) {
+/**
+ * `existing` with `guidance` after it, on its own lines. Used on a prompt
+ * section, not on a whole prompt: the host appends the section itself.
+ */
+export function appendGuidance(existing: string, guidance: string): string {
+	if (existing.length === 0) {
 		return guidance;
 	}
-	return `${systemPrompt}\n\n${guidance}`;
+	return `${existing}\n\n${guidance}`;
 }

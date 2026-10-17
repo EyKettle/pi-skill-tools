@@ -275,9 +275,13 @@ export async function createPlugin(pi: ExtensionAPI): Promise<void> {
 	pi.on("before_agent_start", (event, ctx) => {
 		current = ctx;
 		refreshIndex(ctx.cwd);
-		return {
-			systemPrompt: appendGuidance(event.systemPrompt, GUIDANCE_TEXT),
-		};
+		// Append to the prompt the host builds, rather than forcing a replacement:
+		// a forced prompt freezes rendering, so a later handler's additions would
+		// be dropped and the transcript would no longer match what was sent.
+		event.systemPromptOptions.appendSystemPrompt = appendGuidance(
+			event.systemPromptOptions.appendSystemPrompt,
+			GUIDANCE_TEXT,
+		);
 	});
 
 	pi.events.on(TAIL_PROMPT_READY_EVENT, () => {
