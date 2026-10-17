@@ -3,10 +3,10 @@
  *
  * Writability is decided here once: a location the index does not know, or
  * one it knows as read-only, is the same refusal for all three operations.
+ * The file walk and the line count live in `files/` and reach this module
+ * through the ports, so neither is implemented twice.
  */
-import { lstatSync, readdirSync } from "node:fs";
-import path from "node:path";
-import { createFailure } from "../failure/create";
+import { createFailure, errorText } from "../failure/create";
 import type { Failure } from "../failure/types";
 import type { Index, RegistryLocation } from "../discovery/types";
 
@@ -45,7 +45,7 @@ export function writeFailed(target: string, error: unknown): Failure {
 	return createFailure("WRITE_FAILED", {
 		kind: "pathError",
 		path: target,
-		error: error instanceof Error ? error.message : String(error),
+		error: errorText(error),
 	});
 }
 
@@ -67,53 +67,6 @@ export function targetExistsPath(target: string): Failure {
 	});
 }
 
-export type FileList =
-	| { readonly ok: true; readonly files: readonly string[] }
-	| { readonly ok: false; readonly failure: Failure };
-
-/** Every regular file under `root`, absolute and sorted; links are not followed. */
-export function listFiles(root: string): FileList {
-	const files: string[] = [];
-	const error = walk(root, files);
-	if (error !== undefined) {
-		return { ok: false, failure: error };
-	}
-	files.sort();
-	return { ok: true, files };
-}
-
-function walk(directory: string, out: string[]): Failure | undefined {
-	let names: string[];
-	try {
-		names = readdirSync(directory);
-	} catch (error) {
-		return writeFailed(directory, error);
-	}
-	for (const name of names) {
-		const absolute = path.join(directory, name);
-		let stats;
-		try {
-			stats = lstatSync(absolute);
-		} catch (error) {
-			return writeFailed(absolute, error);
-		}
-		if (stats.isSymbolicLink()) {
-			continue;
-		}
-		if (stats.isDirectory()) {
-			const failure = walk(absolute, out);
-			if (failure !== undefined) {
-				return failure;
-			}
-			continue;
-		}
-		if (stats.isFile()) {
-			out.push(absolute);
-		}
-	}
-	return undefined;
-}
-
 /** A new related-file name: one path segment, not a dot segment. */
 export function isFileName(name: string): boolean {
 	return (
@@ -132,18 +85,4 @@ export function sameSkill(
 	name: string,
 ): boolean {
 	return entry.location === location && entry.name === name;
-}
-
-/** Count the lines in written text: a trailing newline does not add a line. */
-export function countLines(text: string): number {
-	if (text.length === 0) {
-		return 0;
-	}
-	let lines = 1;
-	for (const character of text) {
-		if (character === "\n") {
-			lines += 1;
-		}
-	}
-	return text.endsWith("\n") ? lines - 1 : lines;
 }

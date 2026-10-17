@@ -18,7 +18,6 @@ import { formatSkillId, parseSkillId, resolveSkillId } from "../discovery/skill-
 import type { RegistryLocation } from "../discovery/types";
 import type { Failure } from "../failure/types";
 import {
-	countLines,
 	targetExistsId,
 	targetExistsPath,
 	writeFailed,
@@ -152,7 +151,6 @@ function writeNew(target: string, content: string): CreateResult {
 		ok: true,
 		path: target,
 		bytes: Buffer.byteLength(content, "utf8"),
-		lines: countLines(content),
 	};
 }
 

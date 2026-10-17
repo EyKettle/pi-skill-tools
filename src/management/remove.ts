@@ -8,7 +8,7 @@
  */
 import { existsSync, rmSync, unlinkSync } from "node:fs";
 import { resolveSkillId } from "../discovery/skill-id";
-import { listFiles, pathNotFound, writableLocation, writeFailed } from "./support";
+import { pathNotFound, writableLocation, writeFailed } from "./support";
 import type { ManagementPorts, RemoveResult } from "./types";
 
 export function removeSkill(
@@ -29,7 +29,7 @@ export function removeSkill(
 		if (!existsSync(directory)) {
 			return { ok: false, failure: pathNotFound(directory) };
 		}
-		const listed = listFiles(directory);
+		const listed = ports.listFiles(directory);
 		if (!listed.ok) {
 			return { ok: false, failure: listed.failure };
 		}

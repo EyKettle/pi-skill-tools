@@ -29,6 +29,31 @@ export type ParseResult =
 	| { readonly ok: false; readonly failure: Failure };
 
 /**
+ * Split an ID into its parts without judging them: `{location}:` is present
+ * only when a colon precedes the first slash, and `/{type}/{file}` is absent
+ * when the tail is empty. Validation belongs to the caller, because the
+ * location vocabulary differs — the registry knows its set, a stored entry
+ * only knows its own shape.
+ */
+export function splitSkillId(raw: string): ParsedSkillId {
+	const colonAt = raw.indexOf(":");
+	const slashAt = raw.indexOf("/");
+	// A colon after the first slash belongs to the ref path's filename, not to
+	// a location prefix.
+	const hasLocation = colonAt !== -1 && (slashAt === -1 || colonAt < slashAt);
+
+	const location = hasLocation ? raw.slice(0, colonAt) : undefined;
+	const remainder = hasLocation ? raw.slice(colonAt + 1) : raw;
+
+	const slash = remainder.indexOf("/");
+	const name = slash === -1 ? remainder : remainder.slice(0, slash);
+	const tail = slash === -1 ? undefined : remainder.slice(slash + 1);
+	// `name/` names no file; it addresses the skill's main document.
+	const refPath = tail === undefined || tail.length === 0 ? undefined : tail;
+	return { location, name, refPath };
+}
+
+/**
  * Parse an ID against the registered locations. `{location}:` folds away when
  * the name is unique, and `/{type}/{file}` is absent when the ID names the
  * skill's main document.
@@ -37,33 +62,17 @@ export function parseSkillId(
 	raw: string,
 	locations: readonly SkillStorage[],
 ): ParseResult {
-	const colonAt = raw.indexOf(":");
-	const slashAt = raw.indexOf("/");
-	// A colon after the first slash belongs to the ref path's filename, not to
-	// a location prefix.
-	const hasLocation = colonAt !== -1 && (slashAt === -1 || colonAt < slashAt);
+	const { location, name, refPath } = splitSkillId(raw);
 
-	let location: SkillStorage | undefined;
-	let remainder = raw;
-	if (hasLocation) {
-		location = raw.slice(0, colonAt);
-		if (!locations.includes(location)) {
-			return {
-				ok: false,
-				failure: createFailure("ID_LOCATION_UNKNOWN", {
-					kind: "locations",
-					locations: [...locations],
-				}),
-			};
-		}
-		remainder = raw.slice(colonAt + 1);
+	if (location !== undefined && !locations.includes(location)) {
+		return {
+			ok: false,
+			failure: createFailure("ID_LOCATION_UNKNOWN", {
+				kind: "locations",
+				locations: [...locations],
+			}),
+		};
 	}
-
-	const slash = remainder.indexOf("/");
-	const name = slash === -1 ? remainder : remainder.slice(0, slash);
-	const tail = slash === -1 ? undefined : remainder.slice(slash + 1);
-	// `name/` names no file; it addresses the skill's main document.
-	const refPath = tail === undefined || tail.length === 0 ? undefined : tail;
 
 	if (!isSkillName(name)) {
 		return {

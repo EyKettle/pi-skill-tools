@@ -15,6 +15,15 @@ import type {
 	FailureEvidence,
 } from "./types";
 
+/**
+ * The message of an unknown thrown value. Node throws `Error` almost always,
+ * but a caught value is `unknown`, so every caller that reports one needs the
+ * same narrowing.
+ */
+export function errorText(error: unknown): string {
+	return error instanceof Error ? error.message : String(error);
+}
+
 /** Thrown by `createFailure` when it refuses a malformed argument. */
 export class FailureGuardError extends Error {
 	constructor(message: string) {

@@ -1,22 +1,58 @@
 /**
- * Listing of a skill's related files.
+ * Directory traversal: one walk under the caller's policy, and the listing a
+ * skill's related files uses.
  *
- * Only files inside a type directory are listed: the ID grammar names a file
- * as `{skill}/{type}/{filename.ext}`, so a loose file beside `SKILL.md` has
- * no address. Hidden entries, vendor trees, and links are never followed —
- * a link could point outside the skill directory, and the read path would
- * reject it anyway.
+ * A skill's related files and a skill directory's whole contents are the same
+ * traversal under different rules: what counts as hidden, which directories
+ * are ignored, and how deep a file may sit. The walk never follows a link — a
+ * link could point outside the directory being walked — and an unreadable
+ * directory fails the walk instead of returning a partial list.
  *
- * An unreadable directory fails the listing instead of returning a partial
- * one: a missing file the reader cannot see is worse than a stated error.
+ * Only files inside a type directory are addressable: the ID grammar names a
+ * file as `{skill}/{type}/{filename.ext}`, so a loose file beside `SKILL.md`
+ * has no address.
  */
 import { lstatSync, readdirSync } from "node:fs";
 import path from "node:path";
-import { createFailure } from "../failure/create";
 import type { Failure } from "../failure/types";
+import { failureForPath } from "./read";
 import type { SkillFileFailure } from "./read";
 
-/** Directory names never walked, whatever their rank. */
+export interface WalkPolicy {
+	/** Skip entries whose name starts with a dot. */
+	readonly skipHidden: boolean;
+	/** Directory names never entered. */
+	readonly ignoredDirectories: ReadonlySet<string>;
+	/** Files at this depth or deeper are reported; 0 is the root itself. */
+	readonly minDepth: number;
+}
+
+export interface WalkedFile {
+	/** The path relative to the root, POSIX separators. */
+	readonly refPath: string;
+	/** The absolute path on disk. */
+	readonly path: string;
+	readonly bytes: number;
+}
+
+export type WalkResult =
+	| { readonly ok: true; readonly files: readonly WalkedFile[] }
+	| { readonly ok: false; readonly failure: Failure };
+
+/** Walk `root` under `policy`, reporting every regular file that passes it. */
+export function walkFiles(root: string, policy: WalkPolicy): WalkResult {
+	const files: WalkedFile[] = [];
+	const failure = visit(path.resolve(root), "", 0, policy, files);
+	if (failure !== undefined) {
+		return { ok: false, failure };
+	}
+	files.sort((a, b) =>
+		a.refPath < b.refPath ? -1 : a.refPath > b.refPath ? 1 : 0,
+	);
+	return { ok: true, files };
+}
+
+/** Directory names never walked for a skill's related files. */
 const SKIPPED_DIRECTORIES = new Set(["node_modules", ".git"]);
 
 export interface ListedSkillFile {
@@ -36,36 +72,37 @@ export type SkillFilesList = SkillFilesListing | SkillFileFailure;
 
 /** List the files a skill keeps under its type directories. */
 export function listSkillFiles(baseDir: string): SkillFilesList {
-	const entries: ListedSkillFile[] = [];
-	const failure = walk(path.resolve(baseDir), "", entries, 0);
-	if (failure !== undefined) {
-		return { ok: false, failure };
+	const walked = walkFiles(baseDir, {
+		skipHidden: true,
+		ignoredDirectories: SKIPPED_DIRECTORIES,
+		// Depth 0 holds the main document and loose files; both are unaddressed.
+		minDepth: 1,
+	});
+	if (!walked.ok) {
+		return { ok: false, failure: walked.failure };
 	}
-	entries.sort((a, b) =>
-		a.refPath < b.refPath ? -1 : a.refPath > b.refPath ? 1 : 0,
-	);
-	return { ok: true, entries };
+	return { ok: true, entries: walked.files };
 }
 
-/**
- * One directory level. `depth` 0 is the skill directory itself: its own files
- * are the main document and loose files, so only directories are entered.
- */
-function walk(
+function visit(
 	directory: string,
 	prefix: string,
-	out: ListedSkillFile[],
 	depth: number,
+	policy: WalkPolicy,
+	out: WalkedFile[],
 ): Failure | undefined {
 	let names: string[];
 	try {
 		names = readdirSync(directory);
 	} catch (error) {
-		return failureFor(directory, error);
+		return failureForPath(directory, error);
 	}
 
 	for (const name of names) {
-		if (name.startsWith(".") || SKIPPED_DIRECTORIES.has(name)) {
+		if (policy.skipHidden && name.startsWith(".")) {
+			continue;
+		}
+		if (policy.ignoredDirectories.has(name)) {
 			continue;
 		}
 		const absolute = path.join(directory, name);
@@ -73,7 +110,7 @@ function walk(
 		try {
 			stats = lstatSync(absolute);
 		} catch (error) {
-			return failureFor(absolute, error);
+			return failureForPath(absolute, error);
 		}
 		if (stats.isSymbolicLink()) {
 			continue;
@@ -81,27 +118,15 @@ function walk(
 
 		const refPath = prefix === "" ? name : `${prefix}/${name}`;
 		if (stats.isDirectory()) {
-			const failure = walk(absolute, refPath, out, depth + 1);
+			const failure = visit(absolute, refPath, depth + 1, policy, out);
 			if (failure !== undefined) {
 				return failure;
 			}
 			continue;
 		}
-		if (depth > 0 && stats.isFile()) {
+		if (depth >= policy.minDepth && stats.isFile()) {
 			out.push({ refPath, path: absolute, bytes: stats.size });
 		}
 	}
 	return undefined;
-}
-
-function failureFor(target: string, error: unknown): Failure {
-	const code = (error as NodeJS.ErrnoException | null)?.code;
-	if (code === "ENOENT" || code === "ENOTDIR") {
-		return createFailure("PATH_NOT_FOUND", { kind: "path", path: target });
-	}
-	return createFailure("READ_FAILED", {
-		kind: "pathError",
-		path: target,
-		error: error instanceof Error ? error.message : String(error),
-	});
 }

@@ -20,6 +20,14 @@ export interface ManagementPorts {
 	readonly index: Index;
 	readonly defaultLocation: string;
 	/**
+	 * Every regular file under a directory, absolute and sorted; links are
+	 * not followed. The walk lives in `files/`, so a removal and a rename
+	 * report the same list a listing would.
+	 */
+	readonly listFiles: (root: string) => Walked;
+	/**
+	 * Resolve a reference inside a skill directory.
+	/**
 	 * Resolve a reference inside a skill directory.
 	 *
 	 * `PATH_NOT_FOUND` means containment passed and the target does not exist:
@@ -34,12 +42,16 @@ export interface ManagementPorts {
 	) => ResolvedPath;
 }
 
+/** The walk's result shape, as `files/` states it. */
+export type Walked =
+	| { readonly ok: true; readonly files: readonly string[] }
+	| { readonly ok: false; readonly failure: Failure };
+
 export type CreateResult =
 	| {
 			readonly ok: true;
 			readonly path: string;
 			readonly bytes: number;
-			readonly lines: number;
 	  }
 	| { readonly ok: false; readonly failure: Failure };
 

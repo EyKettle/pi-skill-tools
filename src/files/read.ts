@@ -13,7 +13,7 @@
  */
 import { lstatSync, readFileSync, realpathSync, statSync } from "node:fs";
 import path from "node:path";
-import { createFailure } from "../failure/create";
+import { createFailure, errorText } from "../failure/create";
 import type { Failure } from "../failure/types";
 import { extractSection } from "./section";
 import type { ExtractedSection } from "./section";
@@ -68,7 +68,7 @@ export function resolveSkillFile(
 	try {
 		baseReal = realpathSync(base);
 	} catch (error) {
-		return { ok: false, failure: missingOrUnreadable(base, error) };
+		return { ok: false, failure: failureForPath(base, error) };
 	}
 
 	const target = path.resolve(base, requested);
@@ -79,13 +79,13 @@ export function resolveSkillFile(
 			: invalid(requested);
 	} catch (error) {
 		if (!isMissing(error)) {
-			return { ok: false, failure: unreadable(target, error) };
+			return { ok: false, failure: failureForPath(target, error) };
 		}
 	}
 
 	const located = locate(target);
 	if ("error" in located) {
-		return { ok: false, failure: unreadable(located.path, located.error) };
+		return { ok: false, failure: failureForPath(located.path, located.error) };
 	}
 	if (!inside(baseReal, located.real)) {
 		return invalid(requested);
@@ -101,7 +101,7 @@ export function resolveSkillFile(
 			if (isMissing(error)) {
 				break;
 			}
-			return { ok: false, failure: unreadable(probe, error) };
+			return { ok: false, failure: failureForPath(probe, error) };
 		}
 		if (stats.isSymbolicLink()) {
 			return invalid(requested);
@@ -129,7 +129,7 @@ export function readSkillFile(
 	try {
 		buffer = readFileSync(filePath);
 	} catch (error) {
-		return { ok: false, failure: missingOrUnreadable(filePath, error) };
+		return { ok: false, failure: failureForPath(filePath, error) };
 	}
 
 	if (buffer.subarray(0, NUL_SNIFF_BYTES).includes(0)) {
@@ -146,7 +146,7 @@ export function readSkillFile(
 	try {
 		stats = statSync(filePath);
 	} catch (error) {
-		return { ok: false, failure: missingOrUnreadable(filePath, error) };
+		return { ok: false, failure: failureForPath(filePath, error) };
 	}
 
 	const text = buffer.toString("utf8");
@@ -219,17 +219,19 @@ function inside(baseReal: string, candidateReal: string): boolean {
 	);
 }
 
-function missingOrUnreadable(filePath: string, error: unknown): Failure {
-	return isMissing(error)
-		? createFailure("PATH_NOT_FOUND", { kind: "path", path: filePath })
-		: unreadable(filePath, error);
-}
-
-function unreadable(filePath: string, error: unknown): Failure {
+/**
+ * The failure a filesystem error becomes: a missing target is its own code,
+ * anything else is a read failure carrying the underlying message. The one
+ * mapping for every read and walk in this module tree.
+ */
+export function failureForPath(filePath: string, error: unknown): Failure {
+	if (isMissing(error)) {
+		return createFailure("PATH_NOT_FOUND", { kind: "path", path: filePath });
+	}
 	return createFailure("READ_FAILED", {
 		kind: "pathError",
 		path: filePath,
-		error: errorMessage(error),
+		error: errorText(error),
 	});
 }
 
@@ -245,11 +247,13 @@ function isMissing(error: unknown): boolean {
 	return code === "ENOENT" || code === "ENOTDIR";
 }
 
-function errorMessage(error: unknown): string {
-	return error instanceof Error ? error.message : String(error);
-}
 
-function countLines(text: string): number {
+
+/**
+ * Count the lines in text: a trailing newline does not add a line, so the
+ * count matches what an editor shows. The one definition in the tree.
+ */
+export function countLines(text: string): number {
 	if (text.length === 0) {
 		return 0;
 	}

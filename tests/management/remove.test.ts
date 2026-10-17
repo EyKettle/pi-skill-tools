@@ -17,6 +17,7 @@ import { removeSkill } from "../../src/management/remove";
 import type { ManagementPorts } from "../../src/management/types";
 import { buildIndex } from "../../src/discovery/registry";
 import { resolveSkillFile } from "../../src/files/read";
+import { walkFiles } from "../../src/files/list";
 import type { Index, RegistryEntry } from "../../src/discovery/types";
 import type { Failure } from "../../src/failure/types";
 
@@ -66,6 +67,16 @@ function portsFor(
 	return {
 		index: buildIndex({ agentDir: w.agentDir, cwd: w.cwd }),
 		defaultLocation: "global",
+		listFiles: (root) => {
+			const walked = walkFiles(root, {
+				skipHidden: false,
+				ignoredDirectories: new Set<string>(),
+				minDepth: 0,
+			});
+			return walked.ok
+				? { ok: true, files: walked.files.map((file) => file.path) }
+				: walked;
+		},
 		resolveRef: (baseDir, refPath) => resolveSkillFile(baseDir, refPath),
 		...overrides,
 	};
@@ -136,6 +147,16 @@ describe("removeSkill", () => {
 				{
 					index,
 					defaultLocation: "package",
+					listFiles: (root) => {
+						const walked = walkFiles(root, {
+							skipHidden: false,
+							ignoredDirectories: new Set<string>(),
+							minDepth: 0,
+						});
+						return walked.ok
+							? { ok: true, files: walked.files.map((file) => file.path) }
+							: walked;
+					},
 					resolveRef: (baseDir, refPath) =>
 						resolveSkillFile(baseDir, refPath),
 				},

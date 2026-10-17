@@ -17,6 +17,7 @@ import { createSkill } from "../../src/management/create";
 import type { ManagementPorts } from "../../src/management/types";
 import { buildIndex } from "../../src/discovery/registry";
 import { resolveSkillFile } from "../../src/files/read";
+import { walkFiles } from "../../src/files/list";
 import type { Index } from "../../src/discovery/types";
 import type { Failure } from "../../src/failure/types";
 
@@ -55,6 +56,16 @@ function portsFor(
 	return {
 		index: buildIndex({ agentDir: w.agentDir, cwd: w.cwd }),
 		defaultLocation: "global",
+		listFiles: (root) => {
+			const walked = walkFiles(root, {
+				skipHidden: false,
+				ignoredDirectories: new Set<string>(),
+				minDepth: 0,
+			});
+			return walked.ok
+				? { ok: true, files: walked.files.map((file) => file.path) }
+				: walked;
+		},
 		resolveRef: (baseDir, refPath) => resolveSkillFile(baseDir, refPath),
 		...overrides,
 	};
@@ -78,7 +89,6 @@ describe("createSkill", () => {
 			path.join(w.agentDir, "skills", "alpha", "SKILL.md"),
 		);
 		expect(result.bytes).toBe(Buffer.byteLength(CONTENT, "utf8"));
-		expect(result.lines).toBe(5);
 		expect(readFileSync(result.path, "utf8")).toBe(CONTENT);
 	});
 
@@ -247,6 +257,7 @@ describe("createSkill", () => {
 				{
 					index,
 					defaultLocation: "broken",
+					listFiles: () => ({ ok: true, files: [] }),
 					resolveRef: (baseDir, refPath) => resolveSkillFile(baseDir, refPath),
 				},
 				"alpha",

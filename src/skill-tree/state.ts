@@ -11,7 +11,7 @@
  * The copy is encoded closed: a value whose version or shape is not
  * recognized decodes as absent, never as a partial set.
  */
-import { isSkillName } from "../discovery/skill-id";
+import { isSkillName, splitSkillId } from "../discovery/skill-id";
 import type { ParsedSkillId } from "../discovery/skill-id";
 import { COPY_VERSION } from "./types";
 
@@ -25,21 +25,21 @@ export interface LoadedIdentity {
 	readonly refPath?: string;
 }
 
-/** Read a fully expanded id into its parts; undefined when it is not one. */
+/**
+ * Read a fully expanded id into its parts; undefined when it is not one.
+ *
+ * The split is `discovery/`'s: an entry id must carry a location and a name
+ * the ID grammar accepts, but the location set is the registry's business, so
+ * no set is consulted here.
+ */
 export function identityOf(id: string): LoadedIdentity | undefined {
-	const colon = id.indexOf(":");
-	if (colon <= 0) {
+	// A stored id is canonical: a trailing separator names no file and would
+	// not reproduce itself, so it is not an entry identity.
+	if (id.endsWith("/")) {
 		return undefined;
 	}
-	const location = id.slice(0, colon);
-	const rest = id.slice(colon + 1);
-	const slash = rest.indexOf("/");
-	const name = slash === -1 ? rest : rest.slice(0, slash);
-	const refPath = slash === -1 ? undefined : rest.slice(slash + 1);
-	if (!isSkillName(location) || !isSkillName(name)) {
-		return undefined;
-	}
-	if (refPath !== undefined && refPath.length === 0) {
+	const { location, name, refPath } = splitSkillId(id);
+	if (location === undefined || !isSkillName(location) || !isSkillName(name)) {
 		return undefined;
 	}
 	return { location, name, refPath };

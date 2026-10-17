@@ -14,7 +14,6 @@ import type { RegistryEntry, RegistryLocation } from "../discovery/types";
 import { createFailure } from "../failure/create";
 import {
 	isFileName,
-	listFiles,
 	sameSkill,
 	targetExistsId,
 	targetExistsPath,
@@ -70,7 +69,7 @@ function renameDirectory(
 	}
 	// Enumerate before the move: the files list is part of the report, and a
 	// failed enumeration must stop the move, not follow it.
-	const listed = listFiles(from);
+	const listed = ports.listFiles(from);
 	if (!listed.ok) {
 		return { ok: false, failure: listed.failure };
 	}
