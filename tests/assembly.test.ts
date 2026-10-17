@@ -3,8 +3,8 @@
  * the history-off path (plan Task 4).
  */
 import { describe, expect, it } from "vitest";
-import { COMMIT_ENTRY_TYPE, createAssembly } from "../index";
-import type { AssemblyPorts, PathCommit, StoredCopy } from "../index";
+import { COMMIT_ENTRY_TYPE, createAssembly } from "../assembly";
+import type { AssemblyPorts, PathCommit, StoredCopy } from "../assembly";
 import type { CommitEntry } from "../log";
 import { encode } from "../state";
 import type { StateEntry } from "../state";

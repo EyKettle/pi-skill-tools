@@ -20,9 +20,17 @@ function sourceFiles(directory: string): string[] {
 }
 
 describe("the host boundary", () => {
-	it("names host packages only under src/deps", () => {
+	it("names host packages only at the two boundaries", () => {
+		// `deps/` reaches the host's values; `plugin/` is the only module that
+		// imports the host's API at runtime. Every other module must not know it.
+		const boundaries = [DEPS, path.join(SRC, "plugin")];
 		const offenders = sourceFiles(SRC)
-			.filter((file) => !file.startsWith(DEPS + path.sep))
+			.filter(
+				(file) =>
+					!boundaries.some((boundary) =>
+						file.startsWith(boundary + path.sep),
+					),
+			)
 			.filter((file) => readFileSync(file, "utf8").includes("@earendil-works/"))
 			.map((file) => path.relative(SRC, file));
 
@@ -32,6 +40,18 @@ describe("the host boundary", () => {
 	it("re-exports named bindings, never a wildcard", () => {
 		for (const file of sourceFiles(DEPS)) {
 			expect(readFileSync(file, "utf8")).not.toMatch(/^\s*export\s+\*/m);
+		}
+	});
+
+	it("imports the host API only from the plugin boundary", () => {
+		const plugin = path.join(SRC, "plugin", "plugin.ts");
+		const source = readFileSync(plugin, "utf8");
+		expect(source).toContain(
+			'await import("@earendil-works/pi-coding-agent")',
+		);
+		for (const file of sourceFiles(path.join(SRC, "plugin"))) {
+			if (file === plugin) continue;
+			expect(readFileSync(file, "utf8")).not.toContain("@earendil-works/");
 		}
 	});
 

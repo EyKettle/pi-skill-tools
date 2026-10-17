@@ -1,5 +1,5 @@
 /**
- * The history switch: `skills.history.enable` read from disk (plan Task 4).
+ * The history switch: `skills.history.enabled` read from disk (plan Task 4).
  */
 import { describe, expect, it } from "vitest";
 import { mkdtempSync, writeFileSync } from "node:fs";
@@ -26,10 +26,10 @@ describe("historyEnabled", () => {
 
 	it("is off only for an explicit false", () => {
 		const off = settingsDir(
-			JSON.stringify({ skills: { history: { enable: false } } }),
+			JSON.stringify({ skills: { history: { enabled: false } } }),
 		);
 		const on = settingsDir(
-			JSON.stringify({ skills: { history: { enable: true } } }),
+			JSON.stringify({ skills: { history: { enabled: true } } }),
 		);
 
 		expect(historyEnabled(off)).toBe(false);
@@ -43,7 +43,7 @@ describe("historyEnabled", () => {
 	it("is on when the value is not a boolean", () => {
 		expect(
 			historyEnabled(
-				settingsDir(JSON.stringify({ skills: { history: { enable: "no" } } })),
+				settingsDir(JSON.stringify({ skills: { history: { enabled: "no" } } })),
 			),
 		).toBe(true);
 	});
