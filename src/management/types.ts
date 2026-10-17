@@ -27,8 +27,6 @@ export interface ManagementPorts {
 	readonly listFiles: (root: string) => Walked;
 	/**
 	 * Resolve a reference inside a skill directory.
-	/**
-	 * Resolve a reference inside a skill directory.
 	 *
 	 * `PATH_NOT_FOUND` means containment passed and the target does not exist:
 	 * that is the free path creation needs. Every other failure — an absolute
