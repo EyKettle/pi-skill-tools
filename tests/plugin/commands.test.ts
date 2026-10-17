@@ -16,9 +16,11 @@ describe("installContextHooks", () => {
 
 		installContextHooks(
 			{
-				on(event: string, handler: (value: typeof ctx) => void) {
+				// The host calls a handler as (event, ctx); this recorder does the
+				// same, which is what makes a wrong arity visible here.
+				on(event: string, handler: (value: unknown, context: typeof ctx) => void) {
 					registered.push(event);
-					handler(ctx);
+					handler({ type: event }, ctx);
 				},
 			},
 			{

@@ -6,7 +6,7 @@
 import { describe, expect, it } from "vitest";
 import { Theme } from "../../src/deps/pi-theme";
 import type { ThemeFg } from "../../src/deps/pi-theme";
-import { testTheme } from "../support/theme";
+import { testTheme } from "./theme";
 
 describe("the theme accessor", () => {
 	it("re-exports the host Theme the tests construct with", () => {

@@ -19,9 +19,15 @@ export interface ContextHandlers<C> {
 	readonly shutdown: (ctx: C) => void;
 }
 
-/** The host surface `installContextHooks` needs. */
+/**
+ * The host surface `installContextHooks` needs.
+ *
+ * The host calls a handler as `(event, ctx)` for every event, so the shape
+ * states both parameters and the installer takes the second. A one-parameter
+ * handler would receive the event and use it as the context.
+ */
 export interface EventSource<C> {
-	on(event: ContextEvent, handler: (ctx: C) => void): void;
+	on(event: ContextEvent, handler: (event: unknown, ctx: C) => void): void;
 }
 
 /** Register the three context-only handlers on the host. */
@@ -29,9 +35,9 @@ export function installContextHooks<C>(
 	source: EventSource<C>,
 	handlers: ContextHandlers<C>,
 ): void {
-	source.on("session_start", (ctx) => handlers.start(ctx));
-	source.on("session_tree", (ctx) => handlers.navigate(ctx));
-	source.on("session_shutdown", (ctx) => handlers.shutdown(ctx));
+	source.on("session_start", (_event, ctx) => handlers.start(ctx));
+	source.on("session_tree", (_event, ctx) => handlers.navigate(ctx));
+	source.on("session_shutdown", (_event, ctx) => handlers.shutdown(ctx));
 }
 
 /**

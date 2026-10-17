@@ -39,8 +39,13 @@ export function defineCreateSkillTool(deps: ToolDeps) {
 			if (typeof args.id !== "string") {
 				return failureOutcome(TOOL, invalidId(args.id));
 			}
-			// The schema requires a string; a caller that bypasses it writes nothing.
-			const content = typeof args.content === "string" ? args.content : "";
+			// The schema requires a string, so a caller that bypasses it is an
+			// unexpected error: throwing keeps this the one write path that never
+			// changes the disk on a malformed argument.
+			if (typeof args.content !== "string") {
+				throw new Error("create_skill requires `content` to be a string");
+			}
+			const content = args.content;
 			const result = createSkill(deps.management(), args.id, content);
 			if (!result.ok) {
 				return failureOutcome(TOOL, result.failure);

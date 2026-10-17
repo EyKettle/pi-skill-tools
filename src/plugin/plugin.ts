@@ -69,9 +69,49 @@ const WRITES: ReadonlySet<string> = new Set([
 /** The tools whose card is its labels, without the default shell. */
 const LABEL_ONLY: ReadonlySet<string> = new Set(["import_skill", "cancel_skill"]);
 
-export async function createPlugin(pi: ExtensionAPI): Promise<void> {
-	const host = await import("@earendil-works/pi-coding-agent");
-	const { openSessionState } = await import("pi-session-state");
+/** The host surface this plugin uses; the module satisfies it structurally. */
+export interface PluginHost {
+	getAgentDir(): string;
+	readonly CONFIG_DIR_NAME: string;
+	loadSkills(options: {
+		cwd: string;
+		agentDir: string;
+		skillPaths: string[];
+		includeDefaults: boolean;
+	}): {
+		skills: readonly {
+			name: string;
+			filePath: string;
+			baseDir: string;
+			sourceInfo: { origin: string; scope: string };
+		}[];
+	};
+}
+
+/** The stored copy's surface, as `pi-session-state` states it. */
+export interface CopyStore {
+	read(ctx: ExtensionContext): unknown;
+	write(ctx: ExtensionContext, value: unknown): void;
+}
+
+/** Test seams: production supplies neither, and both defaults are lazy. */
+export interface PluginSeams {
+	readonly host?: PluginHost;
+	readonly sessionState?: CopyStore;
+}
+
+export async function createPlugin(
+	pi: ExtensionAPI,
+	seams: PluginSeams = {},
+): Promise<void> {
+	const host: PluginHost =
+		seams.host ?? (await import("@earendil-works/pi-coding-agent"));
+	const sessionState: CopyStore =
+		seams.sessionState ??
+		(await import("pi-session-state")).openSessionState<unknown>({
+			pluginId: "skill-tools",
+			scope: "session",
+		});
 	const agentDir = host.getAgentDir();
 	const configDirName = host.CONFIG_DIR_NAME;
 
@@ -89,11 +129,6 @@ export async function createPlugin(pi: ExtensionAPI): Promise<void> {
 	}
 
 	// --- the loaded set ------------------------------------------------------
-
-	const sessionState = openSessionState<unknown>({
-		pluginId: "skill-tools",
-		scope: "session",
-	});
 
 	/** The context the ports act on, carried across events. */
 	let current: ExtensionContext | undefined;
@@ -251,8 +286,9 @@ export async function createPlugin(pi: ExtensionAPI): Promise<void> {
 	// --- the session hooks ---------------------------------------------------
 
 	// SAFETY: pi's `on` is overloaded per event name, so one structural
-	// interface cannot describe it. Every name in `ContextEvent` exists on the
-	// host with a (event, ctx) handler, and the handlers below ignore the event.
+	// interface cannot describe it. The host calls every handler as
+	// `(event, ctx)`; `EventSource` states both parameters and the installer
+	// forwards the second, so the cast changes the declared arity only.
 	const events = pi as unknown as EventSource<ExtensionContext>;
 	installContextHooks<ExtensionContext>(events, {
 		start(ctx) {
@@ -308,7 +344,7 @@ function buildSnapshot(
 	config: ResolvedConfig,
 	agentDir: string,
 	cwd: string,
-	host: typeof import("@earendil-works/pi-coding-agent"),
+	host: PluginHost,
 ): Index {
 	const loaded = host.loadSkills({
 		cwd,

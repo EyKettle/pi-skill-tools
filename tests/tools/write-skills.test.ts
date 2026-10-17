@@ -121,6 +121,16 @@ describe("create_skill", () => {
 		);
 	});
 
+	it("throws rather than write a file for a non-string content", () => {
+		const world = makeWorld();
+		const { create } = toolsFor(world);
+
+		expect(() => create.execute({ id: "alpha", content: 42 })).toThrow(
+			/content/,
+		);
+		expect(existsSync(path.join(world.globalSkills, "alpha"))).toBe(false);
+	});
+
 	it("declares id and content as required", () => {
 		const world = makeWorld();
 		const { create } = toolsFor(world);

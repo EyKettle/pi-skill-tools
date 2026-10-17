@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "type": "module",
   "private": true,
-  "description": "Pi extension: skill management (list, search, view untruncated, create)",
+  "description": "Pi extension: skill management (list, preview, search, load, unload, create, rename, remove)",
   "license": "MIT",
   "packageManager": "pnpm@12.9.1",
   "scripts": {
