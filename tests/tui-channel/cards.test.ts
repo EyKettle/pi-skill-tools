@@ -104,8 +104,8 @@ describe("renderCard", () => {
 		);
 		expect(render(projection)).toEqual([
 			"[toolTitle]List[/toolTitle][text] [/text][text](1)[/text]",
-			"location: global",
-			"detail: false",
+			"location:[accent] global[/accent]",
+			"detail:[accent] false[/accent]",
 			"[toolOutput][git] /skills/git/SKILL.md[/toolOutput]",
 		]);
 	});

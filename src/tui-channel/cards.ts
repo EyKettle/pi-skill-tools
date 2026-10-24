@@ -112,9 +112,17 @@ function titleLines(
 		lines.push(...renderSpans(projection.call, paint, width));
 	}
 	for (const arg of projection.fullArgs) {
-		lines.push(...wrapRow(sanitizeTerminalText(arg), width));
+		lines.push(...wrapRow(colorKV(sanitizeTerminalText(arg), paint), width));
 	}
 	return lines;
+}
+
+function colorKV(arg: string, paint: Paint): string {
+	const sepIndex = arg.indexOf(':');
+	const keyStr = arg.slice(0, sepIndex + 1);
+	const valueStr = arg.slice(sepIndex + 1);
+
+	return keyStr + paint('accent', valueStr);
 }
 
 function cardLines(

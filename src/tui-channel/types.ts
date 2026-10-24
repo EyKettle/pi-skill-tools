@@ -132,7 +132,8 @@ export type CardRole =
 	| "muted"
 	| "toolOutput"
 	| "error"
-	| "success";
+	| "success"
+	| "accent";
 
 /** One run of card text and the role that paints it. */
 export interface CardSpan {
