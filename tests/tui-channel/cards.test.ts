@@ -6,7 +6,9 @@ import { describe, expect, it } from "vitest";
 import {
 	boundToWidth,
 	displayWidth,
+	emptyCard,
 	renderCard,
+	renderTitle,
 	sanitizeTerminalText,
 } from "../../src/tui-channel/cards";
 import { presentRow } from "../../src/tui-channel/presentation";
@@ -67,6 +69,12 @@ describe("boundToWidth", () => {
 	});
 });
 
+describe("emptyCard", () => {
+	it("draws nothing", () => {
+		expect(emptyCard().render(80)).toEqual([]);
+	});
+});
+
 describe("renderCard", () => {
 	it("paints the call and result slots with their roles", () => {
 		const projection = presentRow(
@@ -118,6 +126,24 @@ describe("renderCard", () => {
 			{ tool: "cancel_skill", args: {}, expanded: false },
 		);
 		expect(render(projection)).toEqual(["[error]Skill::git[/error]"]);
+	});
+
+	it("draws only the title row, never the result, before a result exists", () => {
+		const projection = presentRow(
+			buildListSkillsPayload({ count: 1 }),
+			{
+				tool: "list_skills",
+				args: {},
+				expanded: false,
+				content: "[git] /skills/git/SKILL.md\n",
+			},
+		);
+		// The same projection carries a result slot; the title slot ignores it,
+		// which is what keeps the two slots from drawing the same card twice.
+		expect(projection.result.length).toBeGreaterThan(0);
+		expect(renderTitle(projection, theme).render(120)).toEqual([
+			"[toolTitle]List[/toolTitle][text] [/text][customMessageLabel]skills[/customMessageLabel]",
+		]);
 	});
 
 	it("never emits a hazardous character or an over-wide line", () => {

@@ -56,45 +56,78 @@ export function boundToWidth(line: string, maxColumns: number): string {
 }
 
 /**
- * Render one card as the component the host draws.
+ * Render the title row a card shows before any result exists.
+ *
+ * The host keeps the call slot after the result arrives, so this slot and
+ * `renderCard` take turns: whichever is drawn, the other draws nothing.
  *
  * The width is the host's, given at render time: a card never decides how wide
  * the terminal is, it only refuses to draw past it.
  */
+export function renderTitle(
+	projection: CardProjection,
+	theme: CardTheme,
+): CardComponent {
+	const paint = paintOf(theme);
+	return component((width) => titleLines(projection, paint, width));
+}
+
+/** Render one card as the component the host draws once a result exists. */
 export function renderCard(
 	projection: CardProjection,
 	theme: CardTheme,
 ): CardComponent {
+	const paint = paintOf(theme);
+	return component((width) => cardLines(projection, paint, width));
+}
+
+/** A component that draws nothing: the slot whose turn it is not. */
+export function emptyCard(): CardComponent {
+	return component(() => []);
+}
+
+function component(lines: (width: number) => string[]): CardComponent {
 	return {
-		render: (width) => cardLines(projection, theme, width),
+		render: lines,
 		invalidate() {
 			// A card holds no cache between frames.
 		},
 	};
 }
 
-function cardLines(
+type Paint = (role: CardRole, text: string) => string;
+
+function paintOf(theme: CardTheme): Paint {
+	return (role, text) => theme.fg(role, sanitizeTerminalText(text));
+}
+
+/** The title row and, when expanded, the full argument list. */
+function titleLines(
 	projection: CardProjection,
-	theme: CardTheme,
+	paint: Paint,
 	width: number,
 ): string[] {
 	const lines: string[] = [];
-	const paint = (role: CardRole, text: string): string =>
-		theme.fg(role, sanitizeTerminalText(text));
-
-	if (projection.labels !== undefined && projection.labels.length > 0) {
-		// A load/unload card is its labels, one row, space-separated.
-		const row = projection.labels.map((label) => paint(label.role, label.text));
-		lines.push(...wrapRow(row.join(" "), width));
-		return lines;
-	}
-
 	if (projection.call.length > 0) {
 		lines.push(...renderSpans(projection.call, paint, width));
 	}
 	for (const arg of projection.fullArgs) {
 		lines.push(...wrapRow(sanitizeTerminalText(arg), width));
 	}
+	return lines;
+}
+
+function cardLines(
+	projection: CardProjection,
+	paint: Paint,
+	width: number,
+): string[] {
+	if (projection.labels !== undefined && projection.labels.length > 0) {
+		// A load/unload card is its labels, one row, space-separated.
+		const row = projection.labels.map((label) => paint(label.role, label.text));
+		return wrapRow(row.join(" "), width);
+	}
+	const lines = titleLines(projection, paint, width);
 	for (const line of projection.result) {
 		lines.push(...renderSpans(line, paint, width));
 	}

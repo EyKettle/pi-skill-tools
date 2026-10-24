@@ -25,7 +25,7 @@ import type {
 	SkillTree,
 	SkillTreeReport,
 } from "../skill-tree/types";
-import { renderCard } from "../tui-channel/cards";
+import { emptyCard, renderCard, renderTitle } from "../tui-channel/cards";
 import { isTransportPayload } from "../tui-channel/payload";
 import { presentRow } from "../tui-channel/presentation";
 import { renderStatus } from "../tui-channel/status";
@@ -230,8 +230,15 @@ export async function createPlugin(
 					isError: outcome.isError,
 				};
 			},
+			// The host draws the call slot above the result slot and keeps the
+			// call slot after the result arrives, so the two take turns: the call
+			// slot shows the pending title only while no result is settled, and
+			// the result slot draws nothing while one is still partial.
 			renderCall(args, theme, context) {
-				return renderCard(
+				if (context.isPartial === false) {
+					return emptyCard();
+				}
+				return renderTitle(
 					presentRow(undefined, {
 						tool: tool.name,
 						args: args as Record<string, unknown>,
@@ -241,6 +248,9 @@ export async function createPlugin(
 				);
 			},
 			renderResult(result, options, theme, context) {
+				if (options.isPartial === true) {
+					return emptyCard();
+				}
 				return renderCard(
 					presentRow(payloadOf(result.details), {
 						tool: tool.name,
