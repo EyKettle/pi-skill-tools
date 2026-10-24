@@ -391,7 +391,7 @@ describe("the failure card", () => {
 				content: "ignored",
 			}),
 		);
-		expect(joined(projection).call).toBe("Preview git");
+		expect(joined(projection).call).toBe("Preview ");
 		expect(joined(projection).result).toEqual([
 			createFailure("PATH_NOT_FOUND", { kind: "path", path: "/x" }).recovery,
 		]);

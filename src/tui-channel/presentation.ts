@@ -111,9 +111,9 @@ function screenCall(
 	options: PresentOptions,
 	info: string | undefined,
 ): readonly CardSpan[] {
-	const label = options.expanded && info !== undefined ? info : args;
+	const label = options.expanded ? text(info) : args;
 	const role =
-		options.expanded && info !== undefined ? "text" : "customMessageLabel";
+		options.expanded ? "text" : "customMessageLabel";
 	return [span(title, "toolTitle"), span(" ", "text"), span(label, role)];
 }
 
@@ -216,7 +216,7 @@ function labelsOf(
 function renderArgs(tool: string, args: Record<string, unknown>): string {
 	switch (tool) {
 		case "list_skills":
-			return `skills${locationSuffix(args)}`;
+			return `skills${locationSuffix(args)}${detailationSuffix(args)}`;
 		case "list_skill_tags":
 			return `skill tags${locationSuffix(args)}`;
 		case "list_skill_files":
@@ -238,6 +238,10 @@ function renderArgs(tool: string, args: Record<string, unknown>): string {
 
 function locationSuffix(args: Record<string, unknown>): string {
 	return args.location === undefined ? "" : ` ${text(args.location)}`;
+}
+
+function detailationSuffix(args: Record<string, unknown>): string {
+	return args.detail ? " detailed" : "";
 }
 
 function stringSuffix(args: Record<string, unknown>, key: string): string {
