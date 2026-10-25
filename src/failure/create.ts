@@ -67,6 +67,7 @@ function assertWellFormedEvidence<C extends FailureCode>(
 		case "locations":
 			// No registered location is reachable: every built-in may be disabled.
 			assertStrings(code, "locations", value.locations, 0);
+			assertStrings(code, "disabled", value.disabled, 0);
 			return;
 		case "suggestions":
 			// No suggestion is reachable: an empty index has no close name.

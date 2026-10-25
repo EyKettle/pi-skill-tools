@@ -25,9 +25,16 @@ function entry(location: string, name: string): RegistryEntry {
 	};
 }
 
-function indexOf(entries: readonly RegistryEntry[]): Index {
+function indexOf(
+	entries: readonly RegistryEntry[],
+	disabled: readonly string[] = [],
+): Index {
 	return {
-		locations: LOCATIONS.map((id) => ({ id, writable: false })),
+		locations: LOCATIONS.map((id) =>
+			disabled.includes(id)
+				? { id, writable: false, disabled: true }
+				: { id, writable: false },
+		),
 		entries,
 	};
 }
@@ -98,6 +105,19 @@ describe("parseSkillId", () => {
 		expect(parsed.failure.evidence).toEqual({
 			kind: "locations",
 			locations: [...LOCATIONS],
+			disabled: [],
+		});
+	});
+
+	it("reports a disabled location as unknown, naming both lists", () => {
+		const parsed = parseSkillId("global:notepad", ["project"], ["global"]);
+		expect(parsed.ok).toBe(false);
+		if (parsed.ok) return;
+		expect(parsed.failure.code).toBe("ID_LOCATION_UNKNOWN");
+		expect(parsed.failure.evidence).toEqual({
+			kind: "locations",
+			locations: ["project"],
+			disabled: ["global"],
 		});
 	});
 
@@ -122,7 +142,7 @@ describe("parseSkillId", () => {
 			);
 			expect(parsed.failure.evidence).toEqual(
 				raw.includes(":")
-					? { kind: "locations", locations: [...LOCATIONS] }
+					? { kind: "locations", locations: [...LOCATIONS], disabled: [] }
 					: { kind: "input", input: raw },
 			);
 		}
@@ -244,6 +264,27 @@ describe("resolveSkillId", () => {
 		});
 	});
 
+	it("resolves a bare name to the location that remains", () => {
+		const index = indexOf([entry("project", "notepad")], ["global"]);
+		const resolved = resolveSkillId(index, "notepad");
+		expect(resolved.ok).toBe(true);
+		if (!resolved.ok) return;
+		expect(resolved.entry.id).toBe("project:notepad");
+	});
+
+	it("reports a disabled location as unknown", () => {
+		const index = indexOf([entry("global", "notepad")], ["global"]);
+		const resolved = resolveSkillId(index, "global:notepad");
+		expect(resolved.ok).toBe(false);
+		if (resolved.ok) return;
+		expect(resolved.failure.code).toBe("ID_LOCATION_UNKNOWN");
+		expect(resolved.failure.evidence).toEqual({
+			kind: "locations",
+			locations: ["project", "package", "temp"],
+			disabled: ["global"],
+		});
+	});
+
 	it("forwards the parse failure for an unregistered location", () => {
 		const resolved = resolveSkillId(index, "bogus:notepad");
 		expect(resolved.ok).toBe(false);
@@ -262,6 +303,7 @@ describe("resolveSkillId", () => {
 		expect(resolved.failure.evidence).toEqual({
 			kind: "locations",
 			locations: [],
+			disabled: [],
 		});
 	});
 });

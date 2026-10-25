@@ -65,7 +65,6 @@ function hostFor(agentDir: string): PluginHost {
 	return {
 		getAgentDir: () => agentDir,
 		CONFIG_DIR_NAME: ".pi",
-		loadSkills: () => ({ skills: [] }),
 	};
 }
 

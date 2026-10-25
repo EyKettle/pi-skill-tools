@@ -126,6 +126,7 @@ describe("createSkill", () => {
 		expect(failure.evidence).toEqual({
 			kind: "locations",
 			locations: ["global", "project", "package", "temp"],
+			disabled: [],
 		});
 	});
 
@@ -249,7 +250,7 @@ describe("createSkill", () => {
 		const fileAsRoot = path.join(w.agentDir, "not-a-dir");
 		writeFileSync(fileAsRoot, "x");
 		const index: Index = {
-			locations: [{ id: "broken", path: fileAsRoot, writable: true }],
+			locations: [{ id: "broken", roots: [fileAsRoot], writable: true }],
 			entries: [],
 		};
 		const failure = failureOf(

@@ -40,6 +40,8 @@ export interface EvidenceByCode {
 	ID_LOCATION_UNKNOWN: {
 		readonly kind: "locations";
 		readonly locations: readonly string[];
+		/** Registered locations the configuration turned off. */
+		readonly disabled: readonly string[];
 	};
 	ID_NOT_FOUND: {
 		readonly kind: "suggestions";

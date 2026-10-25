@@ -9,6 +9,7 @@
 import { createFailure, errorText } from "../failure/create";
 import type { Failure } from "../failure/types";
 import type { Index, RegistryLocation } from "../discovery/types";
+import { locationLists } from "../discovery/skill-id";
 
 export type LocationCheck =
 	| {
@@ -20,16 +21,20 @@ export type LocationCheck =
 /** A location that can be written to; everything else is a failure. */
 export function writableLocation(index: Index, id: string): LocationCheck {
 	const location = index.locations.find((candidate) => candidate.id === id);
-	if (location === undefined) {
+	if (location === undefined || location.disabled === true) {
+		const { usable, disabled } = locationLists(index.locations);
 		return {
 			ok: false,
 			failure: createFailure("ID_LOCATION_UNKNOWN", {
 				kind: "locations",
-				locations: index.locations.map((candidate) => candidate.id),
+				locations: usable,
+				disabled,
 			}),
 		};
 	}
-	if (!location.writable || location.path === undefined) {
+	// A write lands in the first root: the one closest to the caller.
+	const [root] = location.roots ?? [];
+	if (!location.writable || root === undefined) {
 		return {
 			ok: false,
 			failure: createFailure("LOCATION_READ_ONLY", {
@@ -38,7 +43,7 @@ export function writableLocation(index: Index, id: string): LocationCheck {
 			}),
 		};
 	}
-	return { ok: true, location: { ...location, path: location.path } };
+	return { ok: true, location: { ...location, path: root } };
 }
 
 export function writeFailed(target: string, error: unknown): Failure {

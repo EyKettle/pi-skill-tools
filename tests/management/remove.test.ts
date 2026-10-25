@@ -138,7 +138,7 @@ describe("removeSkill", () => {
 			frontmatter: {},
 		};
 		const index: Index = {
-			locations: [{ id: "package", path: pkg, writable: false }],
+			locations: [{ id: "package", roots: [pkg], writable: false }],
 			entries: [entry],
 		};
 

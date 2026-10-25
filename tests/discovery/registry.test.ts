@@ -70,16 +70,27 @@ describe("buildIndex", () => {
 		]);
 		expect(index.locations[0]).toEqual({
 			id: "global",
-			path: join(agentDir, "skills"),
+			roots: [join(agentDir, "skills")],
 			writable: true,
 		});
 		expect(index.locations[1]).toEqual({
 			id: "project",
-			path: join(cwd, ".pi", "skills"),
+			roots: [join(cwd, ".pi", "skills")],
 			writable: true,
 		});
-		expect(index.locations[2].writable).toBe(false);
-		expect(index.locations[3].writable).toBe(false);
+		expect(index.locations[2]).toEqual({
+			id: "package",
+			roots: [
+				join(agentDir, "npm", "node_modules"),
+				join(cwd, ".pi", "npm", "node_modules"),
+			],
+			writable: false,
+		});
+		expect(index.locations[3]).toEqual({
+			id: "temp",
+			roots: [join(agentDir, "extensions")],
+			writable: false,
+		});
 	});
 
 	it("registers a configured extra path after the built-ins", () => {
@@ -98,7 +109,7 @@ describe("buildIndex", () => {
 		expect(index.entries.map((entry) => entry.id)).toEqual(["extra:gamma"]);
 		expect(index.locations.at(-1)).toEqual({
 			id: "extra",
-			path: extra,
+			roots: [extra],
 			writable: true,
 		});
 	});
@@ -127,59 +138,54 @@ describe("buildIndex", () => {
 		]);
 	});
 
-	it("inherits the package and temp skills Pi discovered", () => {
-		const root = tempDir("discovery-inherited-");
-		const pkg = join(root, "pkg", "pkg-skill");
-		const temp = join(root, "temp", "temp-skill");
-		mkdirSync(pkg, { recursive: true });
-		mkdirSync(temp, { recursive: true });
-		writeFileSync(
-			join(pkg, "SKILL.md"),
-			"---\nname: pkg-skill\ndescription: from a package\n---\n",
-		);
-		writeFileSync(join(temp, "SKILL.md"), "---\nname: temp-skill\n---\n");
+	it("indexes both package roots", () => {
+		const root = tempDir("discovery-package-roots-");
+		const agentDir = join(root, "agent");
+		const cwd = join(root, "project");
+		writeSkill(join(agentDir, "npm", "node_modules"), "from-agent");
+		writeSkill(join(cwd, ".pi", "npm", "node_modules"), "from-project");
 
-		const index = buildIndex({
-			agentDir: join(root, "agent"),
-			cwd: join(root, "project"),
-			inherited: {
-				package: [
-					{
-						name: "pkg-skill",
-						filePath: join(pkg, "SKILL.md"),
-						baseDir: pkg,
-					},
-				],
-				temp: [
-					{
-						name: "temp-skill",
-						filePath: join(temp, "SKILL.md"),
-						baseDir: temp,
-					},
-				],
-			},
-		});
+		const index = buildIndex(input({ agentDir, cwd }));
 
 		expect(index.entries.map((entry) => entry.id)).toEqual([
-			"package:pkg-skill",
-			"temp:temp-skill",
+			"package:from-agent",
+			"package:from-project",
 		]);
-		expect(index.entries[0].frontmatter).toEqual({
-			name: "pkg-skill",
-			description: "from a package",
-		});
+		expect(index.entries[0].frontmatter).toEqual({ name: "from-agent" });
 	});
 
-	it("drops a disabled location together with the skills on disk", () => {
+	it("takes the first package root when both hold the same name", () => {
+		const root = tempDir("discovery-package-duplicate-");
+		const agentDir = join(root, "agent");
+		const cwd = join(root, "project");
+		writeSkill(join(agentDir, "npm", "node_modules"), "shared");
+		writeSkill(join(cwd, ".pi", "npm", "node_modules"), "shared");
+
+		const index = buildIndex(input({ agentDir, cwd }));
+
+		expect(index.entries.map((entry) => entry.id)).toEqual(["package:shared"]);
+		expect(index.entries[0].baseDir).toBe(
+			join(agentDir, "npm", "node_modules", "shared"),
+		);
+	});
+
+	it("indexes the temp root", () => {
+		const root = tempDir("discovery-temp-");
+		const agentDir = join(root, "agent");
+		writeSkill(join(agentDir, "extensions"), "temp-skill");
+
+		const index = buildIndex(input({ agentDir, cwd: join(root, "project") }));
+
+		expect(index.entries.map((entry) => entry.id)).toEqual(["temp:temp-skill"]);
+	});
+
+	it("keeps a disabled location registered and out of the count", () => {
 		const root = tempDir("discovery-disabled-");
 		const agentDir = join(root, "agent");
 		writeSkill(join(agentDir, "skills"), "alpha");
 		writeSkill(join(root, "project", ".pi", "skills"), "beta");
 
 		const index = buildIndex(
-			input({ agentDir, cwd: join(root, "project") }),
-		);
-		const disabled = buildIndex(
 			input({
 				agentDir,
 				cwd: join(root, "project"),
@@ -187,11 +193,19 @@ describe("buildIndex", () => {
 			}),
 		);
 
-		expect(index.entries).toHaveLength(2);
-		expect(disabled.locations.map((location) => location.id)).toEqual([
+		expect(index.locations.map((location) => location.id)).toEqual([
+			"global",
 			"project",
+			"package",
+			"temp",
 		]);
-		expect(disabled.entries.map((entry) => entry.id)).toEqual(["project:beta"]);
+		expect(index.locations.map((location) => location.disabled)).toEqual([
+			true,
+			undefined,
+			true,
+			true,
+		]);
+		expect(index.entries.map((entry) => entry.id)).toEqual(["project:beta"]);
 	});
 
 	it("does not let a configured path take over a built-in id", () => {
@@ -210,7 +224,7 @@ describe("buildIndex", () => {
 		expect(
 			index.locations.filter((location) => location.id === "global"),
 		).toHaveLength(1);
-		expect(index.locations[0].path).toBe(join(root, "agent", "skills"));
+		expect(index.locations[0].roots).toEqual([join(root, "agent", "skills")]);
 		expect(index.entries).toEqual([]);
 	});
 
@@ -342,7 +356,7 @@ describe("resolveLocations", () => {
 			"package",
 			"temp",
 		]);
-		expect(resolved.locations[0].path).toBe(join(root, "agent", "skills"));
+		expect(resolved.locations[0].roots).toEqual([join(root, "agent", "skills")]);
 	});
 
 	it("reports a configured id that cannot be spelled in an ID", () => {
@@ -389,6 +403,28 @@ describe("resolveLocations", () => {
 			"temp",
 			"zeta",
 		]);
+	});
+
+	it("keeps a disabled configured path registered and marked", () => {
+		const root = tempDir("discovery-disabled-extra-");
+		const extra = join(root, "extra");
+		writeSkill(extra, "gamma");
+		const index = buildIndex({
+			agentDir: join(root, "agent"),
+			cwd: join(root, "project"),
+			registry: {
+				disable: ["extra"],
+				paths: { extra: { writable: true, path: extra } },
+			},
+		});
+
+		expect(index.locations.at(-1)).toEqual({
+			id: "extra",
+			roots: [extra],
+			writable: true,
+			disabled: true,
+		});
+		expect(index.entries).toEqual([]);
 	});
 
 	it("keeps the index unchanged by the issues", () => {

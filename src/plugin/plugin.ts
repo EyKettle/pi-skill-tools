@@ -74,19 +74,6 @@ const LABEL_ONLY: ReadonlySet<string> = new Set(["import_skill", "cancel_skill"]
 export interface PluginHost {
 	getAgentDir(): string;
 	readonly CONFIG_DIR_NAME: string;
-	loadSkills(options: {
-		cwd: string;
-		agentDir: string;
-		skillPaths: string[];
-		includeDefaults: boolean;
-	}): {
-		skills: readonly {
-			name: string;
-			filePath: string;
-			baseDir: string;
-			sourceInfo: { origin: string; scope: string };
-		}[];
-	};
 }
 
 /** The stored copy's surface, as `pi-session-state` states it. */
@@ -120,12 +107,12 @@ export async function createPlugin(
 
 	let cwd = process.cwd();
 	let config: ResolvedConfig = resolveConfig({ agentDir, cwd, configDirName });
-	let index: Index = buildSnapshot(config, agentDir, cwd, host);
+	let index: Index = buildSnapshot(config, agentDir, cwd);
 
 	function refreshIndex(at?: string): Index {
 		if (at !== undefined) cwd = at;
 		config = resolveConfig({ agentDir, cwd, configDirName });
-		index = buildSnapshot(config, agentDir, cwd, host);
+		index = buildSnapshot(config, agentDir, cwd);
 		return index;
 	}
 
@@ -352,36 +339,16 @@ function reportText(reason: SkillTreeReport): string {
 		: "skill-tools: history recording is off; changes enter no commit log.";
 }
 
-/** One index snapshot: the scanned locations plus the host's own skills. */
+/** One index snapshot of the configured locations. */
 function buildSnapshot(
 	config: ResolvedConfig,
 	agentDir: string,
 	cwd: string,
-	host: PluginHost,
 ): Index {
-	const loaded = host.loadSkills({
-		cwd,
-		agentDir,
-		skillPaths: [],
-		includeDefaults: true,
-	});
-	const inherited = loaded.skills.map((skill) => ({
-		name: skill.name,
-		filePath: skill.filePath,
-		baseDir: skill.baseDir,
-		origin: skill.sourceInfo.origin,
-		scope: skill.sourceInfo.scope,
-	}));
 	return buildIndex({
 		agentDir,
 		cwd,
 		registry: { disable: config.disable, paths: config.paths },
-		inherited: {
-			package: inherited.filter((skill) => skill.origin === "package"),
-			temp: inherited.filter(
-				(skill) => skill.scope === "temporary" && skill.origin !== "package",
-			),
-		},
 	});
 }
 

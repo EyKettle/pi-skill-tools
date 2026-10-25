@@ -24,10 +24,18 @@ export function reasonText(evidence: FailureEvidence): string {
 			return "No further detail was recorded.";
 		case "input":
 			return `The input "${evidence.input}" is not usable.`;
-		case "locations":
-			return evidence.locations.length === 0
-				? "No discovery location is registered."
-				: `The location is not registered; registered locations: ${evidence.locations.join(", ")}.`;
+		case "locations": {
+			const registered =
+				evidence.locations.length === 0
+					? "none"
+					: evidence.locations.join(", ");
+			if (evidence.disabled.length === 0) {
+				return evidence.locations.length === 0
+					? "No discovery location is registered."
+					: `The location is not registered; registered locations: ${registered}.`;
+			}
+			return `The location is not registered or is disabled; registered locations: ${registered}; disabled locations: ${evidence.disabled.join(", ")}.`;
+		}
 		case "suggestions":
 			return evidence.names.length === 0
 				? "No skill matches, and no close name exists."

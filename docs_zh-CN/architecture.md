@@ -10,16 +10,35 @@
 - [TUI 通道规范](arch/tui-channel.md)
 - [模型通道规范](arch/model-channel.md)
 
+[`skills.registry.disable`]: configuration.md
+
 ## 发现路径
 
-默认情况下有四种发现路径：
+内置四种发现路径：
 
 | 标识符 | 路径 |
 | --- | --- |
 | `global` | `{agent_dir}/skills` |
 | `project` | `{cwd}/.pi/skills` |
-| `package` | 继承 Pi 的发现机制 |
-| `temp` | 继承 Pi 的发现机制 |
+| `package` | `{agent_dir}/npm/node_modules/{name}` / `{cwd}/.pi/npm/node_modules/{name}` 中符合发现模式的路径 |
+| `temp` | `{agent_dir}/extensions/` 中符合发现模式的路径 |
+
+存在 `{name}/SKILL.md` 路径模式的目录即符合发现模式的路径。
+
+`package` 的两个根持有同名技能时，`{agent_dir}` 根优先。
+
+> [!IMPORTANT]
+> 暂时不兼容完整的 Pi 原生发现路径
+
+### 禁用特定发现路径
+
+通过 [`skills.registry.disable`] 可手动禁用的特定发现路径。
+该配置项的值为已注册发现路径的标识符（包含上述四种）。
+
+被该配置项禁用的位置视为未注册：
+
+- 清点不列出该位置的技能
+- 预览、加载与管理把该位置的 ID 报为位置未知，证据同时列出已注册的位置与被禁用的位置
 
 ## 职责边界
 
@@ -180,7 +199,7 @@ Pi 在抛出时用 createErrorToolResult 顶替结果，其 details 为 {}。
 | 功能 | 码 | 异常 | 证据 | 恢复 |
 | --- | --- | --- | --- | --- |
 | 寻址 | `ID_NAME_INVALID` | 名称部分为空，或含 `^[a-z0-9-]+$` 以外的字符 | 原输入 | 名称只含小写字母、数字与连字符 |
-| 寻址 | `ID_LOCATION_UNKNOWN` | 位置前缀不是已注册的发现路径 | 已注册的位置 | 唯一时省略前缀，或改用已注册的位置 |
+| 寻址 | `ID_LOCATION_UNKNOWN` | 位置前缀不是已注册的发现路径，或该位置已被禁用 | 已注册的位置与被禁用的位置 | 唯一时省略前缀；被禁用时在配置中移除该位置的 `disable` 项 |
 | 寻址 | `ID_NOT_FOUND` | 索引里没有该技能 | 名称最接近的若干技能 | 用 `list_skills` 或 `search_skill` 找到名称 |
 | 寻址 | `ID_AMBIGUOUS` | 同名技能出现在多个位置 | 每个候选的完整 ID | 用带位置前缀的完整 ID 重试 |
 | 寻址 | `REF_PATH_INVALID` | 相关文件路径是绝对路径，或越出技能目录 | 原输入 | 用技能目录内的相对路径 |

@@ -1,10 +1,9 @@
 /**
  * The skill index: every skill reachable through a registered discovery path.
  *
- * The index scans the paths it owns and takes the skills Pi discovered for the
- * locations that inherit Pi's mechanism (`package`, `temp`). It does not use
- * Pi's skill index as a location authority and it is not an exhaustive disk
- * walk: one directory level per location, `SKILL.md` present, name addressable.
+ * The index scans every root of every enabled location. It does not use Pi's
+ * skill index as a location authority and it is not an exhaustive disk walk:
+ * one directory level per root, `SKILL.md` present, name addressable.
  * A bad directory, an unreadable file, or a malformed block degrades to a
  * skipped skill or empty frontmatter — building the index never throws.
  */
@@ -15,31 +14,34 @@ import { formatSkillId, isSkillName } from "./skill-id";
 import type {
 	Index,
 	IndexInput,
-	InheritedSkill,
 	LocationIssue,
 	RegistryEntry,
 	RegistryLocation,
 	ResolvedLocations,
-	SkillStorage,
 } from "./types";
 
 
-/**
- * Build the index from the resolved registry settings and the skills Pi
- * discovered for the inherited locations.
- */
+/** Build the index from the resolved registry settings. */
 export function buildIndex(input: IndexInput): Index {
 	const { locations } = resolveLocations(input);
-	const inherited = input.inherited ?? {};
 	const entries: RegistryEntry[] = [];
+	// One location scans several roots; the first root holding a name wins.
+	const seen = new Set<string>();
 
 	for (const location of locations) {
-		if (location.path !== undefined) {
-			entries.push(...scan(location, location.path));
+		if (location.disabled === true) {
+			continue;
+		}
+		for (const root of location.roots ?? []) {
+			for (const entry of scan(location, root)) {
+				if (seen.has(entry.id)) {
+					continue;
+				}
+				seen.add(entry.id);
+				entries.push(entry);
+			}
 		}
 	}
-	entries.push(...inheritedEntries(locations, "package", inherited.package));
-	entries.push(...inheritedEntries(locations, "temp", inherited.temp));
 
 	entries.sort(compareByLocation(locations));
 	return { locations, entries };
@@ -101,21 +103,30 @@ export function resolveLocations(input: IndexInput): ResolvedLocations {
 	const declared: RegistryLocation[] = [
 		{
 			id: "global",
-			path: path.join(input.agentDir, "skills"),
+			roots: [path.join(input.agentDir, "skills")],
 			writable: true,
 		},
 		{
 			id: "project",
-			path: path.join(input.cwd, ".pi", "skills"),
+			roots: [path.join(input.cwd, ".pi", "skills")],
 			writable: true,
 		},
-		// These two inherit Pi's discovery mechanism: no directory of ours.
-		{ id: "package", writable: false },
-		{ id: "temp", writable: false },
+		{
+			id: "package",
+			roots: [
+				path.join(input.agentDir, "npm", "node_modules"),
+				path.join(input.cwd, ".pi", "npm", "node_modules"),
+			],
+			writable: false,
+		},
+		{
+			id: "temp",
+			roots: [path.join(input.agentDir, "extensions")],
+			writable: false,
+		},
 	];
 	// A configured path never redefines a built-in id, disabled or not.
 	const reserved = new Set(declared.map((location) => location.id));
-	const builtins = declared.filter((location) => !disabled.has(location.id));
 
 	const issues: LocationIssue[] = [];
 	const extras: RegistryLocation[] = [];
@@ -128,16 +139,14 @@ export function resolveLocations(input: IndexInput): ResolvedLocations {
 			issues.push({ id, reason: "reserved" });
 			continue;
 		}
-		if (disabled.has(id)) {
-			continue;
-		}
-		extras.push({ id, path: entry.path, writable: entry.writable });
+		extras.push({ id, roots: [entry.path], writable: entry.writable });
 	}
 
-	return {
-		locations: [...builtins, ...sortById(extras)],
-		issues: sortById(issues),
-	};
+	const locations = [...declared, ...sortById(extras)].map((location) =>
+		disabled.has(location.id) ? { ...location, disabled: true } : location,
+	);
+
+	return { locations, issues: sortById(issues) };
 }
 
 function sortById<T extends { readonly id: string }>(items: T[]): T[] {
@@ -183,29 +192,6 @@ function scan(
 		});
 	}
 	return entries;
-}
-
-function inheritedEntries(
-	locations: readonly RegistryLocation[],
-	location: SkillStorage,
-	skills: readonly InheritedSkill[] | undefined,
-): RegistryEntry[] {
-	if (
-		skills === undefined ||
-		!locations.some((registered) => registered.id === location)
-	) {
-		return [];
-	}
-	return skills
-		.filter((skill) => isSkillName(skill.name))
-		.map((skill) => ({
-			location,
-			name: skill.name,
-			id: formatSkillId(location, skill.name),
-			filePath: skill.filePath,
-			baseDir: skill.baseDir,
-			frontmatter: readFrontmatter(skill.filePath),
-		}));
 }
 
 /** Fail-closed read: an unreadable or malformed document has no frontmatter. */

@@ -12,21 +12,16 @@
 export type SkillStorage = string;
 
 /**
- * One registered discovery location. A location this module scans carries its
- * directory; a location inherited from Pi (`package`, `temp`) has none, and
- * its skills arrive through `InheritedSkill`.
+ * One registered discovery location: the directories it scans, in order.
+ *
+ * A disabled location stays registered, so an ID naming it can report that
+ * the location exists and is turned off; it holds no scanned skills.
  */
 export interface RegistryLocation {
 	readonly id: SkillStorage;
-	readonly path?: string;
+	readonly roots?: readonly string[];
 	readonly writable: boolean;
-}
-
-/** A skill Pi's own discovery produced for an inherited location. */
-export interface InheritedSkill {
-	readonly name: string;
-	readonly filePath: string;
-	readonly baseDir: string;
+	readonly disabled?: boolean;
 }
 
 /** One skill the index knows: its address, its main document, its metadata. */
@@ -73,8 +68,4 @@ export interface IndexInput {
 	readonly agentDir: string;
 	readonly cwd: string;
 	readonly registry?: DiscoveryConfig;
-	readonly inherited?: {
-		readonly package?: readonly InheritedSkill[];
-		readonly temp?: readonly InheritedSkill[];
-	};
 }

@@ -19,7 +19,8 @@ const VALID_EVIDENCE: { [C in FailureCode]: EvidenceByCode[C] } = {
 	ID_NAME_INVALID: { kind: "input", input: "Bad Name" },
 	ID_LOCATION_UNKNOWN: {
 		kind: "locations",
-		locations: ["global", "project", "package", "temp"],
+		locations: ["project", "package", "temp"],
+		disabled: ["global"],
 	},
 	ID_NOT_FOUND: { kind: "suggestions", names: ["notepad", "git"] },
 	ID_AMBIGUOUS: { kind: "candidates", ids: ["global:git", "project:git"] },
@@ -150,8 +151,26 @@ describe("createFailure", () => {
 			const failure = createFailure("ID_LOCATION_UNKNOWN", {
 				kind: "locations",
 				locations: [],
+				disabled: [],
 			});
-			expect(failure.evidence).toEqual({ kind: "locations", locations: [] });
+			expect(failure.evidence).toEqual({
+				kind: "locations",
+				locations: [],
+				disabled: [],
+			});
+		});
+
+		it("accepts a disabled list beside the registered one", () => {
+			const failure = createFailure("ID_LOCATION_UNKNOWN", {
+				kind: "locations",
+				locations: ["project"],
+				disabled: ["global"],
+			});
+			expect(failure.evidence).toEqual({
+				kind: "locations",
+				locations: ["project"],
+				disabled: ["global"],
+			});
 		});
 
 		it("still rejects an empty candidate list: ambiguity means at least two hits", () => {
@@ -165,6 +184,14 @@ describe("createFailure", () => {
 				createFailure("ID_LOCATION_UNKNOWN", {
 					kind: "locations",
 					locations: ["global", ""],
+					disabled: [],
+				}),
+			).toThrow(FailureGuardError);
+			expect(() =>
+				createFailure("ID_LOCATION_UNKNOWN", {
+					kind: "locations",
+					locations: ["global"],
+					disabled: [""],
 				}),
 			).toThrow(FailureGuardError);
 			expect(() =>

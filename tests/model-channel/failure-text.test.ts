@@ -14,6 +14,7 @@ const EVIDENCE: { [C in FailureCode]: EvidenceByCode[C] } = {
 	ID_LOCATION_UNKNOWN: {
 		kind: "locations",
 		locations: ["global", "project"],
+		disabled: ["temp"],
 	},
 	ID_NOT_FOUND: { kind: "suggestions", names: ["notepad", "git"] },
 	ID_AMBIGUOUS: { kind: "candidates", ids: ["global:git", "project:git"] },
@@ -100,12 +101,25 @@ describe("reasonText", () => {
 
 	it("lists what a location or a suggestion search found", () => {
 		expect(
-			reasonText({ kind: "locations", locations: ["global", "project"] }),
+			reasonText({
+				kind: "locations",
+				locations: ["global", "project"],
+				disabled: [],
+			}),
 		).toBe(
 			"The location is not registered; registered locations: global, project.",
 		);
-		expect(reasonText({ kind: "locations", locations: [] })).toBe(
+		expect(reasonText({ kind: "locations", locations: [], disabled: [] })).toBe(
 			"No discovery location is registered.",
+		);
+		expect(
+			reasonText({
+				kind: "locations",
+				locations: ["project"],
+				disabled: ["global"],
+			}),
+		).toBe(
+			"The location is not registered or is disabled; registered locations: project; disabled locations: global.",
 		);
 		expect(reasonText({ kind: "suggestions", names: ["git", "pi"] })).toBe(
 			"No skill matches; the closest names are: git, pi.",

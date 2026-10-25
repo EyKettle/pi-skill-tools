@@ -35,7 +35,7 @@ const RECOVERY_BY_CODE: Record<FailureCode, string> = {
 	ID_NAME_INVALID:
 		"Use a name of lowercase letters, digits, and hyphens only.",
 	ID_LOCATION_UNKNOWN:
-		"Drop the location prefix when the name is unique, or use a registered location.",
+		"Drop the location prefix when the name is unique, use a registered location, or remove that location from skills.registry.disable.",
 	ID_NOT_FOUND: "Find the name with list_skills or search_skill.",
 	ID_AMBIGUOUS: "Retry with the full ID, including its location prefix.",
 	REF_PATH_INVALID: "Use a relative path inside the skill directory.",

@@ -7,7 +7,12 @@
  */
 import { createFailure } from "../failure/create";
 import type { Failure } from "../failure/types";
-import type { Index, RegistryEntry, SkillStorage } from "./types";
+import type {
+	Index,
+	RegistryEntry,
+	RegistryLocation,
+	SkillStorage,
+} from "./types";
 
 /** Pi's skill-name character set; a name outside it cannot be addressed. */
 const NAME_PATTERN = /^[a-z0-9-]+$/;
@@ -54,13 +59,38 @@ export function splitSkillId(raw: string): ParsedSkillId {
 }
 
 /**
- * Parse an ID against the registered locations. `{location}:` folds away when
- * the name is unique, and `/{type}/{file}` is absent when the ID names the
- * skill's main document.
+ * The registered ids split by whether the configuration turned them off.
+ *
+ * A disabled location is not addressable, so it never reaches the usable list;
+ * it is carried beside it, because an ID naming it reports both.
+ */
+export function locationLists(
+	locations: readonly RegistryLocation[],
+): {
+	readonly usable: readonly SkillStorage[];
+	readonly disabled: readonly SkillStorage[];
+} {
+	const usable: SkillStorage[] = [];
+	const disabled: SkillStorage[] = [];
+	for (const location of locations) {
+		if (location.disabled === true) {
+			disabled.push(location.id);
+		} else {
+			usable.push(location.id);
+		}
+	}
+	return { usable, disabled };
+}
+
+/**
+ * Parse an ID against the usable locations. `{location}:` folds away when the
+ * name is unique, and `/{type}/{file}` is absent when the ID names the skill's
+ * main document.
  */
 export function parseSkillId(
 	raw: string,
 	locations: readonly SkillStorage[],
+	disabled: readonly SkillStorage[] = [],
 ): ParseResult {
 	const { location, name, refPath } = splitSkillId(raw);
 
@@ -70,6 +100,7 @@ export function parseSkillId(
 			failure: createFailure("ID_LOCATION_UNKNOWN", {
 				kind: "locations",
 				locations: [...locations],
+				disabled: [...disabled],
 			}),
 		};
 	}
@@ -123,10 +154,8 @@ export type SkillResolution =
 
 /** Resolve an ID against the index; every outcome is data, never a throw. */
 export function resolveSkillId(index: Index, raw: string): SkillResolution {
-	const parsed = parseSkillId(
-		raw,
-		index.locations.map((location) => location.id),
-	);
+	const { usable, disabled } = locationLists(index.locations);
+	const parsed = parseSkillId(raw, usable, disabled);
 	if (!parsed.ok) {
 		return parsed;
 	}
