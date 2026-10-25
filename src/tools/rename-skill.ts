@@ -74,7 +74,11 @@ export function defineRenameSkillTool(deps: ToolDeps) {
 				);
 			}
 			return successOutcome(
-				renameSkillText({ path: result.to, files: result.files }),
+				renameSkillText({
+					from: result.from,
+					to: result.to,
+					files: result.files,
+				}),
 				buildRenameSkillPayload({
 					from,
 					to: displaySkillId(index, {

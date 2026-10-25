@@ -102,8 +102,14 @@ describe("renameSkill", () => {
 		expect(result.from).toBe(oldDir);
 		expect(result.to).toBe(newDir);
 		expect(result.files).toEqual([
-			path.join(newDir, "SKILL.md"),
-			path.join(newDir, "references", "notes.md"),
+			{
+				from: path.join(oldDir, "SKILL.md"),
+				to: path.join(newDir, "SKILL.md"),
+			},
+			{
+				from: path.join(oldDir, "references", "notes.md"),
+				to: path.join(newDir, "references", "notes.md"),
+			},
 		]);
 		expect(readdirSync(skills)).toEqual(["beta"]);
 	});

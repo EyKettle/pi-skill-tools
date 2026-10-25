@@ -186,16 +186,24 @@ describe("the write text", () => {
 		);
 	});
 
-	it("names the folder and the files a rename moved", () => {
+	it("names both sides of every path a rename moved", () => {
 		expect(
 			renameSkillText({
-				path: "/skills/pi",
-				files: ["/skills/pi/SKILL.md"],
+				from: "/skills/pi",
+				to: "/skills/pi-renamed",
+				files: [
+					{
+						from: "/skills/pi/SKILL.md",
+						to: "/skills/pi-renamed/SKILL.md",
+					},
+				],
 			}),
 		).toBe(
-			["Moved path: /skills/pi", "Moved files:", "- /skills/pi/SKILL.md"].join(
-				"\n",
-			),
+			[
+				"Moved path: /skills/pi → /skills/pi-renamed",
+				"Moved files:",
+				"- /skills/pi/SKILL.md → /skills/pi-renamed/SKILL.md",
+			].join("\n"),
 		);
 	});
 

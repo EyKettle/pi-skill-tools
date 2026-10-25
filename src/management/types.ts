@@ -61,8 +61,11 @@ export type RenameResult =
 			readonly from: string;
 			/** The skill directory after the move. */
 			readonly to: string;
-			/** Every file under the new directory, absolute. */
-			readonly files: readonly string[];
+			/** Every file under the new directory, with the absolute path it moved from. */
+			readonly files: readonly {
+				readonly from: string;
+				readonly to: string;
+			}[];
 	  }
 	| {
 			readonly ok: true;

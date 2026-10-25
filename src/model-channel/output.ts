@@ -40,10 +40,14 @@ export interface RemovedSkill {
 	readonly files: readonly string[];
 }
 
-/** A rename of a skill: the new directory and every file under it. */
+/** A rename of a skill: the directory on both sides, and every file with its own pair. */
 export interface MovedSkill {
-	readonly path: string;
-	readonly files: readonly string[];
+	readonly from: string;
+	readonly to: string;
+	readonly files: readonly {
+		readonly from: string;
+		readonly to: string;
+	}[];
 }
 
 export const EMPTY_LIST_SKILLS = "No skill found";
@@ -126,12 +130,12 @@ export function removeSkillText(removed: RemovedSkill): string {
 	].join("\n");
 }
 
-/** `rename_skill`: the new skill directory and the files that moved with it. */
+/** `rename_skill`: both sides of the move, for the directory and every file. */
 export function renameSkillText(moved: MovedSkill): string {
 	return [
-		`Moved path: ${moved.path}`,
+		`Moved path: ${moved.from} → ${moved.to}`,
 		"Moved files:",
-		...moved.files.map((file) => `- ${file}`),
+		...moved.files.map((file) => `- ${file.from} → ${file.to}`),
 	].join("\n");
 }
 

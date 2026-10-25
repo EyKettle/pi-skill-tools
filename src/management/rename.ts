@@ -83,9 +83,10 @@ function renameDirectory(
 		kind: "skill",
 		from,
 		to,
-		files: listed.files.map((file) =>
-			path.join(to, path.relative(from, file)),
-		),
+		files: listed.files.map((file) => ({
+			from: file,
+			to: path.join(to, path.relative(from, file)),
+		})),
 	};
 }
 

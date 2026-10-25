@@ -134,10 +134,10 @@ Removed files:
 `rename_skill` 的结果展示技能路径与移动的文件：
 
 ```text
-Moved path: {/path/to/skill}
+Moved path: {/path/to/skill} → {/path/to/new/skill}
 Moved files:
-- {/path/to/SKILL.md}
-- {/path/to/file}
+- {/path/to/skill/SKILL.md} → {/path/to/new/skill/SKILL.md}
+- {/path/to/file} → {/path/to/new/file}
 - ...
 ```
 

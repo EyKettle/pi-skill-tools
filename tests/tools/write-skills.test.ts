@@ -158,10 +158,10 @@ describe("rename_skill", () => {
 		expect(outcome.isError).toBe(false);
 		expect(outcome.content).toBe(
 			[
-				`Moved path: ${to}`,
+				`Moved path: ${dir} → ${to}`,
 				"Moved files:",
-				`- ${to}/SKILL.md`,
-				`- ${to}/references/a.md`,
+				`- ${dir}/SKILL.md → ${to}/SKILL.md`,
+				`- ${dir}/references/a.md → ${to}/references/a.md`,
 			].join("\n"),
 		);
 		expect(outcome.details).toEqual({
