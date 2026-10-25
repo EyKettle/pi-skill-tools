@@ -15,6 +15,17 @@ import type {
 	TransportPayload,
 } from "./types";
 
+/**
+ * What a write has produced so far, while it streams.
+ *
+ * A card shows it only where the document asks for live data, and the caller
+ * supplies it only while the tool is still running.
+ */
+export interface CardMeasure {
+	readonly lines: number;
+	readonly bytes: number;
+}
+
 export interface PresentOptions {
 	readonly tool: string;
 	readonly args: Record<string, unknown>;
@@ -23,6 +34,8 @@ export interface PresentOptions {
 	readonly content?: string;
 	/** The expand hotkey; without it no expand hint is drawn. */
 	readonly keyHint?: string;
+	/** The amount produced so far, for the pending call line that shows one. */
+	readonly measure?: CardMeasure;
 }
 
 const TITLES: Readonly<Record<string, string>> = {
@@ -51,23 +64,29 @@ export function presentRow(
 	}
 
 	const title = TITLES[options.tool] ?? options.tool;
-	const args = renderArgs(options.tool, options.args);
-	if (payload === undefined) {
-		return {
-			call: [
-				span(title, "toolTitle"),
-				span(" ", "text"),
-				span(args, "customMessageLabel"),
-				span(" …", "muted"),
-			],
-			fullArgs: [],
-			result: [],
-		};
+	const pending = payload === undefined;
+	// The amount belongs to the pending line only; a settled line states the
+	// identity alone.
+	const label = renderArgs(
+		options.tool,
+		options.args,
+		pending ? options.measure : undefined,
+	);
+	if (pending) {
+		const call: CardSpan[] = [span(title, "toolTitle")];
+		if (label !== "") {
+			call.push(span(" ", "text"), span(label, "customMessageLabel"));
+		}
+		// An ellipsis marks a call that has not stated what it produced yet.
+		if (options.measure === undefined) {
+			call.push(span(" …", "muted"));
+		}
+		return { call, fullArgs: [], result: [] };
 	}
 
 	if (payload.outcome === "failure") {
 		return {
-			call: screenCall(title, args, options, undefined),
+			call: screenCall(title, label, options, undefined),
 			fullArgs: options.expanded ? fullArgs(options.args) : [],
 			result: [[span(payload.failure.recovery, "toolOutput")]],
 		};
@@ -81,7 +100,7 @@ export function presentRow(
 			? view.output.map((line) => [span(line, "toolOutput")])
 			: outputLines(options.content);
 	return {
-		call: screenCall(title, args, options, view.info),
+		call: screenCall(title, label, options, view.info),
 		fullArgs: options.expanded ? fullArgs(options.args) : [],
 		result: options.expanded
 			? output.length > 0
@@ -213,7 +232,11 @@ function labelsOf(
 // ---------------------------------------------------------------------------
 // call arguments
 
-function renderArgs(tool: string, args: Record<string, unknown>): string {
+function renderArgs(
+	tool: string,
+	args: Record<string, unknown>,
+	measure: CardMeasure | undefined,
+): string {
 	switch (tool) {
 		case "list_skills":
 			return `skills${locationSuffix(args)}${detailationSuffix(args)}`;
@@ -225,7 +248,14 @@ function renderArgs(tool: string, args: Record<string, unknown>): string {
 			return `${text(args.id)}${sectionSuffix(args)}`;
 		case "search_skill":
 			return filterText(args.filter);
-		case "create_skill":
+		case "create_skill": {
+			const id = text(args.id);
+			if (measure === undefined) {
+				return id;
+			}
+			const amount = `(${measure.lines} ${noun(measure.lines, "line", "lines")} · ${measure.bytes} B)`;
+			return id === "" ? amount : `${id} ${amount}`;
+		}
 		case "remove_skill":
 			return text(args.id);
 		case "rename_skill":

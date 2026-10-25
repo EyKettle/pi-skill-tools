@@ -42,6 +42,8 @@ interface RenderContext {
 	readonly args: Record<string, unknown>;
 	readonly expanded: boolean;
 	readonly isPartial: boolean;
+	/** The host's per-row state: one object across every repaint of a call. */
+	readonly state: unknown;
 }
 
 interface ToolResult {
@@ -102,8 +104,9 @@ async function definitions(): Promise<Map<string, Definition>> {
 function contextFor(
 	args: Record<string, unknown>,
 	isPartial: boolean,
+	state: unknown = {},
 ): RenderContext {
-	return { args, expanded: false, isPartial };
+	return { args, expanded: false, isPartial, state };
 }
 
 const listedResult: ToolResult = {
@@ -235,5 +238,86 @@ describe("the guidance", () => {
 			{ cwd: agentDir, hasUI: false, ui: { setStatus() {}, notify() {} } },
 		);
 		expect(options.appendSystemPrompt).toBe(`host text\n\n${GUIDANCE_TEXT}`);
+	});
+});
+
+describe("create_skill while it streams", () => {
+	/** A theme that keeps the text, so an assertion reads the row as a user does. */
+	const plain = { fg: (_role: string, text: string) => text };
+
+	function pendingCall(
+		tool: Definition,
+		args: Record<string, unknown>,
+		state: unknown,
+	): string {
+		return tool
+			.renderCall!(args, plain, contextFor(args, true, state))
+			.render(120)
+			.join("\n");
+	}
+
+	it("follows the content as it grows", async () => {
+		const tool = (await definitions()).get("create_skill")!;
+		const state = {};
+
+		expect(pendingCall(tool, { id: "alpha", content: "line one" }, state)).toBe(
+			"Create alpha (1 line · 8 B)",
+		);
+		expect(
+			pendingCall(tool, { id: "alpha", content: "line one\nline two" }, state),
+		).toBe("Create alpha (2 lines · 17 B)");
+	});
+
+	it("keeps the largest amount seen when a frame loses the content", async () => {
+		const tool = (await definitions()).get("create_skill")!;
+		const state = {};
+		const whole = "line one\nline two\nthree";
+
+		expect(pendingCall(tool, { id: "alpha", content: whole }, state)).toBe(
+			"Create alpha (3 lines · 23 B)",
+		);
+		// A frame that loses the field entirely reports the largest amount
+		// already seen instead of falling back to the pending ellipsis.
+		expect(pendingCall(tool, { id: "alpha" }, state)).toBe(
+			"Create alpha (3 lines · 23 B)",
+		);
+		expect(pendingCall(tool, { id: "alpha", content: "line one\n" }, state)).toBe(
+			"Create alpha (3 lines · 23 B)",
+		);
+	});
+
+	it("treats an empty content as a measured zero", async () => {
+		const tool = (await definitions()).get("create_skill")!;
+		const state = {};
+
+		expect(pendingCall(tool, { id: "alpha", content: "" }, state)).toBe(
+			"Create alpha (0 lines · 0 B)",
+		);
+		// An empty content is still a content: the zero it measured stays.
+		expect(pendingCall(tool, { id: "alpha" }, state)).toBe(
+			"Create alpha (0 lines · 0 B)",
+		);
+	});
+
+	it("shows no amount until the content has arrived", async () => {
+		const tool = (await definitions()).get("create_skill")!;
+		const row = pendingCall(tool, { id: "alpha" }, {});
+		expect(row).toBe("Create alpha …");
+		expect(row).not.toContain("0 lines");
+	});
+
+	it("does not leave a double space when the id is empty", async () => {
+		const tool = (await definitions()).get("create_skill")!;
+		expect(pendingCall(tool, { content: "x" }, {})).toBe("Create (1 line · 1 B)");
+	});
+
+	it("draws nothing in the call slot once the write is settled", async () => {
+		const tool = (await definitions()).get("create_skill")!;
+		const component = tool.renderCall!(
+			{ id: "alpha", content: "x" },
+			plain,
+			contextFor({ id: "alpha" }, false, {}),
+		);
+		expect(component.render(120)).toEqual([]);
 	});
 });

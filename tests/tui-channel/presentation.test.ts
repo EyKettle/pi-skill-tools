@@ -95,12 +95,43 @@ describe("the call slot", () => {
 		);
 	});
 
+	it("states a create's amount on the pending line only", () => {
+		const measure = { lines: 3, bytes: 23 };
+		const pending = presentRow(
+			undefined,
+			options({
+				tool: "create_skill",
+				args: { id: "alpha", content: "line one\nline two\nthree" },
+				measure,
+			}),
+		);
+		expect(joined(pending).call).toBe("Create alpha (3 lines · 23 B)");
+
+		const settled = presentRow(
+			buildCreateSkillPayload({
+				path: "/skills/alpha/SKILL.md",
+				content: "line one\nline two\nthree\n",
+				lines: 3,
+				bytes: 23,
+			}),
+			options({
+				tool: "create_skill",
+				args: { id: "alpha", content: "line one\nline two\nthree" },
+				measure,
+			}),
+		);
+		// A settled line states the identity alone, even when the caller keeps
+		// passing the amount.
+		expect(joined(settled).call).toBe("Create alpha");
+	});
+
 	it("hides the id and the name from a rename's arguments", () => {
 		const projection = presentRow(
 			undefined,
 			options({ tool: "rename_skill", args: { id: "alpha", name: "beta" } }),
 		);
-		expect(joined(projection).call).toBe("Rename  …");
+		// A label that is empty leaves no separator behind it.
+		expect(joined(projection).call).toBe("Rename …");
 	});
 });
 

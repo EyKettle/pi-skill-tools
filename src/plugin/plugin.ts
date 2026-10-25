@@ -14,7 +14,7 @@ import type {
 } from "@earendil-works/pi-coding-agent";
 import { buildIndex, resolveLocations } from "../discovery/registry";
 import type { Index, RegistryEntry } from "../discovery/types";
-import { readSkillFile, resolveSkillFile } from "../files/read";
+import { countLines, readSkillFile, resolveSkillFile } from "../files/read";
 import { walkFiles } from "../files/list";
 import type { ManagementPorts } from "../management/types";
 import { GUIDANCE_TEXT } from "../model-channel/guidance";
@@ -28,6 +28,7 @@ import type {
 import { emptyCard, renderCard, renderTitle } from "../tui-channel/cards";
 import { isTransportPayload } from "../tui-channel/payload";
 import { presentRow } from "../tui-channel/presentation";
+import type { CardMeasure } from "../tui-channel/presentation";
 import { renderStatus } from "../tui-channel/status";
 import type { TransportPayload } from "../tui-channel/types";
 import { buildSkillToolsSegment } from "../deps/tail-prompt";
@@ -238,11 +239,13 @@ export async function createPlugin(
 				if (context.isPartial === false) {
 					return emptyCard();
 				}
+				const shown = args as Record<string, unknown>;
 				return renderTitle(
 					presentRow(undefined, {
 						tool: tool.name,
-						args: args as Record<string, unknown>,
+						args: shown,
 						expanded: context.expanded,
+						measure: streamedAmount(shown, context.state),
 					}),
 					theme,
 				);
@@ -389,6 +392,43 @@ function bodyOf(entry: RegistryEntry, refPath: string | undefined) {
 	const read = readSkillFile(resolved.path);
 	if (!read.ok) return { ok: false as const, failure: read.failure };
 	return { ok: true as const, path: resolved.path, text: read.text };
+}
+
+/** The amount seen so far for one call, kept across its repaints. */
+interface SeenAmount {
+	lines: number;
+	bytes: number;
+	/** Whether any content has arrived; a zero the call measured counts. */
+	seen: boolean;
+}
+
+/**
+ * The largest amount this call has produced, or nothing until a content
+ * arrives.
+ *
+ * A repaint may hand back a shorter argument than the previous one, or drop
+ * the field entirely, so each measurement only raises what the row reports.
+ */
+function streamedAmount(
+	args: Record<string, unknown>,
+	state: unknown,
+): CardMeasure | undefined {
+	const seen = measureSlot(state);
+	if (typeof args.content === "string") {
+		seen.seen = true;
+		seen.lines = Math.max(seen.lines, countLines(args.content));
+		seen.bytes = Math.max(seen.bytes, Buffer.byteLength(args.content, "utf8"));
+	}
+	return seen.seen ? { lines: seen.lines, bytes: seen.bytes } : undefined;
+}
+
+function measureSlot(state: unknown): SeenAmount {
+	if (typeof state !== "object" || state === null) {
+		return { lines: 0, bytes: 0, seen: false };
+	}
+	const holder = state as { measure?: SeenAmount };
+	holder.measure ??= { lines: 0, bytes: 0, seen: false };
+	return holder.measure;
 }
 
 /** The card's payload, if the result carries one this build understands. */
