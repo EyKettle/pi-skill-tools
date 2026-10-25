@@ -162,6 +162,10 @@ Pi 的原生指引教模型用 `read` 载入技能，而 `read` 截断长文件�
 追加提示指明换向理由，原文如下：
 
 ```text
-Load skills with skill tools. Read tool will truncated long files and repeat contents you already have.
-Skill tools ensures context uniqueness of skill documents. Feel free to use skill tools.
+Load skills with skill tools. Read tool will truncate long files and repeat contents you already have.
+Skill tools ensure context uniqueness of skill documents. Feel free to use skill tools.
+
+Skill IDs use `{position}:{skill-name}/{type}/{filename.ext}`.
+`{position}:` is optional; add it when skills share one name.
+`/{type}/{filename.ext}` is optional; add it when the ID points at a related file instead of the skill's main document.
 ```
