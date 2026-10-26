@@ -53,6 +53,8 @@ export interface MovedSkill {
 export const EMPTY_LIST_SKILLS = "No skill found";
 export const EMPTY_LIST_TAGS = "No tag found";
 export const EMPTY_LIST_FILES = "No file found";
+/** A single-file skill can hold no related files; the sentence is fixed. */
+export const SINGLE_FILE_SKILL = "Single file skill has no related files";
 export const EMPTY_PREVIEW = "Nothing to view";
 export const EMPTY_SEARCH = "No matches";
 export const EMPTY_CREATE = "Nothing to write";

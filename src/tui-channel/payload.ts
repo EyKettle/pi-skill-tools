@@ -213,7 +213,11 @@ function dataIsValid(tool: ToolName, data: unknown): boolean {
 				nonNegativeInteger(data.count)
 			);
 		case "list_skill_files":
-			return exactKeys(data, ["count"]) && nonNegativeInteger(data.count);
+			return (
+				keysAllowed(data, ["count"], ["singleFile"]) &&
+				nonNegativeInteger(data.count) &&
+				(data.singleFile === undefined || typeof data.singleFile === "boolean")
+			);
 		case "preview_skill":
 			return (
 				keysAllowed(data, ["totalLines"], ["sectionLines"]) &&

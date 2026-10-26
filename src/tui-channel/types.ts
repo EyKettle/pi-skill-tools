@@ -38,6 +38,8 @@ export interface ListSkillTagsData {
 
 export interface ListSkillFilesData {
 	readonly count: number;
+	/** A single-file skill holds no related files; the card states the fact. */
+	readonly singleFile?: boolean;
 }
 
 export interface PreviewSkillData {

@@ -8,6 +8,7 @@ import {
 	existsSync,
 	mkdirSync,
 	mkdtempSync,
+	readdirSync,
 	rmSync,
 	writeFileSync,
 } from "node:fs";
@@ -60,6 +61,18 @@ function writeSkill(
 	return dir;
 }
 
+/** Write `<root>/<name>.md`: the single-file form. */
+function writeSingleFile(
+	root: string,
+	name: string,
+	body = `---\nname: ${name}\n---\n`,
+): string {
+	mkdirSync(root, { recursive: true });
+	const file = path.join(root, `${name}.md`);
+	writeFileSync(file, body);
+	return file;
+}
+
 function portsFor(
 	w: World,
 	overrides: Partial<ManagementPorts> = {},
@@ -104,6 +117,22 @@ describe("removeSkill", () => {
 			path.join(dir, "references", "notes.md"),
 		]);
 		expect(existsSync(dir)).toBe(false);
+	});
+
+	it("removes a single-file skill and leaves its siblings", () => {
+		const w = world();
+		const skills = path.join(w.agentDir, "skills");
+		writeSingleFile(skills, "a");
+		writeSingleFile(skills, "b");
+
+		const result = removeSkill(portsFor(w), "a");
+
+		expect(result.ok).toBe(true);
+		expect(result.ok && result.kind).toBe("file");
+		if (!result.ok || result.kind !== "file") return;
+		expect(result.path).toBe(path.join(skills, "a.md"));
+		expect(existsSync(path.join(skills, "a.md"))).toBe(false);
+		expect(readdirSync(skills).sort()).toEqual(["b.md"]);
 	});
 
 	it("removes one related file and keeps the skill", () => {

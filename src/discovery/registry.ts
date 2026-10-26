@@ -105,11 +105,13 @@ export function resolveLocations(input: IndexInput): ResolvedLocations {
 			id: "global",
 			roots: [path.join(input.agentDir, "skills")],
 			writable: true,
+			layout: "direct",
 		},
 		{
 			id: "project",
 			roots: [path.join(input.cwd, ".pi", "skills")],
 			writable: true,
+			layout: "direct",
 		},
 		{
 			id: "package",
@@ -118,11 +120,13 @@ export function resolveLocations(input: IndexInput): ResolvedLocations {
 				path.join(input.cwd, ".pi", "npm", "node_modules"),
 			],
 			writable: false,
+			layout: "units",
 		},
 		{
 			id: "temp",
 			roots: [path.join(input.agentDir, "extensions")],
 			writable: false,
+			layout: "units",
 		},
 	];
 	// A configured path never redefines a built-in id, disabled or not.
@@ -139,7 +143,7 @@ export function resolveLocations(input: IndexInput): ResolvedLocations {
 			issues.push({ id, reason: "reserved" });
 			continue;
 		}
-		extras.push({ id, roots: [entry.path], writable: entry.writable });
+		extras.push({ id, roots: [entry.path], writable: entry.writable, layout: "direct" });
 	}
 
 	const locations = [...declared, ...sortById(extras)].map((location) =>
@@ -156,8 +160,62 @@ function sortById<T extends { readonly id: string }>(items: T[]): T[] {
 // ---------------------------------------------------------------------------
 // scanning
 
-/** One level of a location: each addressable directory with a `SKILL.md`. */
+/** The skills a root holds, by the shape the location's layout declares. */
 function scan(
+	location: RegistryLocation,
+	root: string,
+): RegistryEntry[] {
+	return location.layout === "units"
+		? scanUnits(location, root)
+		: scanDirect(location, root, true);
+}
+
+/**
+ * A direct root lists skills itself: `<name>/SKILL.md` or, when the single
+ * file is asked for, `<name>.md`. The single-file form's base directory is
+ * the root, so its related files are the root's — which is what
+ * `list_skill_files` turns into the warning.
+ */
+function scanDirect(
+	location: RegistryLocation,
+	root: string,
+	singleFile: boolean,
+): RegistryEntry[] {
+	let dirents;
+	try {
+		dirents = readdirSync(root, { withFileTypes: true });
+	} catch {
+		return []; // a missing or unreadable location holds nothing
+	}
+
+	const entries: RegistryEntry[] = [];
+	for (const dirent of dirents) {
+		const name = dirent.name;
+		if (singleFile && name.endsWith(".md") && isFile(path.join(root, name))) {
+			const skill = name.slice(0, -3);
+			if (isSkillName(skill)) {
+				entries.push(entryAt(location, skill, path.join(root, name), root));
+			}
+			continue;
+		}
+		if (
+			(dirent.isDirectory() || dirent.isSymbolicLink()) &&
+			isSkillName(name) &&
+			isFile(path.join(root, name, "SKILL.md"))
+		) {
+			entries.push(
+				entryAt(location, name, path.join(root, name, "SKILL.md"), path.join(root, name)),
+			);
+		}
+	}
+	return entries;
+}
+
+/**
+ * A unit root holds packages. A package's own name is any directory name; the
+ * skills inside it are what the index addresses.
+ */
+function scanUnits(
 	location: RegistryLocation,
 	root: string,
 ): RegistryEntry[] {
@@ -173,25 +231,40 @@ function scan(
 		if (!dirent.isDirectory() && !dirent.isSymbolicLink()) {
 			continue;
 		}
-		const name = dirent.name;
-		if (!isSkillName(name)) {
-			continue;
-		}
-		const baseDir = path.join(root, name);
-		const filePath = path.join(baseDir, "SKILL.md");
-		if (!isFile(filePath)) {
-			continue;
-		}
-		entries.push({
-			location: location.id,
-			name,
-			id: formatSkillId(location.id, name),
-			filePath,
-			baseDir,
-			frontmatter: readFrontmatter(filePath),
-		});
+		entries.push(...scanUnitSkills(location, path.join(root, dirent.name)));
 	}
 	return entries;
+}
+
+/**
+ * The skill shapes one package can hold: `<unit>/<name>/SKILL.md`, then
+ * `<unit>/skills/<name>/SKILL.md` and `<unit>/skills/<name>.md`.
+ */
+function scanUnitSkills(
+	location: RegistryLocation,
+	unit: string,
+): RegistryEntry[] {
+	return [
+		...scanDirect(location, unit, false),
+		...scanDirect(location, path.join(unit, "skills"), true),
+	];
+}
+
+/** One indexed skill: its main document and the directory that holds it. */
+function entryAt(
+	location: RegistryLocation,
+	name: string,
+	filePath: string,
+	baseDir: string,
+): RegistryEntry {
+	return {
+		location: location.id,
+		name,
+		id: formatSkillId(location.id, name),
+		filePath,
+		baseDir,
+		frontmatter: readFrontmatter(filePath),
+	};
 }
 
 /** Fail-closed read: an unreadable or malformed document has no frontmatter. */

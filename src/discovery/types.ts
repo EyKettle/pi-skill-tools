@@ -14,6 +14,8 @@ export type SkillStorage = string;
 /**
  * One registered discovery location: the directories it scans, in order.
  *
+ * `layout` tells the scanner what a root holds: a direct root lists skills
+ * itself, while a unit root's entries are packages that list skills inside.
  * A disabled location stays registered, so an ID naming it can report that
  * the location exists and is turned off; it holds no scanned skills.
  */
@@ -21,6 +23,7 @@ export interface RegistryLocation {
 	readonly id: SkillStorage;
 	readonly roots?: readonly string[];
 	readonly writable: boolean;
+	readonly layout?: "direct" | "units";
 	readonly disabled?: boolean;
 }
 

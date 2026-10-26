@@ -5,6 +5,7 @@
 import { describe, expect, it } from "vitest";
 import {
 	EMPTY_CREATE,
+	SINGLE_FILE_SKILL,
 	EMPTY_LIST_FILES,
 	EMPTY_LIST_SKILLS,
 	EMPTY_LIST_TAGS,
@@ -47,6 +48,12 @@ describe("the listing text", () => {
 	it("joins tags on one line with commas", () => {
 		expect(listSkillTagsText(["networking", "pi", "state"])).toBe(
 			"networking, pi, state",
+		);
+	});
+
+	it("names the single-file skill sentence", () => {
+		expect(SINGLE_FILE_SKILL).toBe(
+			"Single file skill has no related files",
 		);
 	});
 
@@ -123,6 +130,12 @@ describe("the search text", () => {
 				{ displayId: "b", frontmatter: "---\nname: b\n---" },
 			]),
 		).toBe("[a]\n---\nname: a\n---\n\n[b]\n---\nname: b\n---");
+	});
+
+	it("names the single-file skill sentence", () => {
+		expect(SINGLE_FILE_SKILL).toBe(
+			"Single file skill has no related files",
+		);
 	});
 
 	it("falls back to the empty sentence", () => {

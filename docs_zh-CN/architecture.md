@@ -14,21 +14,35 @@
 
 ## 发现路径
 
+> [!IMPORTANT]
+> 暂时不兼容完整的 Pi 原生发现路径
+
 内置四种发现路径：
 
 | 标识符 | 路径 |
 | --- | --- |
 | `global` | `{agent_dir}/skills` |
 | `project` | `{cwd}/.pi/skills` |
-| `package` | `{agent_dir}/npm/node_modules/{name}` / `{cwd}/.pi/npm/node_modules/{name}` 中符合发现模式的路径 |
-| `temp` | `{agent_dir}/extensions/` 中符合发现模式的路径 |
-
-存在 `{name}/SKILL.md` 路径模式的目录即符合发现模式的路径。
+| `package` | `{agent_dir}/npm/node_modules/{pkg}` / `{cwd}/.pi/npm/node_modules/{pkg}` 中符合发现模式的路径 |
+| `temp` | `{agent_dir}/extensions/{ext}` 中符合发现模式的路径 |
 
 `package` 的两个根持有同名技能时，`{agent_dir}` 根优先。
 
-> [!IMPORTANT]
-> 暂时不兼容完整的 Pi 原生发现路径
+### 发现模式
+
+对于指明发现路径是子路径的标识符，其发现路径不无条件等同上述路径本身，发现路径的选择取决发现模式。
+
+对于 `package` 与 `temp`，它的发现模式如下：
+
+1. `*/SKILL.md`：一级子路径下有技能文档，父路径为发现路径，一级子路径为技能名称。
+2. `skills/*/SKILL.md`：标准包装技能，`skills/` 为发现路径，`skills/` 的子路径为技能名称。
+3. `skills/*.md`：单文件技能，`skills` 为发现路径，文件名为技能名称。
+
+所有模式均在表中路径及以下匹配，父路径始终不逃逸。
+模式 2 与模式 3 同[技能路径兼容性](#技能路径兼容性)的定义。
+
+> [!NOTE]
+> `global` 与 `project` 没有指定发现路径为子路径，二者的发现路径即表中路径本身。
 
 ### 禁用特定发现路径
 
@@ -39,6 +53,15 @@
 
 - 清点不列出该位置的技能
 - 预览、加载与管理把该位置的 ID 报为位置未知，证据同时列出已注册的位置与被禁用的位置
+
+## 技能路径兼容性
+
+在发现路径下，以下两种形式均可被识别为技能：
+
+1. `{skill-name}/SKILL.md`：标准包装技能。
+2. `{skill-name}.md`：单文件技能。
+
+采用形式 2 的技能，在清点相关文件时会提醒其为单文件技能。
 
 ## 职责边界
 

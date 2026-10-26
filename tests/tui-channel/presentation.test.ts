@@ -254,6 +254,14 @@ describe("the empty states", () => {
 		expect(
 			joined(
 				presentRow(
+					buildListSkillFilesPayload({ count: 0, singleFile: true }),
+					options({ tool: "list_skill_files" }),
+				),
+			).result,
+		).toEqual(["Single file skill has no related files"]);
+		expect(
+			joined(
+				presentRow(
 					buildPreviewSkillPayload({ totalLines: 0 }),
 					options({ tool: "preview_skill" }),
 				),

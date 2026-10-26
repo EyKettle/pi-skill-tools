@@ -106,6 +106,13 @@ describe("the builders", () => {
 });
 
 describe("isTransportPayload", () => {
+	it("carries the single-file fact on a list_skill_files payload", () => {
+		const payload = buildListSkillFilesPayload({ count: 0, singleFile: true });
+		expect(payload.outcome).toBe("empty");
+		expect(payload.data).toEqual({ count: 0, singleFile: true });
+		expect(isTransportPayload(payload)).toBe(true);
+	});
+
 	it("accepts every built payload", () => {
 		for (const payload of payloads) {
 			expect(isTransportPayload(payload), JSON.stringify(payload.tool)).toBe(
@@ -185,6 +192,16 @@ describe("isTransportPayload", () => {
 			isTransportPayload({
 				...failure,
 				failure: { ...failure.failure, evidence: { kind: "mystery" } },
+			}),
+		).toBe(false);
+	});
+
+	it("rejects an unknown data key even with the single-file fact", () => {
+		const payload = buildListSkillFilesPayload({ count: 0, singleFile: true });
+		expect(
+			isTransportPayload({
+				...payload,
+				data: { ...payload.data, extra: true },
 			}),
 		).toBe(false);
 	});

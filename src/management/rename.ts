@@ -12,8 +12,10 @@ import path from "node:path";
 import { isSkillName, resolveSkillId } from "../discovery/skill-id";
 import type { RegistryEntry, RegistryLocation } from "../discovery/types";
 import { createFailure } from "../failure/create";
+import type { Failure } from "../failure/types";
 import {
 	isFileName,
+	isSingleFileSkill,
 	sameSkill,
 	targetExistsId,
 	targetExistsPath,
@@ -36,9 +38,73 @@ export function renameSkill(
 		return { ok: false, failure: check.failure };
 	}
 	if (resolved.refPath === undefined) {
+		if (isSingleFileSkill(resolved.entry)) {
+			return renameSingleFile(ports, resolved.entry, name);
+		}
 		return renameDirectory(ports, check.location, resolved.entry, name);
 	}
 	return renameFile(ports, resolved.entry, resolved.refPath, name);
+}
+
+/** The target a rename proposes: the name it asks for and where that lands. */
+interface RenameTarget {
+	readonly name: string;
+	readonly path: string;
+}
+
+/** The guards both renames share: a legal name and a free target. */
+function renameGuard(
+	ports: ManagementPorts,
+	entry: RegistryEntry,
+	target: RenameTarget,
+): Failure | undefined {
+	if (!isSkillName(target.name)) {
+		return createFailure("ID_NAME_INVALID", {
+			kind: "input",
+			input: target.name,
+		});
+	}
+	const clash = ports.index.entries.find(
+		(candidate) =>
+			candidate.name === target.name &&
+			!sameSkill(candidate, entry.location, entry.name),
+	);
+	if (clash !== undefined) {
+		return targetExistsId(clash.id);
+	}
+	if (existsSync(target.path)) {
+		return targetExistsPath(target.path);
+	}
+	return undefined;
+}
+
+/** The move itself; the caller reports what it enumerated beforehand. */
+function move(from: string, to: string): Failure | undefined {
+	try {
+		renameSync(from, to);
+	} catch (error) {
+		return writeFailed(to, error);
+	}
+	return undefined;
+}
+
+/** A single-file skill changes its basename inside the directory it lives in. */
+function renameSingleFile(
+	ports: ManagementPorts,
+	entry: RegistryEntry,
+	name: string,
+): RenameResult {
+	const from = entry.filePath;
+	const to = path.join(path.dirname(from), `${name}.md`);
+	const blocked = renameGuard(ports, entry, { name, path: to });
+	if (blocked !== undefined) {
+		return { ok: false, failure: blocked };
+	}
+	const failed = move(from, to);
+	if (failed !== undefined) {
+		return { ok: false, failure: failed };
+	}
+	return { ok: true, kind: "file", from, to };
 }
 
 function renameDirectory(
@@ -47,25 +113,11 @@ function renameDirectory(
 	entry: RegistryEntry,
 	name: string,
 ): RenameResult {
-	if (!isSkillName(name)) {
-		return {
-			ok: false,
-			failure: createFailure("ID_NAME_INVALID", { kind: "input", input: name }),
-		};
-	}
-	const clash = ports.index.entries.find(
-		(candidate) =>
-			candidate.name === name &&
-			!sameSkill(candidate, entry.location, entry.name),
-	);
-	if (clash !== undefined) {
-		return { ok: false, failure: targetExistsId(clash.id) };
-	}
-
 	const from = entry.baseDir;
 	const to = path.join(location.path, name);
-	if (existsSync(to)) {
-		return { ok: false, failure: targetExistsPath(to) };
+	const blocked = renameGuard(ports, entry, { name, path: to });
+	if (blocked !== undefined) {
+		return { ok: false, failure: blocked };
 	}
 	// Enumerate before the move: the files list is part of the report, and a
 	// failed enumeration must stop the move, not follow it.
@@ -73,10 +125,9 @@ function renameDirectory(
 	if (!listed.ok) {
 		return { ok: false, failure: listed.failure };
 	}
-	try {
-		renameSync(from, to);
-	} catch (error) {
-		return { ok: false, failure: writeFailed(to, error) };
+	const failed = move(from, to);
+	if (failed !== undefined) {
+		return { ok: false, failure: failed };
 	}
 	return {
 		ok: true,

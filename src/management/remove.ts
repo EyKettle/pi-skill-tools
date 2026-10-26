@@ -8,7 +8,13 @@
  */
 import { existsSync, rmSync, unlinkSync } from "node:fs";
 import { resolveSkillId } from "../discovery/skill-id";
-import { pathNotFound, writableLocation, writeFailed } from "./support";
+import type { RegistryEntry } from "../discovery/types";
+import {
+	isSingleFileSkill,
+	pathNotFound,
+	writableLocation,
+	writeFailed,
+} from "./support";
 import type { ManagementPorts, RemoveResult } from "./types";
 
 export function removeSkill(
@@ -25,6 +31,9 @@ export function removeSkill(
 	}
 
 	if (resolved.refPath === undefined) {
+		if (isSingleFileSkill(resolved.entry)) {
+			return removeSingleFile(resolved.entry);
+		}
 		const directory = resolved.entry.baseDir;
 		if (!existsSync(directory)) {
 			return { ok: false, failure: pathNotFound(directory) };
@@ -51,4 +60,17 @@ export function removeSkill(
 		return { ok: false, failure: writeFailed(target.path, error) };
 	}
 	return { ok: true, kind: "file", path: target.path };
+}
+
+/** A single-file skill is removed as the one document it is. */
+function removeSingleFile(entry: RegistryEntry): RemoveResult {
+	if (!existsSync(entry.filePath)) {
+		return { ok: false, failure: pathNotFound(entry.filePath) };
+	}
+	try {
+		unlinkSync(entry.filePath);
+	} catch (error) {
+		return { ok: false, failure: writeFailed(entry.filePath, error) };
+	}
+	return { ok: true, kind: "file", path: entry.filePath };
 }

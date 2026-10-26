@@ -6,6 +6,7 @@
  * The file walk and the line count live in `files/` and reach this module
  * through the ports, so neither is implemented twice.
  */
+import path from "node:path";
 import { createFailure, errorText } from "../failure/create";
 import type { Failure } from "../failure/types";
 import type { Index, RegistryLocation } from "../discovery/types";
@@ -44,6 +45,11 @@ export function writableLocation(index: Index, id: string): LocationCheck {
 		};
 	}
 	return { ok: true, location: { ...location, path: root } };
+}
+
+/** Whether a skill is one document rather than a directory. */
+export function isSingleFileSkill(entry: { readonly filePath: string }): boolean {
+	return path.basename(entry.filePath) !== "SKILL.md";
 }
 
 export function writeFailed(target: string, error: unknown): Failure {

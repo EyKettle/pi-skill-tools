@@ -9,6 +9,7 @@
  * answers with the failure's recovery sentence and hides the info; a load or
  * unload card is only its labels.
  */
+import { SINGLE_FILE_SKILL } from "../model-channel/output";
 import type {
 	CardProjection,
 	CardSpan,
@@ -146,6 +147,9 @@ function resultOf(payload: TransportPayload): ResultView {
 		case "list_skill_tags":
 			return counted(payload.data.count, "Listed", "tag", "tags", "No tag found");
 		case "list_skill_files":
+			if (payload.data.singleFile === true) {
+				return { answer: SINGLE_FILE_SKILL };
+			}
 			return counted(payload.data.count, "Listed", "file", "files", "No file found");
 		case "search_skill":
 			return counted(payload.data.count, "Found", "skill", "skills", "No matches");

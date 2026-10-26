@@ -62,6 +62,7 @@
 兼容单数显示。
 
 空态时 `{answer}` 为：`No skill/file/tag found`。
+当目标是单文件技能时，空态为 `Single file skill has no related files`——即与 `{output}` 相同。
 
 展开时出现 `{info}`，显示清点数量：`({n})`。
 

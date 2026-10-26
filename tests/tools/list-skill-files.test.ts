@@ -3,8 +3,13 @@
  * argument would spell it, and every failure the read path can raise.
  */
 import { describe, expect, it } from "vitest";
+import { writeFileSync } from "node:fs";
+import path from "node:path";
 import { defineListSkillFilesTool } from "../../src/tools/list-skill-files";
-import { EMPTY_LIST_FILES } from "../../src/model-channel/output";
+import {
+	EMPTY_LIST_FILES,
+	SINGLE_FILE_SKILL,
+} from "../../src/model-channel/output";
 import { isTransportPayload } from "../../src/tui-channel/payload";
 import {
 	changeOk,
@@ -54,6 +59,30 @@ describe("list_skill_files", () => {
 		expect(outcome.content).toBe(
 			`[git/references/GUIDE.md] ${dir}/references/GUIDE.md`,
 		);
+	});
+
+	it("states the single-file sentence instead of listing the discovery path", () => {
+		const world = makeWorld();
+		// A single-file skill's directory is the discovery path itself.
+		writeFileSync(
+			path.join(world.globalSkills, "one-file.md"),
+			"---\nname: one-file\n---\n",
+		);
+		// A sibling skill under the same discovery path must not leak into the
+		// list: the tool short-circuits before walking it.
+		const other = writeSkill(world.globalSkills, "other");
+		writeRef(other, "references/PRIVATE.md", "# private\n");
+
+		const outcome = toolFor(world).execute({ id: "one-file" });
+
+		expect(outcome.isError).toBe(false);
+		expect(outcome.content).toBe(SINGLE_FILE_SKILL);
+		expect(outcome.details).toEqual({
+			version: 1,
+			tool: "list_skill_files",
+			outcome: "empty",
+			data: { count: 0, singleFile: true },
+		});
 	});
 
 	it("answers the empty state for a skill without related files", () => {

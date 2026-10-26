@@ -7,6 +7,7 @@ import {
 	mkdirSync,
 	mkdtempSync,
 	readdirSync,
+	readFileSync,
 	rmSync,
 	writeFileSync,
 } from "node:fs";
@@ -59,6 +60,18 @@ function writeSkill(
 	return dir;
 }
 
+/** Write `<root>/<name>.md`: the single-file form. */
+function writeSingleFile(
+	root: string,
+	name: string,
+	body = `---\nname: ${name}\n---\n`,
+): string {
+	mkdirSync(root, { recursive: true });
+	const file = path.join(root, `${name}.md`);
+	writeFileSync(file, body);
+	return file;
+}
+
 function portsFor(
 	w: World,
 	overrides: Partial<ManagementPorts> = {},
@@ -87,6 +100,76 @@ function failureOf(result: { ok: boolean }): Failure {
 }
 
 describe("renameSkill", () => {
+	it("renames a single-file skill in place, keeping its body", () => {
+		const w = world();
+		const skills = path.join(w.agentDir, "skills");
+		writeSingleFile(skills, "a", "---\nname: a\n---\nbody\n");
+		writeSingleFile(skills, "b");
+
+		const result = renameSkill(portsFor(w), "a", "c");
+
+		expect(result.ok).toBe(true);
+		if (!result.ok || result.kind !== "file") return;
+		expect(result.from).toBe(path.join(skills, "a.md"));
+		expect(result.to).toBe(path.join(skills, "c.md"));
+		expect(readdirSync(skills).sort()).toEqual(["b.md", "c.md"]);
+		expect(readFileSync(path.join(skills, "c.md"), "utf8")).toBe(
+			"---\nname: a\n---\nbody\n",
+		);
+	});
+
+	it("refuses a single-file rename onto a name the index already holds", () => {
+		const w = world();
+		const skills = path.join(w.agentDir, "skills");
+		writeSingleFile(skills, "a");
+		writeSingleFile(skills, "b");
+
+		const result = renameSkill(portsFor(w), "a", "b");
+
+		expect(result.ok).toBe(false);
+		if (result.ok) return;
+		expect(result.failure.code).toBe("TARGET_EXISTS");
+		expect(result.failure.evidence).toEqual({
+			kind: "conflict",
+			target: { kind: "id", id: "global:b" },
+		});
+	});
+
+	it("refuses a single-file rename onto a file the index has not seen", () => {
+		const w = world();
+		const skills = path.join(w.agentDir, "skills");
+		writeSingleFile(skills, "a");
+		const ports = portsFor(w);
+		// The index was built before this file existed; only the disk holds it.
+		writeSingleFile(skills, "c");
+
+		const result = renameSkill(ports, "a", "c");
+
+		expect(result.ok).toBe(false);
+		if (result.ok) return;
+		expect(result.failure.code).toBe("TARGET_EXISTS");
+		expect(result.failure.evidence).toEqual({
+			kind: "conflict",
+			target: { kind: "path", path: path.join(skills, "c.md") },
+		});
+	});
+
+	it("refuses an illegal name for a single-file skill", () => {
+		const w = world();
+		const skills = path.join(w.agentDir, "skills");
+		writeSingleFile(skills, "a");
+
+		const result = renameSkill(portsFor(w), "a", "Bad_Name");
+
+		expect(result.ok).toBe(false);
+		if (result.ok) return;
+		expect(result.failure.code).toBe("ID_NAME_INVALID");
+		expect(result.failure.evidence).toEqual({
+			kind: "input",
+			input: "Bad_Name",
+		});
+	});
+
 	it("moves the skill directory and reports every moved file", () => {
 		const w = world();
 		const skills = path.join(w.agentDir, "skills");

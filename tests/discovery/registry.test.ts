@@ -44,6 +44,16 @@ function writeSkill(
 	writeFileSync(join(root, name, "SKILL.md"), block);
 }
 
+/** Write `<parent>/<name>.md`: the single-file form. */
+function writeSingleFile(
+	parent: string,
+	name: string,
+	block = `---\nname: ${name}\n---\n`,
+): void {
+	mkdirSync(parent, { recursive: true });
+	writeFileSync(join(parent, `${name}.md`), block);
+}
+
 function input(overrides: Partial<IndexInput> & { agentDir: string; cwd: string }) {
 	return overrides;
 }
@@ -72,11 +82,13 @@ describe("buildIndex", () => {
 			id: "global",
 			roots: [join(agentDir, "skills")],
 			writable: true,
+			layout: "direct",
 		});
 		expect(index.locations[1]).toEqual({
 			id: "project",
 			roots: [join(cwd, ".pi", "skills")],
 			writable: true,
+			layout: "direct",
 		});
 		expect(index.locations[2]).toEqual({
 			id: "package",
@@ -85,12 +97,30 @@ describe("buildIndex", () => {
 				join(cwd, ".pi", "npm", "node_modules"),
 			],
 			writable: false,
+			layout: "units",
 		});
 		expect(index.locations[3]).toEqual({
 			id: "temp",
 			roots: [join(agentDir, "extensions")],
 			writable: false,
+			layout: "units",
 		});
+	});
+
+	it("indexes a project's single-file skill", () => {
+		const root = tempDir("discovery-project-single-");
+		const skills = join(root, "project", ".pi", "skills");
+		writeSingleFile(skills, "one-file");
+
+		const index = buildIndex(
+			input({ agentDir: join(root, "agent"), cwd: join(root, "project") }),
+		);
+
+		expect(index.entries.map((entry) => entry.id)).toEqual([
+			"project:one-file",
+		]);
+		expect(index.entries[0].filePath).toBe(join(skills, "one-file.md"));
+		expect(index.entries[0].baseDir).toBe(skills);
 	});
 
 	it("registers a configured extra path after the built-ins", () => {
@@ -111,6 +141,7 @@ describe("buildIndex", () => {
 			id: "extra",
 			roots: [extra],
 			writable: true,
+			layout: "direct",
 		});
 	});
 
@@ -138,12 +169,12 @@ describe("buildIndex", () => {
 		]);
 	});
 
-	it("indexes both package roots", () => {
+	it("indexes both package roots through the unit's skills directory", () => {
 		const root = tempDir("discovery-package-roots-");
 		const agentDir = join(root, "agent");
 		const cwd = join(root, "project");
-		writeSkill(join(agentDir, "npm", "node_modules"), "from-agent");
-		writeSkill(join(cwd, ".pi", "npm", "node_modules"), "from-project");
+		writeSkill(join(agentDir, "npm", "node_modules", "pkg-a", "skills"), "from-agent");
+		writeSkill(join(cwd, ".pi", "npm", "node_modules", "pkg-b", "skills"), "from-project");
 
 		const index = buildIndex(input({ agentDir, cwd }));
 
@@ -152,31 +183,89 @@ describe("buildIndex", () => {
 			"package:from-project",
 		]);
 		expect(index.entries[0].frontmatter).toEqual({ name: "from-agent" });
+		expect(index.entries[0].baseDir).toBe(
+			join(agentDir, "npm", "node_modules", "pkg-a", "skills", "from-agent"),
+		);
 	});
 
 	it("takes the first package root when both hold the same name", () => {
 		const root = tempDir("discovery-package-duplicate-");
 		const agentDir = join(root, "agent");
 		const cwd = join(root, "project");
-		writeSkill(join(agentDir, "npm", "node_modules"), "shared");
-		writeSkill(join(cwd, ".pi", "npm", "node_modules"), "shared");
+		writeSkill(join(agentDir, "npm", "node_modules", "pkg-a", "skills"), "shared");
+		writeSkill(join(cwd, ".pi", "npm", "node_modules", "pkg-b", "skills"), "shared");
 
 		const index = buildIndex(input({ agentDir, cwd }));
 
 		expect(index.entries.map((entry) => entry.id)).toEqual(["package:shared"]);
 		expect(index.entries[0].baseDir).toBe(
-			join(agentDir, "npm", "node_modules", "shared"),
+			join(agentDir, "npm", "node_modules", "pkg-a", "skills", "shared"),
 		);
 	});
 
-	it("indexes the temp root", () => {
+	it("indexes a unit's skill wrapped at the unit root", () => {
+		const root = tempDir("discovery-unit-wrapped-");
+		const agentDir = join(root, "agent");
+		writeSkill(join(agentDir, "npm", "node_modules", "pkg-a"), "at-unit");
+
+		const index = buildIndex(
+			input({ agentDir, cwd: join(root, "project") }),
+		);
+
+		expect(index.entries.map((entry) => entry.id)).toEqual([
+			"package:at-unit",
+		]);
+		expect(index.entries[0].baseDir).toBe(
+			join(agentDir, "npm", "node_modules", "pkg-a", "at-unit"),
+		);
+	});
+
+	it("indexes a unit's single-file skill", () => {
+		const root = tempDir("discovery-unit-single-");
+		const agentDir = join(root, "agent");
+		const skills = join(agentDir, "npm", "node_modules", "pkg-a", "skills");
+		writeSingleFile(skills, "one-file");
+
+		const index = buildIndex(
+			input({ agentDir, cwd: join(root, "project") }),
+		);
+
+		expect(index.entries.map((entry) => entry.id)).toEqual([
+			"package:one-file",
+		]);
+		expect(index.entries[0].filePath).toBe(join(skills, "one-file.md"));
+		expect(index.entries[0].baseDir).toBe(skills);
+	});
+
+	it("indexes the temp unit's skills directory", () => {
 		const root = tempDir("discovery-temp-");
 		const agentDir = join(root, "agent");
-		writeSkill(join(agentDir, "extensions"), "temp-skill");
+		writeSkill(
+			join(agentDir, "extensions", "an-ext", "skills"),
+			"temp-skill",
+		);
 
 		const index = buildIndex(input({ agentDir, cwd: join(root, "project") }));
 
 		expect(index.entries.map((entry) => entry.id)).toEqual(["temp:temp-skill"]);
+		expect(index.entries[0].baseDir).toBe(
+			join(agentDir, "extensions", "an-ext", "skills", "temp-skill"),
+		);
+	});
+
+	it("does not index a document nested deeper than the unit patterns", () => {
+		const root = tempDir("discovery-deep-");
+		const agentDir = join(root, "agent");
+		const ext = join(agentDir, "extensions", "an-ext");
+		writeSkill(
+			join(ext, "node_modules", ".pnpm", "pkg", "node_modules", "pkg", "examples", "demo"),
+			"deep",
+		);
+		writeSkill(join(ext, "skills"), "shallow");
+
+		const index = buildIndex(input({ agentDir, cwd: join(root, "project") }));
+
+		expect(index.entries.map((entry) => entry.id)).toEqual(["temp:shallow"]);
 	});
 
 	it("keeps a disabled location registered and out of the count", () => {
@@ -422,6 +511,7 @@ describe("resolveLocations", () => {
 			id: "extra",
 			roots: [extra],
 			writable: true,
+			layout: "direct",
 			disabled: true,
 		});
 		expect(index.entries).toEqual([]);
