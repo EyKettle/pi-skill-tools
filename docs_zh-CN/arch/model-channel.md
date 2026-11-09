@@ -166,7 +166,11 @@ Pi 的原生指引教模型用 `read` 载入技能，而 `read` 截断长文件�
 
 ```text
 Load skills with skill tools. Read tool will truncate long files and repeat contents you already have.
-Skill tools ensure context uniqueness of skill documents. Feel free to use skill tools.
+A load's result names only the ids it applied to; the body is not in it.
+The body is mounted in the system prompts as a `<SKILL id="…" path="…">` block, republished on every change to the loaded set.
+Read the skill there before acting on it, and do not open its file again.
+
+That's why skill tools ensure context uniqueness of skill documents. Feel free to use skill tools.
 
 Skill IDs use `{position}:{skill-name}/{type}/{filename.ext}`.
 `{position}:` is optional; add it when skills share one name.
