@@ -34,9 +34,9 @@ Pi 与上游均可能设有工具输出限制，长技能需要分块阅读才�
 
 ## 文档
 
-- [使用说明](docs_zh-CN/usage.md)
-- [配置指南](docs_zh-CN/configuration.md)
-- [系统架构总纲](docs_zh-CN/architecture.md)
+- [使用说明](docs_zh-Hans/usage.md)
+- [配置指南](docs_zh-Hans/configuration.md)
+- [系统架构总纲](docs_zh-Hans/architecture.md)
 
 ## 安装
 

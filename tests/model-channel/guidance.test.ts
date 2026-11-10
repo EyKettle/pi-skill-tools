@@ -11,7 +11,7 @@ import { GUIDANCE_TEXT } from "../../src/model-channel/guidance";
 
 const DOCUMENT = path.join(
 	import.meta.dirname,
-	"../../docs_zh-CN/arch/model-channel.md",
+	"../../docs_zh-Hans/arch/model-channel.md",
 );
 
 /** The first `text` fence under `## 追加引导`, without its fence lines. */

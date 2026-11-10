@@ -3,7 +3,7 @@
  *
  * A code names an exception class, never an incident: the incident's details
  * go into evidence, and the recovery is the next executable step. The table
- * that defines this set is `docs_zh-CN/architecture.md` → 闭集错误码体系;
+ * that defines this set is `docs_zh-Hans/architecture.md` → 闭集错误码体系;
  * adding or dropping a code is a design change.
  */
 import type { FailureCode } from "./types";
