@@ -65,7 +65,13 @@
 
 ## 职责边界
 
+> [!IMPORTANT]
+> 模块职责与模块间允许的依赖构成设计约束。
+> 文件布局、内部类型与辅助符号用于定位实现，随实现更新，不构成向下兼容承诺。
+
 ### 拓扑关系
+
+<!--Outdated-->
 
 ```text
 skill-tools/
@@ -182,14 +188,14 @@ graph LR
 | 模块 | 职责 | 对外关键符号 | 依赖 |
 | --- | --- | --- | --- |
 | `plugin/` | 构建 Pi 插件：宿主动态导入、装配、注册工具、钩子与命令 | `createPlugin`, `ResolvedConfig` | `tools/`, `skill-tree/`, `discovery/`, `files/`, `management/`, `model-channel/`, `tui-channel/`, `shared/`, `deps/` |
-| `tools/` | 十个工具：参数定义、执行编排、两通道接线 | `ToolDeps`, `ToolResult`, `define*Tool` | `discovery/`, `files/`, `management/`, `skill-tree/`, `tui-channel/`, `model-channel/`, `failure/` |
+| `tools/` | 定义所有工具：参数约束、编排逻辑、两通道接线 | `ToolDeps`, `ToolResult`, `define*Tool` | `discovery/`, `files/`, `management/`, `skill-tree/`, `tui-channel/`, `model-channel/`, `failure/` |
 | `skill-tree/` | 已加载技能状态：两层存储、差分、折叠、写入序、导航、挂载 | `createSkillTree`, `SkillTree`, `SkillTreePorts`, `StateEntry`, `ChangeRow` | `discovery/`, `failure/`, `model-channel/` |
-| `discovery/` | 技能目录与寻址：索引构建、ID 语法、Frontmatter 元数据 | `buildIndex`, `Index`, `RegistryEntry`, `parseSkillId`, `formatSkillId`, `resolveSkillId`, `matchesFrontmatter`, `parseFrontmatterBlock`, `collectTags` | `failure/`, `shared/` |
-| `files/` | 文件读取：防逃逸、整份读取、二进制嗅探、目录遍历、章节抽取 | `resolveSkillFile`, `readSkillFile`, `listSkillFiles`, `extractSection` | `failure/` |
+| `discovery/` | 定义 ID 语法、技能身份解析、索引构建、Frontmatter 解析 | `buildIndex`, `Index`, `RegistryEntry`, `parseSkillId`, `formatSkillId`, `resolveSkillId`, `matchesFrontmatter`, `parseFrontmatterBlock`, `collectTags` | `failure/`, `shared/` |
+| `files/` | 安全读取、目录遍历、建立章节索引、解析章节选择、产生正文与子章节目录的投影 | `resolveSkillFile`, `readSkillFile`, `listSkillFiles`, `extractSection` | `failure/` |
 | `management/` | 技能写操作：创建、重命名、移除，含原子写与覆盖保护 | `createSkill`, `renameSkill`, `removeSkill`, `ManagementPorts` | `discovery/`, `failure/` |
 | `tui-channel/` | TUI 通道：传输载荷家族、行投影、逐工具卡片、状态栏 | `TransportPayload`, `build*Payload`, `presentRow`, `renderStatus` | `deps/`, `failure/`, `shared/` |
 | `model-channel/` | 模型通道：逐工具输出文本、失败文本框架、系统提示追加 | `*Text`, `failureText`, `guidanceText` | `failure/` |
-| `failure/` | 失败词汇：闭集失败码、恢复文本、Failure 构造 | `FAILURE_CODES`, `FailureCode`, `Failure`, `createFailure`, `recoveryFor` | 无 |
+| `failure/` | 定义异常类别、结构化证据与恢复动作 | `FAILURE_CODES`, `FailureCode`, `Failure`, `createFailure`, `recoveryFor` | 无 |
 | `deps/` | 宿主取值边界：宿主值的唯一具名取得处 | `Text`, `Box`, `Container`, `visibleWidth`, `sliceByColumn`, `ThemeFg`, `TAIL_PROMPT_*` | 无 |
 | `shared/` | 跨模块共用的类型谓词：两个互不依赖的模块对同一种形状的判定 | `isRecord` | 无 |
 
@@ -229,7 +235,8 @@ Pi 在抛出时用 createErrorToolResult 顶替结果，其 details 为 {}。
 | 读取 | `PATH_NOT_FOUND` | 目标不存在 | 绝对路径 | 用 `list_skill_files` 确认可用文件 |
 | 读取 | `READ_FAILED` | 目标存在但读不出 | 绝对路径与底层错误 | 检查该路径的权限；读不出时该技能不可用 |
 | 读取 | `FILE_NOT_TEXT` | 目标是二进制 | 绝对路径 | 不要用本工具读取二进制文件 |
-| 读取 | `SECTION_NOT_FOUND` | 目标文件没有该章节 | 章节名与绝对路径 | 省略 `section` 读全文，或换一个章节名 |
+| 章节选择 | `SECTION_NOT_FOUND` | 合法选择器在当前文档中没有匹配到标题 | 文件绝对路径、原始选择器，保留名称 / 数字的类型区别 | 省略 `section` 查看目录，再使用有效名称或标题行号 |
+| 章节选择 | `SECTION_AMBIGUOUS` | 名称匹配多个章节，无法确定唯一对象 | 文件绝对路径、原始名称、按源码顺序排列的候选标题及行号 | 从已提供候选中选择标题行号重试 |
 | 检索 | `FILTER_INVALID` | 过滤值不是合法正则 | 过滤键与模式 | 修正模式，或改用字符串包含 |
 | 加载 | `BATCH_EMPTY` | 批量操作没有给出任何 ID | 无 | 至少给出一个 ID |
 | 加载 | `NOT_LOADED` | 取消的身份不在加载树里 | 该 ID 与当前已加载的 ID | 用 `/skill:loaded` 确认后再取消 |

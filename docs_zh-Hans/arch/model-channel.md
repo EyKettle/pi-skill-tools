@@ -25,7 +25,7 @@
 | 参数 | 类型 | 必填 | 含义 |
 | --- | --- | --- | --- |
 | `id` | `string` | 是 | 技能 ID；带 `/{type}/{filename.ext}` 时预览相关文件 |
-| `section` | `string` | 否 | 章节名；省略则只给文件统计 |
+| `section` | `string \| number \| (string \| number)[]` | 否 | 单项章节或章节列表，都支持两种形态：章节名、行号；省略则在展示文件统计的同时列出章节树 |
 
 `section` 只需要输入章节名，不需要前缀 `#`。
 点明常见的适用范围章节，如 `When to Use`。
@@ -92,11 +92,38 @@ Total Bytes: {m}
 Created At: {datetime}
 Updated At: {datetime}
 ======
-{section}
+{sections}
 ======
 ```
 
-未指定章节时后半部分不展示（含分隔符）。
+`{sections}` 展示选定章节列表，每个单元的格式为：
+
+```text
+{sectionTitle}
+
+{sectionContent}
+
+{subSectionLines}
+```
+
+不会显示子章节的内容，但会显示子章节的章节树（如有）。
+未指定章节时展开完整章节树。
+
+章节树的每条信息遵循格式 `{lineNumber}:{sectionTitle}`。
+
+存在多项选择时，匹配失败的项不会出现在 `{sections}` 中，而是在第二个分隔符后展示列表：
+
+```text
+[WARN] Some section selections failed:
+"{sectionTitle}": {ERROR_CODE}; {description}
+"{sectionTitle}": {ERROR_CODE}; {description}
+……
+```
+
+`{description}` 用来统一表述其他信息，在没有更多细节的情况下不展示。
+
+> [!IMPORTANT]
+> `{sectionTitle}` 含有 `#` 符号。
 
 ### 检索工具输出
 
