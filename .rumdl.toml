@@ -1,0 +1,12 @@
+[global]
+flavor = "gfm"
+
+[MD013]
+line-length = 0
+reflow = true
+reflow-mode = "sentence-per-line"
+cjk-soft-break = "join"
+
+[MD060]
+enabled = true
+style = "compact"
