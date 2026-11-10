@@ -60,3 +60,7 @@ pnpm run typecheck
 ```
 
 `private: true` 是有意为之，该插件尚未做好发布准备。
+
+## 贡献
+
+如果要提交贡献，遵循[贡献文档](CONTRIBUTING.zh-Hans.md)要求。
