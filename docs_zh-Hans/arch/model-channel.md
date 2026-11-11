@@ -9,6 +9,7 @@
 [检索方式]: tools.md#通过-frontmatter-检索技能
 [取用规则]: tools.md#取用规则
 [失败证据章节]: ../architecture.md#失败携带结构化证据
+[预览工具样式]: tui-channel.md#预览工具样式
 
 ## 参数定义
 
@@ -27,17 +28,19 @@
 | --- | --- | --- | --- |
 | `id` | `string` | 是 | 技能 ID；带 `/{type}/{filename.ext}` 时预览相关文件 |
 | `section` | `string \| number \| (string \| number)[]` | 否 | 单项章节或章节列表，都支持两种形态：章节名、行号；省略则在展示文件统计的同时列出章节树 |
-| `subsectionVisibility` | `"hide" \| "tree" \| "expand"` | 否 | 默认为 `"tree"`；决定如何展示子章节：`hide` 不展示、`tree` 列出子章节标题列表、`expand` 完全展开子章节 |
+| `subsectionVisibility` | `"hide" \| "tree" \| "expand"` | 否 | 控制选定章节的子章节展示方式，默认为 `"tree"` |
 
 `section` 只需要输入章节名，不需要前缀 `#`。
 点明常见的适用范围章节，如 `When to Use`。
+
+`section` 省略或为空列表时，始终展示完整章节树，`subsectionVisibility` 不改变该输出。
 
 ### 检索工具参数
 
 | 参数 | 类型 | 必填 | 含义 |
 | --- | --- | --- | --- |
 | `filter` | `Record<string, string \| string[]>` | 是 | Frontmatter 过滤器，键为点路径 |
-| `location` | 同上 | 否 | 同上 |
+| `location` | 同清点工具的 `location` | 否 | 同清点工具的 `location` |
 
 `filter` 每个键的值取三种写法，详见[检索方式]。
 
@@ -63,7 +66,7 @@
 模型通道由工具消息的 `content` 承载：`content` 进入模型上下文，`details` 仅供卡片与结构化消费。
 `content` 同时会作为 TUI 通道中的 `{output}` 要素。
 
-失败返回 `isError: true` 不抛出，`details` 同样供失败使用。
+预期失败返回 `isError: true` 不抛出，`details` 同样供失败使用。
 失败处理方式详见总纲中的[失败证据章节]。
 
 空态同 TUI 侧 `{answer}`。
@@ -100,7 +103,7 @@ Updated At: {datetime}
 ```
 
 首行为来源行：`{skill-id}` 是实际解析出的技能 ID，按[取用规则]折叠；`{/path/to/filename.ext}` 是本次读取的绝对文件路径。
-来源行位于统计之前，不计入阅读量。
+来源行位于统计之前；阅读量计数见[预览工具样式]。
 空文件在来源行之后仍为空态 `Nothing to view`。
 
 `{sections}` 展示选定章节列表，每个单元的格式为：
@@ -113,11 +116,16 @@ Updated At: {datetime}
 {subSectionLines}
 ```
 
-如果存在子章节，根据 `subsectionVisibility` 参数决定如何展示：
+子章节展示由 `subsectionVisibility` 决定：
 
-- `hide`：不显示 `{subSectionLines}`。
-- `tree`：`{subSectionLines}` 列出子章节标题列表，形式仍然为章节树。
-- `expand`：`{subSectionLines}` 展示每个子章节标题与正文，不显示行号。
+| 值 | `{subSectionLines}` |
+| --- | --- |
+| `hide` | 不显示 |
+| `tree` | 列出全部后代章节的标题，形式仍然为章节树 |
+| `expand` | 展示全部后代章节的标题与正文，标题不附行号 |
+
+`expand` 将选定章节及其全部后代按正文顺序展示，重叠选择覆盖的同一章节只展示一次。
+`hide` 与 `tree` 不扩展选定章节的正文范围，另行选定的子章节仍作为独立单元展示。
 
 章节树的每条信息遵循格式 `{lineNumber}:{sectionTitle}`。
 
@@ -125,15 +133,15 @@ Updated At: {datetime}
 
 ```text
 [WARN] Some section selections failed:
-"{sectionTitle}": {ERROR_CODE}; {description}
-"{sectionTitle}": {ERROR_CODE}; {description}
+"{sectionSelector}": {ERROR_CODE}; {description}
+"{sectionSelector}": {ERROR_CODE}; {description}
 ……
 ```
 
 `{description}` 用来统一表述其他信息，在没有更多细节的情况下不展示。
 
 > [!IMPORTANT]
-> `{sectionTitle}` 含有 `#` 符号。
+> 展示正文或章节树时，`{sectionTitle}` 保留 `#` 符号；警告中的 `{sectionSelector}` 为请求的章节名或行号。
 
 ### 检索工具输出
 
