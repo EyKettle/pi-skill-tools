@@ -27,6 +27,7 @@
 | --- | --- | --- | --- |
 | `id` | `string` | 是 | 技能 ID；带 `/{type}/{filename.ext}` 时预览相关文件 |
 | `section` | `string \| number \| (string \| number)[]` | 否 | 单项章节或章节列表，都支持两种形态：章节名、行号；省略则在展示文件统计的同时列出章节树 |
+| `subsectionVisibility` | `"hide" \| "tree" \| "expand"` | 否 | 默认为 `"tree"`；决定如何展示子章节：`hide` 不展示、`tree` 列出子章节标题列表、`expand` 完全展开子章节 |
 
 `section` 只需要输入章节名，不需要前缀 `#`。
 点明常见的适用范围章节，如 `When to Use`。
@@ -112,8 +113,11 @@ Updated At: {datetime}
 {subSectionLines}
 ```
 
-不会显示子章节的内容，但会显示子章节的章节树（如有）。
-未指定章节时展开完整章节树。
+如果存在子章节，根据 `subsectionVisibility` 参数决定如何展示：
+
+- `hide`：不显示 `{subSectionLines}`。
+- `tree`：`{subSectionLines}` 列出子章节标题列表，形式仍然为章节树。
+- `expand`：`{subSectionLines}` 展示每个子章节标题与正文，不显示行号。
 
 章节树的每条信息遵循格式 `{lineNumber}:{sectionTitle}`。
 
