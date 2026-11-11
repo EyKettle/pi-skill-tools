@@ -3,7 +3,11 @@
  * renders.
  */
 import { describe, expect, it } from "vitest";
-import { failureText, reasonText } from "../../src/model-channel/failure-text";
+import {
+	failureText,
+	reasonText,
+	sectionIssueText,
+} from "../../src/model-channel/failure-text";
 import { createFailure } from "../../src/failure/create";
 import { FAILURE_CODES, recoveryFor } from "../../src/failure/codes";
 import type { EvidenceByCode, FailureCode } from "../../src/failure/types";
@@ -28,8 +32,14 @@ const EVIDENCE: { [C in FailureCode]: EvidenceByCode[C] } = {
 	FILE_NOT_TEXT: { kind: "path", path: "/skills/x/logo.png" },
 	SECTION_NOT_FOUND: {
 		kind: "section",
-		section: "When to Use",
 		path: "/skills/x/SKILL.md",
+		selector: { kind: "name", name: "When to Use" },
+	},
+	SECTION_AMBIGUOUS: {
+		kind: "sectionAmbiguous",
+		path: "/skills/x/SKILL.md",
+		name: "When to Use",
+		candidates: [{ heading: "## When to Use", line: 12 }],
 	},
 	FILTER_INVALID: { kind: "filter", key: "metadata.tags", pattern: "([a-z" },
 	BATCH_EMPTY: { kind: "none" },
@@ -89,8 +99,32 @@ describe("reasonText", () => {
 			'The path "/x" failed: EACCES',
 		);
 		expect(
-			reasonText({ kind: "section", section: "When to Use", path: "/x" }),
+			reasonText({
+				kind: "section",
+				path: "/x",
+				selector: { kind: "name", name: "When to Use" },
+			}),
 		).toBe('The file "/x" has no section "When to Use".');
+		expect(
+			reasonText({
+				kind: "section",
+				path: "/x",
+				selector: { kind: "line", line: 42 },
+			}),
+		).toBe('Line 42 of "/x" is not a heading.');
+		expect(
+			reasonText({
+				kind: "sectionAmbiguous",
+				path: "/x",
+				name: "When to Use",
+				candidates: [
+					{ heading: "## When to Use", line: 3 },
+					{ heading: "## When to Use", line: 12 },
+				],
+			}),
+		).toBe(
+			'The name "When to Use" matches 2 headings in "/x": "## When to Use" (3), "## When to Use" (12).',
+		);
 		expect(
 			reasonText({ kind: "filter", key: "tags", pattern: "([a-z" }),
 		).toBe('The filter "tags" has an invalid pattern: ([a-z');
@@ -160,5 +194,48 @@ describe("reasonText", () => {
 		for (const code of FAILURE_CODES) {
 			expect(reasonText(EVIDENCE[code])).not.toContain(code);
 		}
+	});
+});
+
+
+describe("sectionIssueText", () => {
+	it("names the selector that reached no heading and its code", () => {
+		const failure = createFailure("SECTION_NOT_FOUND", {
+			kind: "section",
+			path: "/skills/x/SKILL.md",
+			selector: { kind: "name", name: "Nope" },
+		});
+
+		expect(sectionIssueText(failure)).toBe(
+			`"Nope": SECTION_NOT_FOUND; ${recoveryFor("SECTION_NOT_FOUND")}`,
+		);
+	});
+
+	it("keeps a line selector the line it was", () => {
+		const failure = createFailure("SECTION_NOT_FOUND", {
+			kind: "section",
+			path: "/skills/x/SKILL.md",
+			selector: { kind: "line", line: 42 },
+		});
+
+		expect(sectionIssueText(failure)).toBe(
+			`"42": SECTION_NOT_FOUND; ${recoveryFor("SECTION_NOT_FOUND")}`,
+		);
+	});
+
+	it("lists the candidates a name reached", () => {
+		const failure = createFailure("SECTION_AMBIGUOUS", {
+			kind: "sectionAmbiguous",
+			path: "/skills/x/SKILL.md",
+			name: "When to Use",
+			candidates: [
+				{ heading: "## When to Use", line: 3 },
+				{ heading: "## When to Use", line: 12 },
+			],
+		});
+
+		expect(sectionIssueText(failure)).toBe(
+			`"When to Use": SECTION_AMBIGUOUS; matches "## When to Use" (3), "## When to Use" (12). ${recoveryFor("SECTION_AMBIGUOUS")}`,
+		);
 	});
 });

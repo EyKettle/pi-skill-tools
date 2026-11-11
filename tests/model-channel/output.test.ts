@@ -23,6 +23,10 @@ import {
 	renameSkillText,
 	searchSkillText,
 } from "../../src/model-channel/output";
+import { createFailure } from "../../src/failure/create";
+import { recoveryFor } from "../../src/failure/codes";
+
+const SOURCE = { displayId: "git", path: "/skills/git/SKILL.md" };
 
 describe("the listing text", () => {
 	it("writes one bracketed id and path per skill", () => {
@@ -68,46 +72,127 @@ describe("the preview text", () => {
 	it("writes the four statistics and the section between separators", () => {
 		expect(
 			previewSkillText({
+				source: SOURCE,
 				totalLines: 5,
 				totalBytes: 40,
 				createdAt: "2026-01-01T00:00:00.000Z",
 				updatedAt: "2026-01-02T00:00:00.000Z",
-				section: "## When to Use\nUse it.",
+				content: {
+					mode: "sections",
+					sections: [
+						{ heading: "## When to Use", content: "Use it.", subSections: [] },
+					],
+				},
+				issues: [],
 			}),
 		).toBe(
 			[
+				"[git] /skills/git/SKILL.md",
 				"Total Lines: 5",
 				"Total Bytes: 40",
 				"Created At: 2026-01-01T00:00:00.000Z",
 				"Updated At: 2026-01-02T00:00:00.000Z",
 				"======",
 				"## When to Use",
+				"",
 				"Use it.",
 				"======",
 			].join("\n"),
 		);
 	});
 
-	it("omits the whole second half when no section was asked for", () => {
+	it("lists the section tree when no section was asked for", () => {
 		const text = previewSkillText({
+			source: SOURCE,
 			totalLines: 5,
 			totalBytes: 40,
 			createdAt: "2026-01-01T00:00:00.000Z",
 			updatedAt: "2026-01-02T00:00:00.000Z",
+			content: {
+				mode: "tree",
+				tree: [
+					{ line: 1, heading: "# Skill" },
+					{ line: 3, heading: "## When to Use" },
+				],
+			},
+			issues: [],
 		});
-		expect(text).not.toContain("======");
-		expect(text.split("\n")).toHaveLength(4);
+
+		expect(text.split("\n").slice(5)).toEqual([
+			"======",
+			"1:# Skill",
+			"3:## When to Use",
+			"======",
+		]);
 	});
 
-	it("falls back to the empty sentence for a zero-line file", () => {
+	it("shows the subsection directory under a selected section", () => {
+		const text = previewSkillText({
+			source: SOURCE,
+			totalLines: 5,
+			totalBytes: 40,
+			createdAt: "2026-01-01T00:00:00.000Z",
+			updatedAt: "2026-01-02T00:00:00.000Z",
+			content: {
+				mode: "sections",
+				sections: [
+					{
+						heading: "## When to Use",
+						content: "Use it.",
+						subSections: [{ line: 5, heading: "### Details" }],
+					},
+				],
+			},
+			issues: [],
+		});
+
+		expect(text.split("\n").slice(6)).toEqual([
+			"## When to Use",
+			"",
+			"Use it.",
+			"",
+			"5:### Details",
+			"======",
+		]);
+	});
+
+	it("lists the selections that reached no heading after the second separator", () => {
+		const text = previewSkillText({
+			source: SOURCE,
+			totalLines: 5,
+			totalBytes: 40,
+			createdAt: "2026-01-01T00:00:00.000Z",
+			updatedAt: "2026-01-02T00:00:00.000Z",
+			content: { mode: "sections", sections: [] },
+			issues: [
+				createFailure("SECTION_NOT_FOUND", {
+					kind: "section",
+					path: "/skills/x/SKILL.md",
+					selector: { kind: "name", name: "Nope" },
+				}),
+			],
+		});
+
+		expect(text.split("\n").slice(5)).toEqual([
+			"======",
+			"======",
+			"[WARN] Some section selections failed:",
+			`"Nope": SECTION_NOT_FOUND; ${recoveryFor("SECTION_NOT_FOUND")}`,
+		]);
+	});
+
+	it("keeps the source line before the empty sentence for a zero-line file", () => {
 		expect(
 			previewSkillText({
+				source: { displayId: "empty", path: "/skills/empty/SKILL.md" },
 				totalLines: 0,
 				totalBytes: 0,
 				createdAt: "2026-01-01T00:00:00.000Z",
 				updatedAt: "2026-01-02T00:00:00.000Z",
+				content: { mode: "tree", tree: [] },
+				issues: [],
 			}),
-		).toBe(EMPTY_PREVIEW);
+		).toBe(`[empty] /skills/empty/SKILL.md\n${EMPTY_PREVIEW}`);
 	});
 });
 

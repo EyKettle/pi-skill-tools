@@ -15,8 +15,8 @@ import { lstatSync, readFileSync, realpathSync, statSync } from "node:fs";
 import path from "node:path";
 import { createFailure, errorText } from "../failure/create";
 import type { Failure } from "../failure/types";
-import { extractSection } from "./section";
-import type { ExtractedSection } from "./section";
+import { parseSections } from "./section";
+import type { SectionDocument } from "./section";
 
 /** The leading window sniffed for a NUL byte. */
 const NUL_SNIFF_BYTES = 8000;
@@ -40,15 +40,12 @@ export interface SkillFileContent {
 	readonly lines: number;
 	readonly createdAt: Date;
 	readonly updatedAt: Date;
-	readonly section?: ExtractedSection;
+	/** The headings of the file, with the positions they stand at. */
+	readonly sections: SectionDocument;
 }
 
 export type SkillFileRead = SkillFileContent | SkillFileFailure;
 
-export interface ReadSkillFileOptions {
-	/** A heading title to project; without it the whole text is returned. */
-	readonly section?: string;
-}
 
 /**
  * Resolve a reference inside `baseDir` to its canonical absolute path.
@@ -117,14 +114,11 @@ export function resolveSkillFile(
 }
 
 /**
- * Read a file whole. With `section`, the text is still read in full; the
- * projection is returned beside it, and a missing heading is a failure with
- * the section name and the file path as evidence.
+ * Read a file whole. The read carries the text and the heading representation
+ * of that same text, so every question about the file's sections is answered
+ * from one read.
  */
-export function readSkillFile(
-	filePath: string,
-	options: ReadSkillFileOptions = {},
-): SkillFileRead {
+export function readSkillFile(filePath: string): SkillFileRead {
 	let buffer: Buffer;
 	try {
 		buffer = readFileSync(filePath);
@@ -150,30 +144,15 @@ export function readSkillFile(
 	}
 
 	const text = buffer.toString("utf8");
-	const content: SkillFileContent = {
+	return {
 		ok: true,
 		text,
 		bytes: buffer.length,
 		lines: countLines(text),
 		createdAt: stats.birthtime,
 		updatedAt: stats.mtime,
+		sections: parseSections(text, filePath),
 	};
-
-	if (options.section === undefined) {
-		return content;
-	}
-	const section = extractSection(text, options.section);
-	if (section === undefined) {
-		return {
-			ok: false,
-			failure: createFailure("SECTION_NOT_FOUND", {
-				kind: "section",
-				section: options.section,
-				path: filePath,
-			}),
-		};
-	}
-	return { ...content, section };
 }
 
 // ---------------------------------------------------------------------------

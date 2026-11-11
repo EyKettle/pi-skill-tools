@@ -255,7 +255,7 @@ describe("readSkillFile", () => {
 		);
 	});
 
-	it("projects the requested section and keeps the whole text", () => {
+	it("carries the heading representation of the file it read", () => {
 		const { baseDir } = makeSkillDir();
 		const filePath = path.join(baseDir, "SKILL.md");
 		writeFileSync(
@@ -263,39 +263,19 @@ describe("readSkillFile", () => {
 			"# Skill\n\n## When to Use\nUse it here.\n\n## Other\nOther.\n",
 		);
 
-		const result = readSkillFile(filePath, { section: "When to Use" });
+		const result = readSkillFile(filePath);
 		expect(result.ok).toBe(true);
 		if (!result.ok) return;
 		expect(result.text).toBe(
 			"# Skill\n\n## When to Use\nUse it here.\n\n## Other\nOther.\n",
 		);
-		expect(result.section).toEqual({
-			heading: "## When to Use",
-			content: "## When to Use\nUse it here.",
-			lines: 2,
-			bytes: Buffer.byteLength("## When to Use\nUse it here.", "utf8"),
-		});
-	});
-
-	it("reports a missing section with its name and path", () => {
-		const { baseDir } = makeSkillDir();
-		const filePath = path.join(baseDir, "SKILL.md");
-		const result = readSkillFile(filePath, { section: "Nope" });
-		expect(result.ok).toBe(false);
-		if (result.ok) return;
-		expect(result.failure.code).toBe("SECTION_NOT_FOUND");
-		expect(result.failure.evidence).toEqual({
-			kind: "section",
-			section: "Nope",
-			path: filePath,
-		});
-	});
-
-	it("has no section field when none was requested", () => {
-		const { baseDir } = makeSkillDir();
-		const result = readSkillFile(path.join(baseDir, "SKILL.md"));
-		expect(result.ok).toBe(true);
-		if (!result.ok) return;
-		expect(result.section).toBeUndefined();
+		expect(result.sections.path).toBe(filePath);
+		expect(
+			result.sections.headings.map((heading) => [heading.line, heading.title]),
+		).toEqual([
+			[1, "Skill"],
+			[3, "When to Use"],
+			[6, "Other"],
+		]);
 	});
 });

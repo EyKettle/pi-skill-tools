@@ -158,8 +158,7 @@ function resultOf(payload: TransportPayload): ResultView {
 			if (data.totalLines === 0) {
 				return { answer: "Nothing to view", info: "(0)" };
 			}
-			const shown = data.sectionLines ?? data.totalLines;
-			return { answer: `Viewed ${shown}/${data.totalLines} lines` };
+			return { answer: `Viewed ${data.viewedLines}/${data.totalLines} lines` };
 		}
 		case "create_skill": {
 			const data = payload.data;
@@ -283,7 +282,26 @@ function stringSuffix(args: Record<string, unknown>, key: string): string {
 }
 
 function sectionSuffix(args: Record<string, unknown>): string {
-	return args.section === undefined ? "" : ` "${text(args.section)}"`;
+	const section = args.section;
+	if (section === undefined) {
+		return "";
+	}
+	if (Array.isArray(section)) {
+		const shown = section.map(selectorText).filter((item) => item !== "");
+		return shown.length === 0 ? "" : ` ${shown.join(", ")}`;
+	}
+	return ` ${selectorText(section)}`;
+}
+
+/** A selector as the call line shows it: a title in quotes, or a line. */
+function selectorText(value: unknown): string {
+	if (typeof value === "string") {
+		return `"${value}"`;
+	}
+	if (typeof value === "number") {
+		return String(value);
+	}
+	return "";
 }
 
 function filterText(value: unknown): string {

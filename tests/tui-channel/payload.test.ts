@@ -27,8 +27,8 @@ const payloads: TransportPayload[] = [
 	buildListSkillTagsPayload({ count: 0 }),
 	buildListSkillFilesPayload({ count: 1 }),
 	buildListSkillFilesPayload({ count: 0 }),
-	buildPreviewSkillPayload({ totalLines: 5, sectionLines: 2 }),
-	buildPreviewSkillPayload({ totalLines: 0 }),
+		buildPreviewSkillPayload({ totalLines: 5, viewedLines: 2, issues: [] }),
+		buildPreviewSkillPayload({ totalLines: 0, viewedLines: 0, issues: [] }),
 	buildSearchSkillPayload({ count: 1 }),
 	buildSearchSkillPayload({ count: 0 }),
 	buildImportSkillPayload({ displayIds: ["git"] }),
@@ -122,12 +122,75 @@ describe("isTransportPayload", () => {
 	});
 
 	it("accepts a payload that made a JSON round trip", () => {
-		const noSection = buildPreviewSkillPayload({ totalLines: 2 });
+		const noSection = buildPreviewSkillPayload({
+			totalLines: 2,
+			viewedLines: 2,
+			issues: [],
+		});
 		const noLocation = buildListSkillsPayload({ count: 0 });
 		expect(isTransportPayload(JSON.parse(JSON.stringify(noSection)))).toBe(true);
 		expect(isTransportPayload(JSON.parse(JSON.stringify(noLocation)))).toBe(
 			true,
 		);
+	});
+
+	it("carries the section issues beside the sections that resolved", () => {
+		const payload = buildPreviewSkillPayload({
+			totalLines: 7,
+			viewedLines: 2,
+			issues: [
+				{
+					selector: { kind: "name", name: "Nope" },
+					failure: createFailure("SECTION_NOT_FOUND", {
+						kind: "section",
+						path: "/skills/x/SKILL.md",
+						selector: { kind: "name", name: "Nope" },
+					}),
+				},
+			],
+		});
+
+		expect(isTransportPayload(payload)).toBe(true);
+		expect(isTransportPayload(JSON.parse(JSON.stringify(payload)))).toBe(true);
+	});
+
+	it("carries an ambiguous section failure with its candidates", () => {
+		const payload = buildPreviewSkillPayload({
+			totalLines: 7,
+			viewedLines: 0,
+			issues: [
+				{
+					selector: { kind: "name", name: "Same" },
+					failure: createFailure("SECTION_AMBIGUOUS", {
+						kind: "sectionAmbiguous",
+						path: "/skills/x/SKILL.md",
+						name: "Same",
+						candidates: [{ heading: "## Same", line: 3 }],
+					}),
+				},
+			],
+		});
+
+		expect(isTransportPayload(payload)).toBe(true);
+	});
+
+	it("rejects a section issue it cannot read", () => {
+		const payload = buildPreviewSkillPayload({
+			totalLines: 7,
+			viewedLines: 0,
+			issues: [
+				{
+					selector: { kind: "mystery" } as never,
+					failure: createFailure("SECTION_NOT_FOUND", {
+						kind: "section",
+						path: "/skills/x/SKILL.md",
+						selector: { kind: "name", name: "Nope" },
+					}),
+				},
+			],
+		});
+
+		expect(isTransportPayload(payload)).toBe(false);
 	});
 
 	it("rejects an unknown version", () => {

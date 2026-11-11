@@ -34,8 +34,14 @@ const VALID_EVIDENCE: { [C in FailureCode]: EvidenceByCode[C] } = {
 	FILE_NOT_TEXT: { kind: "path", path: "/skills/x/logo.png" },
 	SECTION_NOT_FOUND: {
 		kind: "section",
-		section: "When to Use",
 		path: "/skills/x/SKILL.md",
+		selector: { kind: "name", name: "When to Use" },
+	},
+	SECTION_AMBIGUOUS: {
+		kind: "sectionAmbiguous",
+		path: "/skills/x/SKILL.md",
+		name: "When to Use",
+		candidates: [{ heading: "## When to Use", line: 12 }],
 	},
 	FILTER_INVALID: { kind: "filter", key: "metadata.tags", pattern: "([a-z" },
 	BATCH_EMPTY: { kind: "none" },
@@ -94,6 +100,37 @@ describe("createFailure", () => {
 		});
 	});
 
+	it("keeps an empty requested name as section evidence", () => {
+		const evidence = {
+			kind: "section",
+			path: "/skills/x/SKILL.md",
+			selector: { kind: "name", name: "" },
+		} as const;
+
+		expect(createFailure("SECTION_NOT_FOUND", evidence).evidence).toEqual(evidence);
+	});
+
+	it("keeps a fractional requested line as section evidence", () => {
+		const evidence = {
+			kind: "section",
+			path: "/skills/x/SKILL.md",
+			selector: { kind: "line", line: 1.5 },
+		} as const;
+
+		expect(createFailure("SECTION_NOT_FOUND", evidence).evidence).toEqual(evidence);
+	});
+
+	it("keeps an empty ambiguous name as section evidence", () => {
+		const evidence = {
+			kind: "sectionAmbiguous",
+			path: "/skills/x/SKILL.md",
+			name: "",
+			candidates: [{ heading: "# ", line: 1 }, { heading: "## ", line: 3 }],
+		} as const;
+
+		expect(createFailure("SECTION_AMBIGUOUS", evidence).evidence).toEqual(evidence);
+	});
+
 	describe("guards", () => {
 		it("rejects a code outside the closed set", () => {
 			expect(() =>
@@ -119,14 +156,13 @@ describe("createFailure", () => {
 			).toThrow(FailureGuardError);
 		});
 
-		it("rejects empty strings wherever the evidence carries one", () => {
+		it("rejects empty text required by the evidence kind", () => {
 			const malformed: readonly FailureEvidence[] = [
 				{ kind: "input", input: "  " },
 				{ kind: "path", path: "" },
 				{ kind: "pathError", path: "/x", error: " " },
 				{ kind: "pathError", path: "", error: "EACCES" },
-				{ kind: "section", section: "", path: "/x" },
-				{ kind: "section", section: "When to Use", path: "" },
+				{ kind: "section", path: "", selector: { kind: "name", name: "When to Use" } },
 				{ kind: "filter", key: "", pattern: "x" },
 				{ kind: "filter", key: "tags", pattern: "" },
 				{ kind: "location", location: "" },
@@ -137,6 +173,32 @@ describe("createFailure", () => {
 					createFailure("ID_NAME_INVALID", evidence as never),
 				).toThrow(FailureGuardError);
 			}
+		});
+
+		it("rejects a selector or a candidate list it cannot read", () => {
+			expect(() =>
+				createFailure("SECTION_NOT_FOUND", {
+					kind: "section",
+					path: "/x",
+					selector: { kind: "mystery" },
+				} as never),
+			).toThrow(FailureGuardError);
+			expect(() =>
+				createFailure("SECTION_AMBIGUOUS", {
+					kind: "sectionAmbiguous",
+					path: "/x",
+					name: "When to Use",
+					candidates: [],
+				} as never),
+			).toThrow(FailureGuardError);
+			expect(() =>
+				createFailure("SECTION_AMBIGUOUS", {
+					kind: "sectionAmbiguous",
+					path: "/x",
+					name: "When to Use",
+					candidates: [{ heading: "## When to Use", line: 1.5 }],
+				} as never),
+			).toThrow(FailureGuardError);
 		});
 
 		it("accepts an empty suggestion list: an empty index has no name to suggest", () => {

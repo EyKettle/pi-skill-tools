@@ -19,6 +19,7 @@ export const FAILURE_CODES: readonly FailureCode[] = [
 	"READ_FAILED",
 	"FILE_NOT_TEXT",
 	"SECTION_NOT_FOUND",
+	"SECTION_AMBIGUOUS",
 	"FILTER_INVALID",
 	"BATCH_EMPTY",
 	"NOT_LOADED",
@@ -45,7 +46,9 @@ const RECOVERY_BY_CODE: Record<FailureCode, string> = {
 	FILE_NOT_TEXT:
 		"Read a text file instead; binary content is not readable with this tool.",
 	SECTION_NOT_FOUND:
-		"Omit section to read the whole file, or choose another section name.",
+		"Omit section to see the section tree, then use a valid name or the heading's line number.",
+	SECTION_AMBIGUOUS:
+		"Retry with the heading's line number, choosing one of the listed candidates.",
 	FILTER_INVALID: "Fix the pattern, or use a plain string.",
 	BATCH_EMPTY: "Provide at least one ID.",
 	NOT_LOADED: "Confirm with /skill:loaded, then cancel an ID it lists.",

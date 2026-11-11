@@ -164,6 +164,7 @@ const EVIDENCE_KINDS = new Set([
 	"path",
 	"pathError",
 	"section",
+	"sectionAmbiguous",
 	"filter",
 	"loaded",
 	"location",
@@ -220,10 +221,10 @@ function dataIsValid(tool: ToolName, data: unknown): boolean {
 			);
 		case "preview_skill":
 			return (
-				keysAllowed(data, ["totalLines"], ["sectionLines"]) &&
+				exactKeys(data, ["totalLines", "viewedLines", "issues"]) &&
 				nonNegativeInteger(data.totalLines) &&
-				(data.sectionLines === undefined ||
-					nonNegativeInteger(data.sectionLines))
+				nonNegativeInteger(data.viewedLines) &&
+				isPreviewIssues(data.issues)
 			);
 		case "import_skill":
 		case "cancel_skill":
@@ -309,4 +310,33 @@ function stringArray(value: unknown): boolean {
 
 function nonNegativeInteger(value: unknown): boolean {
 	return typeof value === "number" && Number.isInteger(value) && value >= 0;
+}
+
+/** The section issues a preview carries beside the sections that resolved. */
+function isPreviewIssues(value: unknown): boolean {
+	return (
+		Array.isArray(value) &&
+		value.every(
+			(issue) =>
+				isRecord(issue) &&
+				exactKeys(issue, ["selector", "failure"]) &&
+				isSectionSelector(issue.selector) &&
+				isFailure(issue.failure),
+		)
+	);
+}
+
+/** A selector as the caller gave it: a title, or the line it named. */
+function isSectionSelector(value: unknown): boolean {
+	if (!isRecord(value)) {
+		return false;
+	}
+	if (value.kind === "name") {
+		return typeof value.name === "string";
+	}
+	return (
+		value.kind === "line" &&
+		typeof value.line === "number" &&
+		Number.isFinite(value.line)
+	);
 }

@@ -18,6 +18,7 @@ export type FailureCode =
 	| "READ_FAILED"
 	| "FILE_NOT_TEXT"
 	| "SECTION_NOT_FOUND"
+	| "SECTION_AMBIGUOUS"
 	| "FILTER_INVALID"
 	| "BATCH_EMPTY"
 	| "NOT_LOADED"
@@ -29,6 +30,21 @@ export type FailureCode =
 export type ConflictTarget =
 	| { readonly kind: "id"; readonly id: string }
 	| { readonly kind: "path"; readonly path: string };
+
+/**
+ * A section selector as the caller gave it: a heading title, or the line a
+ * heading stands at. The two kinds stay apart, so a heading titled with a
+ * number is still a title.
+ */
+export type SectionSelector =
+	| { readonly kind: "name"; readonly name: string }
+	| { readonly kind: "line"; readonly line: number };
+
+/** A heading a name matched: the heading line, and the line it stands at. */
+export interface SectionCandidate {
+	readonly heading: string;
+	readonly line: number;
+}
 
 /**
  * The evidence shape each code carries, one row per code in the architecture
@@ -61,8 +77,14 @@ export interface EvidenceByCode {
 	FILE_NOT_TEXT: { readonly kind: "path"; readonly path: string };
 	SECTION_NOT_FOUND: {
 		readonly kind: "section";
-		readonly section: string;
 		readonly path: string;
+		readonly selector: SectionSelector;
+	};
+	SECTION_AMBIGUOUS: {
+		readonly kind: "sectionAmbiguous";
+		readonly path: string;
+		readonly name: string;
+		readonly candidates: readonly SectionCandidate[];
 	};
 	FILTER_INVALID: {
 		readonly kind: "filter";

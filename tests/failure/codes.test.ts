@@ -21,6 +21,7 @@ const DOCUMENTED_CODES = [
 	"READ_FAILED",
 	"FILE_NOT_TEXT",
 	"SECTION_NOT_FOUND",
+	"SECTION_AMBIGUOUS",
 	"FILTER_INVALID",
 	"BATCH_EMPTY",
 	"NOT_LOADED",
@@ -34,7 +35,7 @@ function sorted(codes: readonly string[]): string[] {
 }
 
 describe("the closed code set", () => {
-	it("is exactly the fifteen codes the architecture table lists", () => {
+	it("is exactly the sixteen codes the architecture table lists", () => {
 		expect(sorted(FAILURE_CODES)).toEqual(sorted(DOCUMENTED_CODES));
 	});
 

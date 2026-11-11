@@ -6,6 +6,8 @@
  * wording, not a paraphrase. The module knows nothing of the index or the
  * card: display ids and paths arrive as strings.
  */
+import type { Failure } from "../failure/types";
+import { sectionIssueText } from "./failure-text";
 
 /** One listed object: its display id and the path on disk. */
 export interface ListedItem {
@@ -25,13 +27,36 @@ export interface ChangeRow {
 	readonly action: "Loaded" | "Refreshed" | "Unchanged" | "Unloaded";
 }
 
-/** What a preview states, with or without a projected section. */
+/** A heading as a reader sees it in a tree: the line it stands at, and its heading. */
+export interface PreviewEntry {
+	readonly line: number;
+	readonly heading: string;
+}
+
+/** One selected section, as the model text shows it. */
+export interface PreviewSection {
+	readonly heading: string;
+	readonly content: string;
+	/** The nested headings, in source order: the section's own directory. */
+	readonly subSections: readonly PreviewEntry[];
+}
+
+/** What a preview shows: the file's tree, or the sections a selection chose. */
+export type PreviewContent =
+	| { readonly mode: "tree"; readonly tree: readonly PreviewEntry[] }
+	| { readonly mode: "sections"; readonly sections: readonly PreviewSection[] };
+
+/** What a preview states: the file it read, its statistics, its content, and its issues. */
 export interface PreviewText {
+	/** The file the preview read: its display id and absolute path. */
+	readonly source: ListedItem;
 	readonly totalLines: number;
 	readonly totalBytes: number;
 	readonly createdAt: string;
 	readonly updatedAt: string;
-	readonly section?: string;
+	readonly content: PreviewContent;
+	/** The selections that reached no heading. */
+	readonly issues: readonly Failure[];
 }
 
 /** A removal of a skill: the directory and every file under it. */
@@ -77,21 +102,68 @@ export function listSkillFilesText(items: readonly ListedItem[]): string {
 	return listText(items, EMPTY_LIST_FILES);
 }
 
-/** `preview_skill`: the statistics, then the section between separators. */
+/**
+ * `preview_skill`: the source line, the statistics, the sections or the tree
+ * between the separators, and the selections that reached no heading after
+ * them. An empty file keeps the source line and answers with the empty
+ * sentence: the call still says which file it read.
+ */
 export function previewSkillText(preview: PreviewText): string {
+	const source = itemLine(preview.source);
 	if (preview.totalLines === 0) {
-		return EMPTY_PREVIEW;
+		return `${source}\n${EMPTY_PREVIEW}`;
 	}
 	const lines = [
+		source,
 		`Total Lines: ${preview.totalLines}`,
 		`Total Bytes: ${preview.totalBytes}`,
 		`Created At: ${preview.createdAt}`,
 		`Updated At: ${preview.updatedAt}`,
+		"======",
+		...contentLines(preview.content),
+		"======",
 	];
-	if (preview.section !== undefined) {
-		lines.push("======", preview.section, "======");
+	if (preview.issues.length > 0) {
+		lines.push("[WARN] Some section selections failed:");
+		for (const issue of preview.issues) {
+			lines.push(sectionIssueText(issue));
+		}
 	}
 	return lines.join("\n");
+}
+
+/** The lines the framed part carries: the tree, or the chosen sections. */
+function contentLines(content: PreviewContent): string[] {
+	if (content.mode === "tree") {
+		return content.tree.map(treeLine);
+	}
+	const lines: string[] = [];
+	for (const [index, section] of content.sections.entries()) {
+		if (index > 0) {
+			lines.push("");
+		}
+		lines.push(...sectionLines(section));
+	}
+	return lines;
+}
+
+/** One section: its heading, its own body, and the directory under it. */
+function sectionLines(section: PreviewSection): string[] {
+	const parts = [section.heading];
+	if (section.content !== "") {
+		parts.push(section.content);
+	}
+	if (section.subSections.length > 0) {
+		parts.push(
+			section.subSections.map(treeLine).join("\n"),
+		);
+	}
+	return parts.join("\n\n").split("\n");
+}
+
+/** One entry of the section tree: the line a heading stands at, and its heading. */
+function treeLine(entry: PreviewEntry): string {
+	return `${entry.line}:${entry.heading}`;
 }
 
 /**
@@ -154,7 +226,12 @@ function listText(items: readonly ListedItem[], empty: string): string {
 	if (items.length === 0) {
 		return empty;
 	}
-	return items.map((item) => `[${item.displayId}] ${item.path}`).join("\n");
+	return items.map(itemLine).join("\n");
+}
+
+/** One listed object as a reader sees it: its display id, then its path. */
+function itemLine(item: ListedItem): string {
+	return `[${item.displayId}] ${item.path}`;
 }
 
 /**

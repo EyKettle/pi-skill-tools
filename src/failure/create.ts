@@ -84,8 +84,13 @@ function assertWellFormedEvidence<C extends FailureCode>(
 			assertText(code, "error", value.error);
 			return;
 		case "section":
-			assertText(code, "section", value.section);
 			assertText(code, "path", value.path);
+			assertSelector(code, value.selector);
+			return;
+		case "sectionAmbiguous":
+			assertText(code, "path", value.path);
+			assertSelector(code, { kind: "name", name: value.name });
+			assertCandidates(code, value.candidates);
 			return;
 		case "filter":
 			assertText(code, "key", value.key);
@@ -135,6 +140,55 @@ function assertStrings(
 	}
 	for (const entry of values) {
 		assertText(code, field, entry);
+	}
+}
+
+function assertSelector(code: FailureCode, selector: unknown): void {
+	if (typeof selector !== "object" || selector === null) {
+		throw new FailureGuardError(`failure '${code}' requires a section selector`);
+	}
+	const value = selector as { kind?: unknown; name?: unknown; line?: unknown };
+	if (value.kind === "name") {
+		if (typeof value.name !== "string") {
+			throw new FailureGuardError(
+				`failure '${code}' requires a section selector with a string name`,
+			);
+		}
+		return;
+	}
+	if (value.kind === "line") {
+		if (typeof value.line !== "number" || !Number.isFinite(value.line)) {
+			throw new FailureGuardError(
+				`failure '${code}' requires a section selector with a finite numeric line`,
+			);
+		}
+		return;
+	}
+	throw new FailureGuardError(
+		`failure '${code}' requires a section selector of kind 'name' or 'line'`,
+	);
+}
+
+function assertCandidates(code: FailureCode, candidates: unknown): void {
+	if (!Array.isArray(candidates)) {
+		throw new FailureGuardError(`failure '${code}' requires 'candidates' to be a list`);
+	}
+	if (candidates.length === 0) {
+		throw new FailureGuardError(
+			`failure '${code}' requires 'candidates' to hold at least one entry`,
+		);
+	}
+	for (const candidate of candidates) {
+		if (typeof candidate !== "object" || candidate === null) {
+			throw new FailureGuardError(`failure '${code}' requires a candidate object`);
+		}
+		const value = candidate as { heading?: unknown; line?: unknown };
+		assertText(code, "candidate heading", value.heading);
+		if (typeof value.line !== "number" || !Number.isInteger(value.line)) {
+			throw new FailureGuardError(
+				`failure '${code}' requires a candidate with an integer line`,
+			);
+		}
 	}
 }
 

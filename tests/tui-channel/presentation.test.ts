@@ -207,7 +207,7 @@ describe("the expanded card", () => {
 
 	it("keeps a blank line the content carries", () => {
 		const projection = presentRow(
-			buildPreviewSkillPayload({ totalLines: 3, sectionLines: 2 }),
+			buildPreviewSkillPayload({ totalLines: 3, viewedLines: 2, issues: [] }),
 			options({
 				tool: "preview_skill",
 				expanded: true,
@@ -262,7 +262,7 @@ describe("the empty states", () => {
 		expect(
 			joined(
 				presentRow(
-					buildPreviewSkillPayload({ totalLines: 0 }),
+					buildPreviewSkillPayload({ totalLines: 0, viewedLines: 0, issues: [] }),
 					options({ tool: "preview_skill" }),
 				),
 			).result,

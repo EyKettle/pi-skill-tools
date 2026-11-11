@@ -1,12 +1,14 @@
 /**
- * Section extraction: find a heading by title, capture until the next heading
- * of the same or a higher level, and never mistake a fenced line for one.
+ * The heading representation of one file: where each heading stands, how the
+ * headings nest, and which lines belong to a section's own body.
  */
 import { describe, expect, it } from "vitest";
-import { extractSection } from "../../src/files/section";
+import { parseSections, projectSections, selectSections } from "../../src/files/section";
 
-describe("extractSection", () => {
-	it("extracts a level-2 section up to the next level-2 heading", () => {
+const PATH = "/skills/x/SKILL.md";
+
+describe("parseSections", () => {
+	it("gives every heading its physical line, level and title", () => {
 		const markdown = [
 			"# My Skill",
 			"",
@@ -21,33 +23,50 @@ describe("extractSection", () => {
 			"Step 1: do this.",
 		].join("\n");
 
-		const section = extractSection(markdown, "When to Use");
-		expect(section).toEqual({
-			heading: "## When to Use",
-			content: "## When to Use\n- Use when doing A\n- Don't use for B",
-			lines: 3,
-			bytes: Buffer.byteLength(
-				"## When to Use\n- Use when doing A\n- Don't use for B",
-				"utf8",
-			),
-		});
+		const document = parseSections(markdown, PATH);
+
+		expect(
+			document.headings.map((heading) => [heading.line, heading.level, heading.title]),
+		).toEqual([
+			[1, 1, "My Skill"],
+			[3, 2, "Overview"],
+			[6, 2, "When to Use"],
+			[10, 2, "Instructions"],
+		]);
 	});
 
-	it("runs to the end of the document when no heading follows", () => {
-		const markdown = "# Title\n## When to Use\nSingle paragraph at the end.";
-		expect(extractSection(markdown, "When to Use")?.content).toBe(
-			"## When to Use\nSingle paragraph at the end.",
-		);
+	it("keeps the heading line as the file carries it", () => {
+		const markdown = "##   when to USE  ##\nCase-insensitive title.\n";
+
+		const document = parseSections(markdown, PATH);
+
+		expect(document.headings[0]?.heading).toBe("##   when to USE  ##");
+		expect(document.headings[0]?.title).toBe("when to USE");
 	});
 
-	it("stops at a level-1 heading", () => {
-		const markdown = "## When to Use\nContent here.\n# Another Document\nX";
-		expect(extractSection(markdown, "When to Use")?.content).toBe(
-			"## When to Use\nContent here.",
-		);
+	it("nests a heading under the nearest heading of a lower level", () => {
+		const markdown = [
+			"# Skill",
+			"## Parent",
+			"### Child",
+			"## Sibling",
+			"#### Grandchild",
+			"# Other",
+		].join("\n");
+
+		const document = parseSections(markdown, PATH);
+		const [skill, parent, child, sibling, grandchild, other] = document.headings;
+
+		expect(skill?.children).toEqual([parent, sibling]);
+		expect(parent?.children).toEqual([child]);
+		expect(child?.children).toEqual([]);
+		expect(sibling?.children).toEqual([grandchild]);
+		expect(grandchild?.children).toEqual([]);
+		expect(other?.children).toEqual([]);
+		expect(document.headings.flatMap((heading) => heading.children)).not.toContain(other);
 	});
 
-	it("keeps lower-level subheadings inside the section", () => {
+	it("gives a section the lines between its heading and the next heading", () => {
 		const markdown = [
 			"## When to Use",
 			"Intro text.",
@@ -58,22 +77,23 @@ describe("extractSection", () => {
 			"## Next Section",
 			"Done.",
 		].join("\n");
-		expect(extractSection(markdown, "When to Use")?.content).toBe(
-			"## When to Use\nIntro text.\n\n### Subcase 1\nDetails 1",
-		);
+
+		const document = parseSections(markdown, PATH);
+		const [parent, child, next] = document.headings;
+
+		expect(parent?.content).toBe("Intro text.");
+		expect(parent?.contentLines).toEqual([2]);
+		expect(child?.content).toBe("Details 1");
+		expect(child?.contentLines).toEqual([5]);
+		expect(next?.content).toBe("Done.");
+		expect(next?.contentLines).toEqual([8]);
 	});
 
-	it("extracts a level-3 section and stops at a peer heading", () => {
-		const markdown = [
-			"## Parent",
-			"### When to Use",
-			"Deep content.",
-			"### Sibling",
-			"Other.",
-		].join("\n");
-		expect(extractSection(markdown, "When to Use")?.content).toBe(
-			"### When to Use\nDeep content.",
-		);
+	it("leaves a heading without a body an empty one", () => {
+		const document = parseSections("# Skill\n", PATH);
+
+		expect(document.headings[0]?.content).toBe("");
+		expect(document.headings[0]?.contentLines).toEqual([]);
 	});
 
 	it("ignores headings inside backtick fences", () => {
@@ -87,12 +107,15 @@ describe("extractSection", () => {
 			"",
 			"## When to Use",
 			"Real when to use content.",
-			"",
-			"## Conclusion",
 		].join("\n");
-		expect(extractSection(markdown, "When to Use")?.content).toBe(
-			"## When to Use\nReal when to use content.",
-		);
+
+		const document = parseSections(markdown, PATH);
+
+		expect(document.headings.map((heading) => heading.title)).toEqual([
+			"Overview",
+			"When to Use",
+		]);
+		expect(document.headings[1]?.line).toBe(8);
 	});
 
 	it("ignores headings inside tilde fences", () => {
@@ -104,25 +127,11 @@ describe("extractSection", () => {
 			"~~~",
 			"## When to Use",
 			"Real content.",
-			"## End",
 		].join("\n");
-		expect(extractSection(markdown, "When to Use")?.content).toBe(
-			"## When to Use\nReal content.",
-		);
-	});
 
-	it("keeps a fence that lives inside the captured section", () => {
-		const markdown = [
-			"## When to Use",
-			"```text",
-			"## not a heading",
-			"```",
-			"After the fence.",
-			"## Next",
-		].join("\n");
-		expect(extractSection(markdown, "When to Use")?.content).toBe(
-			"## When to Use\n```text\n## not a heading\n```\nAfter the fence.",
-		);
+		const document = parseSections(markdown, PATH);
+
+		expect(document.headings.map((heading) => heading.line)).toEqual([1, 6]);
 	});
 
 	it("keeps the section whole when a four-backtick fence holds a three-backtick one", () => {
@@ -137,40 +146,17 @@ describe("extractSection", () => {
 			"## Next",
 		].join("\n");
 
-		expect(extractSection(markdown, "When to Use")?.content).toBe(
+		const document = parseSections(markdown, PATH);
+
+		expect(document.headings.map((heading) => heading.line)).toEqual([1, 8]);
+		expect(document.headings[0]?.content).toBe(
 			[
-				"## When to Use",
 				"````markdown",
 				"```md",
 				"## When to Use",
 				"inner example heading",
 				"```",
 				"````",
-			].join("\n"),
-		);
-	});
-
-	it("applies the same nesting rule to tilde fences", () => {
-		const markdown = [
-			"## When to Use",
-			"~~~~markdown",
-			"~~~",
-			"## When to Use",
-			"inner",
-			"~~~",
-			"~~~~",
-			"## Next",
-		].join("\n");
-
-		expect(extractSection(markdown, "When to Use")?.content).toBe(
-			[
-				"## When to Use",
-				"~~~~markdown",
-				"~~~",
-				"## When to Use",
-				"inner",
-				"~~~",
-				"~~~~",
 			].join("\n"),
 		);
 	});
@@ -183,13 +169,11 @@ describe("extractSection", () => {
 			"no closer follows",
 		].join("\n");
 
-		expect(extractSection(markdown, "When to Use")?.content).toBe(
-			[
-				"## When to Use",
-				"````text",
-				"## not a heading",
-				"no closer follows",
-			].join("\n"),
+		const document = parseSections(markdown, PATH);
+
+		expect(document.headings.map((heading) => heading.line)).toEqual([1]);
+		expect(document.headings[0]?.content).toBe(
+			["````text", "## not a heading", "no closer follows"].join("\n"),
 		);
 	});
 
@@ -205,17 +189,9 @@ describe("extractSection", () => {
 			"## Next",
 		].join("\n");
 
-		expect(extractSection(markdown, "When to Use")?.content).toBe(
-			[
-				"## When to Use",
-				"````",
-				"```",
-				"~~~",
-				"````md",
-				"## still code",
-				"````",
-			].join("\n"),
-		);
+		const document = parseSections(markdown, PATH);
+
+		expect(document.headings.map((heading) => heading.line)).toEqual([1, 8]);
 	});
 
 	it("ignores an indented code line that looks like a heading", () => {
@@ -225,47 +201,219 @@ describe("extractSection", () => {
 			"    ## indented code, not a heading",
 			"Still the same section.",
 		].join("\n");
-		expect(extractSection(markdown, "When to Use")?.content).toBe(
-			"## When to Use\nIntro.\n    ## indented code, not a heading\nStill the same section.",
+
+		const document = parseSections(markdown, PATH);
+
+		expect(document.headings.map((heading) => heading.title)).toEqual(["When to Use"]);
+		expect(document.headings[0]?.content).toBe(
+			"Intro.\n    ## indented code, not a heading\nStill the same section.",
 		);
 	});
 
-	it("matches case-insensitively and drops closing hashes", () => {
-		const markdown = [
-			"# My Skill",
-			"##   when to USE  ##",
-			"Case-insensitive match.",
-			"## Next",
-		].join("\n");
-		const section = extractSection(markdown, "When to Use");
-		expect(section?.heading).toBe("##   when to USE  ##");
-		expect(section?.content).toBe(
-			"##   when to USE  ##\nCase-insensitive match.",
-		);
-	});
-
-	it("normalizes CRLF line endings", () => {
+	it("normalizes CRLF line endings without moving the headings", () => {
 		const markdown = "## When to Use\r\nContent.\r\n## Next\r\nX";
-		expect(extractSection(markdown, "When to Use")?.content).toBe(
-			"## When to Use\nContent.",
-		);
+
+		const document = parseSections(markdown, PATH);
+
+		expect(document.headings.map((heading) => heading.line)).toEqual([1, 3]);
+		expect(document.headings[0]?.content).toBe("Content.");
 	});
 
-	it("trims trailing blank lines from the section", () => {
-		const markdown = "## When to Use\nContent.\n\n\n## Next";
-		expect(extractSection(markdown, "When to Use")?.content).toBe(
-			"## When to Use\nContent.",
-		);
+	it("finds no heading in an empty file", () => {
+		expect(parseSections("", PATH).headings).toEqual([]);
 	});
 
-	it("returns undefined when the heading is absent", () => {
-		expect(
-			extractSection("# Title\n## Overview\nNo such section.", "When to Use"),
-		).toBeUndefined();
+	it("finds no heading in a file that carries none", () => {
+		const document = parseSections("Just a paragraph.\n\nAnd another one.\n", PATH);
+
+		expect(document.headings).toEqual([]);
 	});
 
-	it("returns undefined for empty or blank text", () => {
-		expect(extractSection("", "When to Use")).toBeUndefined();
-		expect(extractSection("   \n\n  ", "When to Use")).toBeUndefined();
+	it("carries the path the headings came from", () => {
+		expect(parseSections("# Skill\n", PATH).path).toBe(PATH);
+	});
+});
+
+
+const SELECTION_DOCUMENT = parseSections(
+	[
+		"# Skill",
+		"",
+		"## When to Use",
+		"Use it here.",
+		"",
+		"### Details",
+		"More.",
+		"",
+		"## Other",
+		"Other.",
+		"",
+		"## When to Use",
+		"Again.",
+	].join("\n"),
+	PATH,
+);
+
+describe("selectSections", () => {
+	it("resolves a name that reaches one heading", () => {
+		const selection = selectSections(SELECTION_DOCUMENT, [
+			{ kind: "name", name: "Other" },
+		]);
+
+		expect(selection.selected.map((heading) => heading.line)).toEqual([9]);
+		expect(selection.issues).toEqual([]);
+	});
+
+	it("matches a name without regard to case", () => {
+		const selection = selectSections(SELECTION_DOCUMENT, [
+			{ kind: "name", name: "other" },
+		]);
+
+		expect(selection.selected.map((heading) => heading.line)).toEqual([9]);
+	});
+
+	it("reports a name that reaches no heading", () => {
+		const selection = selectSections(SELECTION_DOCUMENT, [
+			{ kind: "name", name: "Nope" },
+		]);
+
+		expect(selection.selected).toEqual([]);
+		expect(selection.issues).toHaveLength(1);
+		expect(selection.issues[0]?.selector).toEqual({ kind: "name", name: "Nope" });
+		expect(selection.issues[0]?.failure.code).toBe("SECTION_NOT_FOUND");
+		expect(selection.issues[0]?.failure.evidence).toEqual({
+			kind: "section",
+			path: PATH,
+			selector: { kind: "name", name: "Nope" },
+		});
+	});
+
+	it("reports a name that reaches several headings with the candidates in source order", () => {
+		const selection = selectSections(SELECTION_DOCUMENT, [
+			{ kind: "name", name: "When to Use" },
+		]);
+
+		expect(selection.selected).toEqual([]);
+		expect(selection.issues).toHaveLength(1);
+		expect(selection.issues[0]?.failure.code).toBe("SECTION_AMBIGUOUS");
+		expect(selection.issues[0]?.failure.evidence).toEqual({
+			kind: "sectionAmbiguous",
+			path: PATH,
+			name: "When to Use",
+			candidates: [
+				{ heading: "## When to Use", line: 3 },
+				{ heading: "## When to Use", line: 12 },
+			],
+		});
+	});
+
+	it("resolves a line address to the heading that stands there", () => {
+		const selection = selectSections(SELECTION_DOCUMENT, [{ kind: "line", line: 6 }]);
+
+		expect(selection.selected.map((heading) => heading.line)).toEqual([6]);
+		expect(selection.issues).toEqual([]);
+	});
+
+	it("reports a line address that is not a heading", () => {
+		const selection = selectSections(SELECTION_DOCUMENT, [{ kind: "line", line: 4 }]);
+
+		expect(selection.selected).toEqual([]);
+		expect(selection.issues[0]?.failure.code).toBe("SECTION_NOT_FOUND");
+		expect(selection.issues[0]?.failure.evidence).toEqual({
+			kind: "section",
+			path: PATH,
+			selector: { kind: "line", line: 4 },
+		});
+	});
+
+	it("keeps a numeric heading name a name", () => {
+		const document = parseSections("## 42\nThe answer.\n", PATH);
+
+		const byName = selectSections(document, [{ kind: "name", name: "42" }]);
+		const byLine = selectSections(document, [{ kind: "line", line: 42 }]);
+
+		expect(byName.selected.map((heading) => heading.line)).toEqual([1]);
+		expect(byLine.selected).toEqual([]);
+		expect(byLine.issues[0]?.failure.code).toBe("SECTION_NOT_FOUND");
+	});
+
+	it("resolves every selector on its own", () => {
+		const selection = selectSections(SELECTION_DOCUMENT, [
+			{ kind: "name", name: "Other" },
+			{ kind: "name", name: "Nope" },
+			{ kind: "line", line: 6 },
+		]);
+
+		expect(selection.selected.map((heading) => heading.line)).toEqual([6, 9]);
+		expect(selection.issues).toHaveLength(1);
+		expect(selection.issues[0]?.selector).toEqual({ kind: "name", name: "Nope" });
+	});
+
+	it("keeps one heading when two selectors reach it", () => {
+		const selection = selectSections(SELECTION_DOCUMENT, [
+			{ kind: "name", name: "Other" },
+			{ kind: "line", line: 9 },
+		]);
+
+		expect(selection.selected.map((heading) => heading.line)).toEqual([9]);
+	});
+});
+
+describe("projectSections", () => {
+	it("shows the whole tree when nothing was selected", () => {
+		const projection = projectSections(SELECTION_DOCUMENT, undefined);
+
+		expect(projection.mode).toBe("tree");
+		if (projection.mode !== "tree") return;
+		expect(projection.headings).toEqual([
+			{ line: 1, heading: "# Skill" },
+			{ line: 3, heading: "## When to Use" },
+			{ line: 6, heading: "### Details" },
+			{ line: 9, heading: "## Other" },
+			{ line: 12, heading: "## When to Use" },
+		]);
+	});
+
+	it("counts the heading lines the tree shows", () => {
+		expect(projectSections(SELECTION_DOCUMENT, undefined).viewedLines).toBe(5);
+	});
+
+	it("keeps a parent's body apart from its descendant's body", () => {
+		const selection = selectSections(SELECTION_DOCUMENT, [
+			{ kind: "line", line: 3 },
+			{ kind: "line", line: 6 },
+		]);
+
+		const projection = projectSections(SELECTION_DOCUMENT, selection);
+
+		expect(projection.mode).toBe("sections");
+		if (projection.mode !== "sections") return;
+		expect(projection.sections).toEqual([
+			{
+				heading: "## When to Use",
+				content: "Use it here.",
+				subSections: [{ line: 6, heading: "### Details" }],
+			},
+			{
+				heading: "### Details",
+				content: "More.",
+				subSections: [],
+			},
+		]);
+	});
+
+	it("counts the heading, the body and the directory a section shows", () => {
+		const selection = selectSections(SELECTION_DOCUMENT, [{ kind: "line", line: 3 }]);
+
+		expect(projectSections(SELECTION_DOCUMENT, selection).viewedLines).toBe(3);
+	});
+
+	it("counts a source line once when two sections show it", () => {
+		const selection = selectSections(SELECTION_DOCUMENT, [
+			{ kind: "line", line: 3 },
+			{ kind: "line", line: 6 },
+		]);
+
+		expect(projectSections(SELECTION_DOCUMENT, selection).viewedLines).toBe(4);
 	});
 });

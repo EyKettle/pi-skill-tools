@@ -5,7 +5,7 @@
  * the card and the model text both state, never a rendered sentence: each
  * channel projects the same data into its own reader's form.
  */
-import type { Failure } from "../failure/types";
+import type { Failure, SectionSelector } from "../failure/types";
 
 export const TRANSPORT_VERSION = 1 as const;
 
@@ -42,10 +42,21 @@ export interface ListSkillFilesData {
 	readonly singleFile?: boolean;
 }
 
+/**
+ * A selection that reached no heading: the selector as the caller gave it, and
+ * the failure that says why.
+ */
+export interface PreviewIssueData {
+	readonly selector: SectionSelector;
+	readonly failure: Failure;
+}
+
 export interface PreviewSkillData {
 	readonly totalLines: number;
-	/** The projected section's line count; absent when none was asked for. */
-	readonly sectionLines?: number;
+	/** The source lines the visible headings and bodies represent. */
+	readonly viewedLines: number;
+	/** The selections that reached no heading, beside the ones that resolved. */
+	readonly issues: readonly PreviewIssueData[];
 }
 
 export interface SearchSkillData {
