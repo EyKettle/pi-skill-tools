@@ -7,6 +7,7 @@
 - [技能加载机制](skill-tree.md)
 
 [检索方式]: tools.md#通过-frontmatter-检索技能
+[取用规则]: tools.md#取用规则
 [失败证据章节]: ../architecture.md#失败携带结构化证据
 
 ## 参数定义
@@ -87,6 +88,7 @@
 展示看到的信息与章节：
 
 ```text
+[{skill-id}] {/path/to/filename.ext}
 Total Lines: {n}
 Total Bytes: {m}
 Created At: {datetime}
@@ -95,6 +97,10 @@ Updated At: {datetime}
 {sections}
 ======
 ```
+
+首行为来源行：`{skill-id}` 是实际解析出的技能 ID，按[取用规则]折叠；`{/path/to/filename.ext}` 是本次读取的绝对文件路径。
+来源行位于统计之前，不计入阅读量。
+空文件在来源行之后仍为空态 `Nothing to view`。
 
 `{sections}` 展示选定章节列表，每个单元的格式为：
 

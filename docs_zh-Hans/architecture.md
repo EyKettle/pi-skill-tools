@@ -191,7 +191,7 @@ graph LR
 | `tools/` | 定义所有工具：参数约束、编排逻辑、两通道接线 | `ToolDeps`, `ToolResult`, `define*Tool` | `discovery/`, `files/`, `management/`, `skill-tree/`, `tui-channel/`, `model-channel/`, `failure/` |
 | `skill-tree/` | 已加载技能状态：两层存储、差分、折叠、写入序、导航、挂载 | `createSkillTree`, `SkillTree`, `SkillTreePorts`, `StateEntry`, `ChangeRow` | `discovery/`, `failure/`, `model-channel/` |
 | `discovery/` | 定义 ID 语法、技能身份解析、索引构建、Frontmatter 解析 | `buildIndex`, `Index`, `RegistryEntry`, `parseSkillId`, `formatSkillId`, `resolveSkillId`, `matchesFrontmatter`, `parseFrontmatterBlock`, `collectTags` | `failure/`, `shared/` |
-| `files/` | 安全读取、目录遍历、建立章节索引、解析章节选择、产生正文与子章节目录的投影 | `resolveSkillFile`, `readSkillFile`, `listSkillFiles`, `extractSection` | `failure/` |
+| `files/` | 安全读取、目录遍历、建立章节索引、解析章节选择、产生正文与子章节目录的投影 | `resolveSkillFile`, `readSkillFile`, `listSkillFiles`, `parseSections`, `selectSections`, `projectSections` | `failure/` |
 | `management/` | 技能写操作：创建、重命名、移除，含原子写与覆盖保护 | `createSkill`, `renameSkill`, `removeSkill`, `ManagementPorts` | `discovery/`, `failure/` |
 | `tui-channel/` | TUI 通道：传输载荷家族、行投影、逐工具卡片、状态栏 | `TransportPayload`, `build*Payload`, `presentRow`, `renderStatus` | `deps/`, `failure/`, `shared/` |
 | `model-channel/` | 模型通道：逐工具输出文本、失败文本框架、系统提示追加 | `*Text`, `failureText`, `guidanceText` | `failure/` |
