@@ -35,6 +35,7 @@ pnpm run typecheck
 ```
 
 `docs*/` 中的文档作参考，在 `tests/` 下编写测试约束行为，再于 `src/` 中开发。
+测试文件位于 `tests/` 下，命名为 `*.test.ts`；`pnpm test` 只发现该目录内的测试。
 
 ## 如何报告问题
 
