@@ -9,8 +9,8 @@
  */
 import { Type } from "typebox";
 import type { SectionSelector } from "../failure/types";
-import { projectSections, selectSections } from "../files/section";
-import type { SectionProjection } from "../files/section";
+import { projectSections, selectSections, SUBSECTION_VISIBILITIES } from "../files/section";
+import type { SectionProjection, SubsectionVisibility } from "../files/section";
 import { readSkillFile, resolveSkillFile } from "../files/read";
 import { previewSkillText } from "../model-channel/output";
 import type { PreviewContent } from "../model-channel/output";
@@ -59,6 +59,18 @@ export function definePreviewSkillTool(deps: ToolDeps) {
 					},
 				),
 			),
+			subsectionVisibility: Type.Optional(
+				Type.Union(
+					SUBSECTION_VISIBILITIES.choices.map((visibility) => Type.Literal(visibility)),
+					{
+						default: SUBSECTION_VISIBILITIES.default,
+						description:
+							"Control the subsections of selected sections: hide omits them; " +
+							"tree lists all descendant headings; expand shows every descendant heading and body without line numbers. " +
+							"Ignored when section is omitted or an empty list.",
+					},
+				),
+			),
 		}),
 		execute(args: Record<string, unknown>): ToolOutcome {
 			if (typeof args.id !== "string") {
@@ -67,6 +79,7 @@ export function definePreviewSkillTool(deps: ToolDeps) {
 			// The argument is read before the file is: an argument the schema
 			// forbids must not spend a read to find out.
 			const selectors = sectionSelectors(args.section);
+			const subsectionVisibility = subsectionVisibilityOf(args.subsectionVisibility);
 			const index = deps.index();
 			const target = resolveTarget(index, args.id);
 			if (!target.ok) {
@@ -84,7 +97,7 @@ export function definePreviewSkillTool(deps: ToolDeps) {
 				selectors === undefined
 					? undefined
 					: selectSections(read.sections, selectors);
-			const projection = projectSections(read.sections, selection);
+			const projection = projectSections(read.sections, selection, subsectionVisibility);
 			return successOutcome(
 				previewSkillText({
 					source: { displayId: target.displayId, path: resolved.path },
@@ -106,6 +119,19 @@ export function definePreviewSkillTool(deps: ToolDeps) {
 			);
 		},
 	};
+}
+
+function subsectionVisibilityOf(value: unknown): SubsectionVisibility {
+	if (value === undefined) {
+		return SUBSECTION_VISIBILITIES.default;
+	}
+	const visibility = SUBSECTION_VISIBILITIES.choices.find((choice) => choice === value);
+	if (visibility !== undefined) {
+		return visibility;
+	}
+	throw new Error(
+		`preview_skill requires \`subsectionVisibility\` to be one of: ${SUBSECTION_VISIBILITIES.choices.join(", ")}`,
+	);
 }
 
 /**

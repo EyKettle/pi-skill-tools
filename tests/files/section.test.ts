@@ -360,6 +360,17 @@ describe("selectSections", () => {
 });
 
 describe("projectSections", () => {
+	it.each(["hide", "tree", "expand"] as const)("preserves projection inputs for %s", (subsectionVisibility) => {
+		const document = parseSections("## Parent\nParent body.\n### Child\nChild body.\n## Peer\nPeer body.\n", PATH);
+		const selection = { selected: [document.headings[2], document.headings[0]], issues: [] };
+		const originalDocument = structuredClone(document);
+		const originalSelection = structuredClone(selection);
+
+		projectSections(document, selection, subsectionVisibility);
+
+		expect(document).toEqual(originalDocument);
+		expect(selection).toEqual(originalSelection);
+	});
 	it("shows the whole tree when nothing was selected", () => {
 		const projection = projectSections(SELECTION_DOCUMENT, undefined);
 

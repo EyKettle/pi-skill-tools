@@ -19,6 +19,14 @@
  */
 import { createFailure } from "../failure/create";
 import type { Failure, SectionSelector } from "../failure/types";
+
+export const SUBSECTION_VISIBILITIES = {
+	choices: ["hide", "tree", "expand"],
+	default: "tree",
+} as const;
+
+export type SubsectionVisibility =
+	(typeof SUBSECTION_VISIBILITIES.choices)[number];
 export interface SectionHeading {
 	/** The heading text, without the hash marks and the closing hashes. */
 	readonly title: string;
@@ -318,6 +326,7 @@ export function selectSections(
 export function projectSections(
 	document: SectionDocument,
 	selection: SectionSelection | undefined,
+	subsectionVisibility: SubsectionVisibility = SUBSECTION_VISIBILITIES.default,
 ): SectionProjection {
 	if (selection === undefined) {
 		const headings = document.headings.map((heading) => ({
@@ -329,8 +338,11 @@ export function projectSections(
 
 	const sections: ProjectedSection[] = [];
 	const lines = new Set<number>();
-	for (const heading of selection.selected) {
-		const descendants = descendantsOf(heading);
+	const headings = subsectionVisibility === "expand"
+		? expandedHeadings(selection.selected)
+		: selection.selected;
+	for (const heading of headings) {
+		const descendants = subsectionVisibility === "tree" ? descendantsOf(heading) : [];
 		sections.push({
 			heading: heading.heading,
 			content: heading.content,
@@ -348,6 +360,11 @@ export function projectSections(
 		}
 	}
 	return { mode: "sections", sections, viewedLines: lines.size };
+}
+
+function expandedHeadings(headings: readonly SectionHeading[]): readonly SectionHeading[] {
+	const expanded = headings.flatMap((heading) => [heading, ...descendantsOf(heading)]);
+	return [...new Set(expanded)].sort((left, right) => left.line - right.line);
 }
 
 function matchSelector(

@@ -30,8 +30,189 @@ function sourceLineOf(dir: string, displayId: string, file = "SKILL.md"): string
 }
 
 const BODY = "# Skill\n\n## When to Use\nUse it here.\n\n## Other\nOther.\n";
+const NESTED_BODY = [
+	"## Parent",
+	"Parent body.",
+	"",
+	"### Child",
+	"Child body.",
+	"",
+	"#### Grandchild",
+	"Grandchild body.",
+	"",
+	"## Peer",
+	"Peer body.",
+	"",
+].join("\n");
 
 describe("preview_skill", () => {
+	it("hides every descendant of a selected section", () => {
+		const world = makeWorld();
+		writeSkill(world.globalSkills, "git", NESTED_BODY);
+
+		const outcome = toolFor(world).execute({
+			id: "git",
+			section: "Parent",
+			subsectionVisibility: "hide",
+		});
+
+		expect(outcome.content.split("\n").slice(5)).toEqual([
+			"======",
+			"## Parent",
+			"",
+			"Parent body.",
+			"======",
+		]);
+		expect(outcome.details).toMatchObject({
+			outcome: "success",
+			data: { totalLines: 11, viewedLines: 2, issues: [] },
+		});
+	});
+
+	it("expands an overlapping selection as one source-ordered range", () => {
+		const world = makeWorld();
+		writeSkill(world.globalSkills, "git", NESTED_BODY);
+
+		const outcome = toolFor(world).execute({
+			id: "git",
+			section: ["Child", "Parent", 1, "Parent"],
+			subsectionVisibility: "expand",
+		});
+
+		expect(outcome.content.split("\n").slice(5)).toEqual([
+			"======",
+			"## Parent",
+			"",
+			"Parent body.",
+			"",
+			"### Child",
+			"",
+			"Child body.",
+			"",
+			"#### Grandchild",
+			"",
+			"Grandchild body.",
+			"======",
+		]);
+		expect(outcome.details).toMatchObject({
+			outcome: "success",
+			data: { totalLines: 11, viewedLines: 6, issues: [] },
+		});
+	});
+
+	it("keeps the default policy identical to explicit tree", () => {
+		const world = makeWorld();
+		writeSkill(world.globalSkills, "git", NESTED_BODY);
+		const tool = toolFor(world);
+
+		const defaultPreview = tool.execute({ id: "git", section: "Parent" });
+		const treePreview = tool.execute({ id: "git", section: "Parent", subsectionVisibility: "tree" });
+
+		expect(treePreview).toEqual(defaultPreview);
+		expect(defaultPreview.details).toMatchObject({
+			outcome: "success", data: { totalLines: 11, viewedLines: 4, issues: [] },
+		});
+	});
+
+	it("keeps explicitly selected children visible when hiding subsections", () => {
+		const world = makeWorld();
+		writeSkill(world.globalSkills, "git", NESTED_BODY);
+
+		const outcome = toolFor(world).execute({
+			id: "git", section: ["Child", "Parent"], subsectionVisibility: "hide",
+		});
+
+		expect(outcome.content.split("\n").slice(5)).toEqual([
+			"======", "## Parent", "", "Parent body.", "", "### Child", "", "Child body.", "======",
+		]);
+		expect(outcome.details).toMatchObject({
+			outcome: "success", data: { totalLines: 11, viewedLines: 4, issues: [] },
+		});
+	});
+
+	it.each(((["hide", "tree", "expand"] as const).flatMap((subsectionVisibility) => [
+		{ subsectionVisibility, section: undefined },
+		{ subsectionVisibility, section: [] },
+	])))("keeps the complete tree without selected sections: $subsectionVisibility %#", ({ subsectionVisibility, section }) => {
+		const world = makeWorld();
+		writeSkill(world.globalSkills, "git", NESTED_BODY);
+
+		const outcome = toolFor(world).execute({ id: "git", section, subsectionVisibility });
+
+		expect(outcome.content.split("\n").slice(5)).toEqual([
+			"======", "1:## Parent", "4:### Child", "7:#### Grandchild", "10:## Peer", "======",
+		]);
+		expect(outcome.details).toMatchObject({
+			outcome: "success",
+			data: { totalLines: 11, viewedLines: 4, issues: [] },
+		});
+	});
+
+	it.each([
+		{ subsectionVisibility: "hide", viewedLines: 2, visibleText: "Parent body." },
+		{ subsectionVisibility: "tree", viewedLines: 4, visibleText: "4:### Child" },
+		{ subsectionVisibility: "expand", viewedLines: 6, visibleText: "Grandchild body." },
+	])("preserves successful selections beside failures: $subsectionVisibility", ({ subsectionVisibility, viewedLines, visibleText }) => {
+		const world = makeWorld();
+		writeSkill(world.globalSkills, "git", NESTED_BODY);
+
+		const outcome = toolFor(world).execute({
+			id: "git", section: ["Parent", "Missing"], subsectionVisibility,
+		});
+
+		expect(outcome.content).toContain(visibleText);
+		expect(outcome.content).not.toContain("Peer body.");
+		expect(outcome.content).toContain('"Missing": SECTION_NOT_FOUND;');
+		expect(outcome.details).toMatchObject({
+			outcome: "success",
+			data: {
+				totalLines: 11,
+				viewedLines,
+				issues: [expect.objectContaining({
+					failure: expect.objectContaining({ code: "SECTION_NOT_FOUND" }),
+				})],
+			},
+		});
+	});
+
+	it("expands a related file's selected subtree", () => {
+		const world = makeWorld();
+		const dir = writeSkill(world.globalSkills, "git");
+		writeRef(dir, "references/GUIDE.md", NESTED_BODY);
+
+		const outcome = toolFor(world).execute({
+			id: "git/references/GUIDE.md", section: "Parent", subsectionVisibility: "expand",
+		});
+
+		expect(outcome.content.split("\n")[0]).toBe(
+			sourceLineOf(dir, "git/references/GUIDE.md", "references/GUIDE.md"),
+		);
+		expect(outcome.content).toContain("Grandchild body.");
+		expect(outcome.content).not.toContain("Peer body.");
+		expect(outcome.details).toMatchObject({
+			outcome: "success", data: { totalLines: 11, viewedLines: 6, issues: [] },
+		});
+	});
+
+	it("preserves descendant body lines beneath an empty parent", () => {
+		const world = makeWorld();
+		writeSkill(world.globalSkills, "git", [
+			"## Parent", "", "### Child", "Before.", "", "```md",
+			"#### Not a heading", "```", "", "After.", "", "## Peer", "Peer body.", "",
+		].join("\n"));
+
+		const outcome = toolFor(world).execute({
+			id: "git", section: "Parent", subsectionVisibility: "expand",
+		});
+
+		expect(outcome.content.split("\n").slice(5)).toEqual([
+			"======", "## Parent", "", "### Child", "", "Before.", "", "```md",
+			"#### Not a heading", "```", "", "After.", "======",
+		]);
+		expect(outcome.details).toMatchObject({
+			outcome: "success", data: { totalLines: 13, viewedLines: 9, issues: [] },
+		});
+	});
 	it("lists the section tree when no section was asked for", () => {
 		const world = makeWorld();
 		const dir = writeSkill(world.globalSkills, "git", BODY);
@@ -374,14 +555,51 @@ describe("preview_skill", () => {
 		expect(outcome.details.failure.code).toBe("REF_PATH_INVALID");
 	});
 
-	it("declares id as required and section as optional", () => {
-		const world = makeWorld();
-		const tool = toolFor(world);
+	it("declares optional subsection visibility choices", () => {
+		const tool = toolFor(makeWorld());
+
 		expect(Object.keys(tool.parameters.properties).sort()).toEqual([
 			"id",
 			"section",
+			"subsectionVisibility",
 		]);
 		expect(tool.parameters.required).toEqual(["id"]);
+		const visibility = tool.parameters.properties.subsectionVisibility;
+		expect(visibility).toMatchObject({
+			default: "tree",
+			description: expect.stringContaining("selected sections"),
+		});
+		expect(visibility.anyOf).toEqual([
+			expect.objectContaining({ type: "string", const: "hide" }),
+			expect.objectContaining({ type: "string", const: "tree" }),
+			expect.objectContaining({ type: "string", const: "expand" }),
+		]);
+	});
+
+	it.each([
+		{ subsectionVisibility: "" },
+		{ subsectionVisibility: "TREE" },
+		{ subsectionVisibility: "tree " },
+		{ subsectionVisibility: null },
+		{ subsectionVisibility: false },
+		{ subsectionVisibility: 0 },
+		{ subsectionVisibility: [] },
+		{ subsectionVisibility: {} },
+	])("rejects invalid subsection visibility before indexing: $subsectionVisibility", ({ subsectionVisibility }) => {
+		const { tree } = stubTree(changeOk([]));
+		let indexReads = 0;
+		const tool = definePreviewSkillTool({
+			...depsOf(makeWorld(), tree),
+			index: () => {
+				indexReads++;
+				throw new Error("index must remain unread");
+			},
+		});
+
+		expect(() => tool.execute({ id: "git", subsectionVisibility })).toThrow(
+			"preview_skill requires `subsectionVisibility` to be one of: hide, tree, expand",
+		);
+		expect(indexReads).toBe(0);
 	});
 
 	it("declares result content and an unchanged loaded set", () => {
