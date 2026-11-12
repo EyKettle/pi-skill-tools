@@ -2,9 +2,9 @@
  * The plugin's configuration, read from the host's own settings files.
  *
  * Two files contribute — the agent-wide one and the project one — and the
- * project file wins where both state the same key. A missing file, a missing
- * key, or a value of the wrong type takes the default: a typo in a settings
- * file must not stop the extension from loading.
+ * project file wins where both state the same key. Missing or unusable files
+ * and sections contribute no values. A missing or mistyped merged value takes
+ * the default: a typo must not stop the extension from loading.
  *
  * This module reads files and nothing else, so it is testable without a host.
  */
@@ -19,6 +19,8 @@ export interface ConfiguredPath {
 }
 
 export interface ResolvedConfig {
+	/** The configured skill-tree switch; takes effect at plugin assembly. */
+	readonly skillTreeEnabled: boolean;
 	/** Whether the commit log records changes. */
 	readonly historyEnabled: boolean;
 	/** Locations turned off by `skills.registry.disable`. */
@@ -37,6 +39,7 @@ export interface SettingsInput {
 }
 
 const DEFAULTS: ResolvedConfig = {
+	skillTreeEnabled: true,
 	historyEnabled: true,
 	disable: [],
 	defaultLocation: "global",
@@ -49,6 +52,10 @@ export function resolveConfig(input: SettingsInput): ResolvedConfig {
 	const project = readSettings(
 		path.join(input.cwd, input.configDirName, "settings.json"),
 	);
+	const skillTree = {
+		...skillTreeSection(global),
+		...skillTreeSection(project),
+	};
 	const history = {
 		...historySection(global),
 		...historySection(project),
@@ -59,6 +66,8 @@ export function resolveConfig(input: SettingsInput): ResolvedConfig {
 	};
 
 	return {
+		skillTreeEnabled:
+			typeof skillTree.enabled === "boolean" ? skillTree.enabled : DEFAULTS.skillTreeEnabled,
 		historyEnabled:
 			typeof history.enabled === "boolean" ? history.enabled : DEFAULTS.historyEnabled,
 		disable: stringArray(registry.disable) ? registry.disable : DEFAULTS.disable,
@@ -90,6 +99,11 @@ export function readSettings(file: string): Record<string, unknown> {
 function skillsSection(settings: Record<string, unknown>): Record<string, unknown> {
 	const skills = settings.skills;
 	return isRecord(skills) ? skills : {};
+}
+
+function skillTreeSection(settings: Record<string, unknown>): Record<string, unknown> {
+	const skillTree = skillsSection(settings).skillTree;
+	return isRecord(skillTree) ? skillTree : {};
 }
 
 function historySection(settings: Record<string, unknown>): Record<string, unknown> {

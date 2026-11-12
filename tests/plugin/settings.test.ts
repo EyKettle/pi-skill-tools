@@ -47,11 +47,130 @@ function projectFile(i: SettingsInput): string {
 describe("resolveConfig", () => {
 	it("takes the defaults when no settings file exists", () => {
 		expect(resolveConfig(input())).toEqual({
+			skillTreeEnabled: true,
 			historyEnabled: true,
 			disable: [],
 			defaultLocation: "global",
 			paths: {},
 		});
+	});
+
+	it.each([
+		{ label: "false", value: false, expected: false },
+		{ label: "true", value: true, expected: true },
+		{ label: "false string", value: "false", expected: true },
+		{ label: "true string", value: "true", expected: true },
+		{ label: "zero", value: 0, expected: true },
+		{ label: "one", value: 1, expected: true },
+		{ label: "null", value: null, expected: true },
+		{ label: "array", value: [false], expected: true },
+		{ label: "object", value: { enabled: false }, expected: true },
+		{ label: "missing", value: undefined, expected: true },
+	] as const)("validates the skill-tree switch: $label", ({ value, expected }) => {
+		const i = input();
+		write(globalFile(i), { skills: { skillTree: { enabled: value } } });
+		expect(resolveConfig(i).skillTreeEnabled).toBe(expected);
+	});
+
+	it.each([
+		{
+			label: "project disables",
+			agent: true,
+			project: { skills: { skillTree: { enabled: false } } },
+			expected: false,
+		},
+		{
+			label: "project enables",
+			agent: false,
+			project: { skills: { skillTree: { enabled: true } } },
+			expected: true,
+		},
+		{
+			label: "project supplies a missing agent value",
+			agent: undefined,
+			project: { skills: { skillTree: { enabled: false } } },
+			expected: false,
+		},
+		{
+			label: "project overrides an invalid agent value",
+			agent: "false",
+			project: { skills: { skillTree: { enabled: false } } },
+			expected: false,
+		},
+		{
+			label: "project omits enabled",
+			agent: false,
+			project: { skills: { skillTree: {} } },
+			expected: false,
+		},
+		{
+			label: "project changes another section",
+			agent: false,
+			project: { skills: { history: { enabled: false } } },
+			expected: false,
+		},
+		{
+			label: "project enabled is a string",
+			agent: false,
+			project: { skills: { skillTree: { enabled: "false" } } },
+			expected: true,
+		},
+		{
+			label: "project enabled is null",
+			agent: false,
+			project: { skills: { skillTree: { enabled: null } } },
+			expected: true,
+		},
+		{
+			label: "project skillTree is null",
+			agent: false,
+			project: { skills: { skillTree: null } },
+			expected: false,
+		},
+		{
+			label: "project skillTree is an array",
+			agent: false,
+			project: { skills: { skillTree: [false] } },
+			expected: false,
+		},
+		{
+			label: "project skills is not an object",
+			agent: false,
+			project: { skills: false },
+			expected: false,
+		},
+		{
+			label: "project file is not an object",
+			agent: false,
+			project: [],
+			expected: false,
+		},
+		{
+			label: "project file is not JSON",
+			agent: false,
+			project: "{not json",
+			expected: false,
+		},
+		{
+			label: "project file is missing",
+			agent: false,
+			project: undefined,
+			expected: false,
+		},
+	] as const)("merges the skill-tree switch: $label", ({ agent, project, expected }) => {
+		const i = input();
+		if (agent !== undefined) {
+			write(globalFile(i), { skills: { skillTree: { enabled: agent } } });
+		}
+		if (project !== undefined) write(projectFile(i), project);
+		expect(resolveConfig(i).skillTreeEnabled).toBe(expected);
+	});
+
+	it("inherits the agent skill-tree switch when the project file cannot be read", () => {
+		const i = input();
+		write(globalFile(i), { skills: { skillTree: { enabled: false } } });
+		mkdirSync(projectFile(i), { recursive: true });
+		expect(resolveConfig(i).skillTreeEnabled).toBe(false);
 	});
 
 	it("reads the history switch", () => {
@@ -76,6 +195,7 @@ describe("resolveConfig", () => {
 		});
 
 		expect(resolveConfig(i)).toEqual({
+			skillTreeEnabled: true,
 			historyEnabled: true,
 			disable: ["package", "temp"],
 			defaultLocation: "extra",
@@ -122,6 +242,7 @@ describe("resolveConfig", () => {
 		});
 
 		expect(resolveConfig(i)).toEqual({
+			skillTreeEnabled: true,
 			historyEnabled: true,
 			disable: [],
 			defaultLocation: "global",
