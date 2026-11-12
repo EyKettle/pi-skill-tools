@@ -42,7 +42,7 @@ import { definePreviewSkillTool } from "../tools/preview-skill";
 import { defineRemoveSkillTool } from "../tools/remove-skill";
 import { defineRenameSkillTool } from "../tools/rename-skill";
 import { defineSearchSkillTool } from "../tools/search-skill";
-import type { ToolDeps } from "../tools/types";
+import type { SkillTreeToolDeps } from "../tools/types";
 import { runCommand } from "./commands";
 import type { CommandName } from "./commands";
 import { appendGuidance, installContextHooks } from "./hooks";
@@ -185,7 +185,7 @@ export async function createPlugin(
 		},
 	});
 
-	const deps: ToolDeps = { index: () => index, tree, management };
+	const deps: SkillTreeToolDeps = { index: () => index, tree, management };
 
 	const tools = [
 		defineListSkillsTool(deps),

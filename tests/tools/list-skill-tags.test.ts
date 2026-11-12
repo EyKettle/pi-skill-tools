@@ -6,12 +6,10 @@ import { describe, expect, it } from "vitest";
 import { defineListSkillTagsTool } from "../../src/tools/list-skill-tags";
 import { EMPTY_LIST_TAGS } from "../../src/model-channel/output";
 import { isTransportPayload } from "../../src/tui-channel/payload";
-import { depsOf, makeWorld, stubTree, writeSkill } from "./support/world";
-import { changeOk } from "./support/world";
+import { depsOf, makeWorld, writeSkill } from "./support/world";
 
 function toolFor(world: ReturnType<typeof makeWorld>) {
-	const { tree } = stubTree(changeOk([]));
-	return defineListSkillTagsTool(depsOf(world, tree));
+	return defineListSkillTagsTool(depsOf(world));
 }
 
 const TAGGED = "---\nname: git\nmetadata:\n  tags: [networking, pi]\n---\n";

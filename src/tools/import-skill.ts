@@ -9,11 +9,11 @@ import { changeSkillText } from "../model-channel/output";
 import { buildImportSkillPayload } from "../tui-channel/payload";
 import { batchIds } from "./common";
 import { failureOutcome, successOutcome } from "./types";
-import type { ToolDeps, ToolOutcome } from "./types";
+import type { SkillTreeToolDeps, ToolOutcome } from "./types";
 
 const TOOL = "import_skill";
 
-export function defineImportSkillTool(deps: ToolDeps) {
+export function defineImportSkillTool(deps: SkillTreeToolDeps) {
 	return {
 		name: TOOL,
 		label: "Import skill",

@@ -11,18 +11,10 @@ import {
 	SINGLE_FILE_SKILL,
 } from "../../src/model-channel/output";
 import { isTransportPayload } from "../../src/tui-channel/payload";
-import {
-	changeOk,
-	depsOf,
-	makeWorld,
-	stubTree,
-	writeRef,
-	writeSkill,
-} from "./support/world";
+import { depsOf, makeWorld, writeRef, writeSkill } from "./support/world";
 
 function toolFor(world: ReturnType<typeof makeWorld>) {
-	const { tree } = stubTree(changeOk([]));
-	return defineListSkillFilesTool(depsOf(world, tree));
+	return defineListSkillFilesTool(depsOf(world));
 }
 
 describe("list_skill_files", () => {

@@ -25,7 +25,7 @@ import type {
 	ChangeResult,
 	SkillTree,
 } from "../../../src/skill-tree/types";
-import type { ToolDeps } from "../../../src/tools/types";
+import type { SkillTreeToolDeps, ToolDeps } from "../../../src/tools/types";
 
 const tmpDirs: string[] = [];
 
@@ -140,18 +140,22 @@ export function changeOk(results: readonly ChangeReport[]): ChangeResult {
 	return { ok: true, results };
 }
 
-/** The deps a tool receives: the world's index, a tree stub, its ports. */
-export function depsOf(
-	world: World,
-	tree: SkillTree,
-	overrides: Partial<ToolDeps> = {},
-): ToolDeps {
+/** The ordinary ports over the world's real index and management operations. */
+export function depsOf(world: World, overrides: Partial<ToolDeps> = {}): ToolDeps {
 	return {
 		index: () => indexOf(world),
-		tree,
 		management: () => managementOf(world),
 		...overrides,
 	};
+}
+
+/** The ordinary ports plus the loaded set used by load/cancel tools. */
+export function skillTreeDepsOf(
+	world: World,
+	tree: SkillTree,
+	overrides: Partial<SkillTreeToolDeps> = {},
+): SkillTreeToolDeps {
+	return { ...depsOf(world), tree, ...overrides };
 }
 
 /** The names directly under a directory, sorted; useful after a write. */

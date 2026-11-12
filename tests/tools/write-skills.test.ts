@@ -11,18 +11,10 @@ import { defineRemoveSkillTool } from "../../src/tools/remove-skill";
 import { EMPTY_CREATE } from "../../src/model-channel/output";
 import { presentRow } from "../../src/tui-channel/presentation";
 import { isTransportPayload } from "../../src/tui-channel/payload";
-import {
-	changeOk,
-	depsOf,
-	makeWorld,
-	stubTree,
-	writeRef,
-	writeSkill,
-} from "./support/world";
+import { depsOf, makeWorld, writeRef, writeSkill } from "./support/world";
 
 function toolsFor(world: ReturnType<typeof makeWorld>) {
-	const { tree } = stubTree(changeOk([]));
-	const deps = depsOf(world, tree);
+	const deps = depsOf(world);
 	return {
 		create: defineCreateSkillTool(deps),
 		rename: defineRenameSkillTool(deps),

@@ -7,12 +7,10 @@ import { defineListSkillsTool } from "../../src/tools/list-skills";
 import { EMPTY_LIST_SKILLS } from "../../src/model-channel/output";
 import { isTransportPayload } from "../../src/tui-channel/payload";
 import { presentRow } from "../../src/tui-channel/presentation";
-import { depsOf, indexOf, makeWorld, stubTree, writeSkill } from "./support/world";
-import { changeOk } from "./support/world";
+import { depsOf, makeWorld, writeSkill } from "./support/world";
 
 function toolFor(world: ReturnType<typeof makeWorld>) {
-	const { tree } = stubTree(changeOk([]));
-	return defineListSkillsTool(depsOf(world, tree));
+	return defineListSkillsTool(depsOf(world));
 }
 
 describe("list_skills", () => {

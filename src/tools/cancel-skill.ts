@@ -10,11 +10,11 @@ import { changeSkillText } from "../model-channel/output";
 import { buildCancelSkillPayload } from "../tui-channel/payload";
 import { batchIds } from "./common";
 import { failureOutcome, successOutcome } from "./types";
-import type { ToolDeps, ToolOutcome } from "./types";
+import type { SkillTreeToolDeps, ToolOutcome } from "./types";
 
 const TOOL = "cancel_skill";
 
-export function defineCancelSkillTool(deps: ToolDeps) {
+export function defineCancelSkillTool(deps: SkillTreeToolDeps) {
 	return {
 		name: TOOL,
 		label: "Cancel skill",

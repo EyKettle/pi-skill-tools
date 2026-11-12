@@ -6,17 +6,10 @@ import { describe, expect, it } from "vitest";
 import { defineSearchSkillTool } from "../../src/tools/search-skill";
 import { EMPTY_SEARCH } from "../../src/model-channel/output";
 import { isTransportPayload } from "../../src/tui-channel/payload";
-import {
-	changeOk,
-	depsOf,
-	makeWorld,
-	stubTree,
-	writeSkill,
-} from "./support/world";
+import { depsOf, makeWorld, writeSkill } from "./support/world";
 
 function toolFor(world: ReturnType<typeof makeWorld>) {
-	const { tree } = stubTree(changeOk([]));
-	return defineSearchSkillTool(depsOf(world, tree));
+	return defineSearchSkillTool(depsOf(world));
 }
 
 const GIT = "---\nname: git\nlicense: MIT\nmetadata:\n  tags: [state]\n---\n";

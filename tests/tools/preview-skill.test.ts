@@ -14,14 +14,14 @@ import {
 	changeOk,
 	depsOf,
 	makeWorld,
+	skillTreeDepsOf,
 	stubTree,
 	writeRef,
 	writeSkill,
 } from "./support/world";
 
 function toolFor(world: ReturnType<typeof makeWorld>) {
-	const { tree } = stubTree(changeOk([]));
-	return definePreviewSkillTool(depsOf(world, tree));
+	return definePreviewSkillTool(depsOf(world));
 }
 
 /** The source line a preview opens with: the resolved id and the absolute path. */
@@ -515,7 +515,7 @@ describe("preview_skill", () => {
 		writeSkill(world.globalSkills, "git", BODY);
 		const { tree, calls } = stubTree(changeOk([]));
 
-		definePreviewSkillTool(depsOf(world, tree)).execute({ id: "git" });
+		definePreviewSkillTool(skillTreeDepsOf(world, tree)).execute({ id: "git" });
 
 		expect(calls.imported).toEqual([]);
 		expect(calls.cancelled).toEqual([]);
@@ -586,10 +586,9 @@ describe("preview_skill", () => {
 		{ subsectionVisibility: [] },
 		{ subsectionVisibility: {} },
 	])("rejects invalid subsection visibility before indexing: $subsectionVisibility", ({ subsectionVisibility }) => {
-		const { tree } = stubTree(changeOk([]));
 		let indexReads = 0;
 		const tool = definePreviewSkillTool({
-			...depsOf(makeWorld(), tree),
+			...depsOf(makeWorld()),
 			index: () => {
 				indexReads++;
 				throw new Error("index must remain unread");

@@ -6,8 +6,8 @@
  * card shows as `{output}`; `details` is what the card prints as `{answer}`
  * and `{info}`.
  *
- * `ToolDeps` is the whole external surface a tool may touch: the index
- * snapshot, the loaded tree, and the management ports. Domain modules arrive
+ * `ToolDeps` supplies the index snapshot and management ports; loaded-set
+ * tools require the tree through `SkillTreeToolDeps`. Domain modules arrive
  * by import — a tool composes them, it does not own them.
  */
 import type { Index } from "../discovery/types";
@@ -19,12 +19,15 @@ import type { ToolName, TransportPayload } from "../tui-channel/types";
 import type { SkillTree } from "../skill-tree/types";
 
 export interface ToolDeps {
-	/** The current index; the plugin rebuilds it before each call. */
+	/** The current index snapshot shared by this call's ports. */
 	readonly index: () => Index;
-	/** The loaded set and its shared load/cancel use case. */
-	readonly tree: SkillTree;
 	/** The write ports, closed over the same index the call sees. */
 	readonly management: () => ManagementPorts;
+}
+
+export interface SkillTreeToolDeps extends ToolDeps {
+	/** The loaded set and its shared load/cancel use case. */
+	readonly tree: SkillTree;
 }
 
 export interface ToolOutcome {

@@ -9,7 +9,7 @@ import { createFailure } from "../../src/failure/create";
 import { isTransportPayload } from "../../src/tui-channel/payload";
 import {
 	changeOk,
-	depsOf,
+	skillTreeDepsOf,
 	makeWorld,
 	stubTree,
 	writeSkill,
@@ -25,7 +25,7 @@ describe("import_skill", () => {
 			]),
 		);
 
-		const outcome = defineImportSkillTool(depsOf(world, tree)).execute({
+		const outcome = defineImportSkillTool(skillTreeDepsOf(world, tree)).execute({
 			id: ["git", "pi"],
 		});
 
@@ -46,7 +46,7 @@ describe("import_skill", () => {
 			changeOk([{ displayId: "git", action: "Refreshed" }]),
 		);
 
-		const outcome = defineImportSkillTool(depsOf(world, tree)).execute({
+		const outcome = defineImportSkillTool(skillTreeDepsOf(world, tree)).execute({
 			id: "git",
 		});
 
@@ -58,7 +58,7 @@ describe("import_skill", () => {
 		const world = makeWorld();
 		const { tree, calls } = stubTree(changeOk([]));
 
-		const outcome = defineImportSkillTool(depsOf(world, tree)).execute({
+		const outcome = defineImportSkillTool(skillTreeDepsOf(world, tree)).execute({
 			id: [],
 		});
 
@@ -76,7 +76,7 @@ describe("import_skill", () => {
 		});
 		const { tree } = stubTree({ ok: false, failure });
 
-		const outcome = defineImportSkillTool(depsOf(world, tree)).execute({
+		const outcome = defineImportSkillTool(skillTreeDepsOf(world, tree)).execute({
 			id: "absent",
 		});
 
@@ -90,7 +90,7 @@ describe("import_skill", () => {
 	it("declares id as one string or a list", () => {
 		const world = makeWorld();
 		const { tree } = stubTree(changeOk([]));
-		const tool = defineImportSkillTool(depsOf(world, tree));
+		const tool = defineImportSkillTool(skillTreeDepsOf(world, tree));
 		expect(Object.keys(tool.parameters.properties)).toEqual(["id"]);
 		expect(tool.parameters.required).toEqual(["id"]);
 		expect(JSON.stringify(tool.parameters.properties.id)).toContain("anyOf");
@@ -101,7 +101,7 @@ describe("import_skill", () => {
 		const { tree } = stubTree(
 			changeOk([{ displayId: "git", action: "Loaded" }]),
 		);
-		const outcome = defineImportSkillTool(depsOf(world, tree)).execute({
+		const outcome = defineImportSkillTool(skillTreeDepsOf(world, tree)).execute({
 			id: "git",
 		});
 		expect(isTransportPayload(outcome.details)).toBe(true);
@@ -115,7 +115,7 @@ describe("cancel_skill", () => {
 			changeOk([{ displayId: "git", action: "Unloaded" }]),
 		);
 
-		const outcome = defineCancelSkillTool(depsOf(world, tree)).execute({
+		const outcome = defineCancelSkillTool(skillTreeDepsOf(world, tree)).execute({
 			id: "git",
 		});
 
@@ -139,7 +139,7 @@ describe("cancel_skill", () => {
 		});
 		const { tree } = stubTree({ ok: false, failure });
 
-		const outcome = defineCancelSkillTool(depsOf(world, tree)).execute({
+		const outcome = defineCancelSkillTool(skillTreeDepsOf(world, tree)).execute({
 			id: "git",
 		});
 
@@ -153,7 +153,7 @@ describe("cancel_skill", () => {
 		const world = makeWorld();
 		const { tree, calls } = stubTree(changeOk([]));
 
-		const outcome = defineCancelSkillTool(depsOf(world, tree)).execute({
+		const outcome = defineCancelSkillTool(skillTreeDepsOf(world, tree)).execute({
 			id: ["git", 7],
 		});
 
