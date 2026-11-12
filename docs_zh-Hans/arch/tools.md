@@ -8,6 +8,7 @@
 
 [加载树文档]: skill-tree.md#行为
 [可写属性]: ../configuration.md#配置项
+[`skills.skillTree.enabled`]: ../configuration.md#配置项
 
 ## 工具分工一览
 
@@ -98,6 +99,8 @@
 两工具均支持批量操作。
 
 技能加载与卸载的行为详见[加载树文档]。
+
+[`skills.skillTree.enabled`] 为 `false` 时，技能加载树被关闭，加载与卸载技能启动时不再注册。
 
 ## 技能管理
 

@@ -8,6 +8,7 @@
 
 [技能 ID]: tools.md#技能-id
 [技能 ID 取用规则]: tools.md#取用规则
+[`skills.skillTree.enabled`]: ../configuration.md#配置项
 
 ## 技能加载树
 
@@ -15,6 +16,8 @@ skill-tools 将技能储存为应用状态。
 通过维护技能加载树管理上下文中的技能，提供一个不重复同样文本的阅读途径。
 
 通过尾部提示词（`tail-prompt` 扩展）挂载到上下文中，具体见[挂载章节](#挂载)。
+
+仅当 [`skills.skillTree.enabled`] 为 `true` 时，插件符合该文档所述行为。
 
 ## 行为
 
@@ -142,3 +145,5 @@ Myers 的代价随编辑距离增长，产出前因此设一道中止闸，由 `
 | `/skill:clear` | 取消全部 |
 
 所需 ID 为[技能 ID]，支持列表。
+
+[`skills.skillTree.enabled`] 为 `false` 时，以上命令启动时均不注册。

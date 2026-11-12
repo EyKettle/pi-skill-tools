@@ -10,6 +10,7 @@
 [取用规则]: tools.md#取用规则
 [失败证据章节]: ../architecture.md#失败携带结构化证据
 [预览工具样式]: tui-channel.md#预览工具样式
+[`skills.skillTree.enabled`]: ../configuration.md#配置项
 
 ## 参数定义
 
@@ -221,3 +222,5 @@ Skill IDs use `{position}:{skill-name}/{type}/{filename.ext}`.
 `{position}:` is optional; add it when skills share one name.
 `/{type}/{filename.ext}` is optional; add it when the ID points at a related file instead of the skill's main document.
 ```
+
+当 [`skills.skillTree.enabled`] 为 `false` 时，技能加载工具不注册，追加引导会更换为：
