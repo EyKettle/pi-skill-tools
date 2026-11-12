@@ -6,6 +6,12 @@
  * description cannot outrank the system prompt, so the correction rides the
  * one channel that can: the appended guidance, in the document's own words.
  */
+const SKILL_ID_GUIDANCE = [
+	"Skill IDs use `{position}:{skill-name}/{type}/{filename.ext}`.",
+	"`{position}:` is optional; add it when skills share one name.",
+	"`/{type}/{filename.ext}` is optional; add it when the ID points at a related file instead of the skill's main document."
+] as const;
+
 export const GUIDANCE_TEXT = [
 	"Load skills with skill tools. Read tool will truncate long files and repeat contents you already have.",
 	"A load's result names only the ids it applied to; the body is not in it.",
@@ -14,7 +20,15 @@ export const GUIDANCE_TEXT = [
 	"",
 	"That's why skill tools ensure context uniqueness of skill documents. Feel free to use skill tools.",
 	"",
-	"Skill IDs use `{position}:{skill-name}/{type}/{filename.ext}`.",
-	"`{position}:` is optional; add it when skills share one name.",
-	"`/{type}/{filename.ext}` is optional; add it when the ID points at a related file instead of the skill's main document."
+	...SKILL_ID_GUIDANCE,
+].join("\n");
+
+export const PREVIEW_GUIDANCE_TEXT = [
+	"Read skills with `preview_skill`.",
+	"This put reading range in precise control, avoiding partially lost.",
+	"",
+	"Read related skills before acting on it.",
+	"Preview heading tree to check what you need.",
+	"",
+	...SKILL_ID_GUIDANCE,
 ].join("\n");
