@@ -224,3 +224,15 @@ Skill IDs use `{position}:{skill-name}/{type}/{filename.ext}`.
 ```
 
 当 [`skills.skillTree.enabled`] 为 `false` 时，技能加载工具不注册，追加引导会更换为：
+
+```text
+Read skills with `preview_skill`.
+This put reading range in precise control, avoiding partially lost.
+
+Read related skills before acting on it.
+Preview heading tree to check what you need.
+
+Skill IDs use `{position}:{skill-name}/{type}/{filename.ext}`.
+`{position}:` is optional; add it when skills share one name.
+`/{type}/{filename.ext}` is optional; add it when the ID points at a related file instead of the skill's main document.
+```

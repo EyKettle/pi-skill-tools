@@ -9,6 +9,7 @@
 [加载树文档]: skill-tree.md#行为
 [可写属性]: ../configuration.md#配置项
 [`skills.skillTree.enabled`]: ../configuration.md#配置项
+[配置读取与生效]: ../configuration.md#配置读取与生效
 
 ## 工具分工一览
 
@@ -24,6 +25,9 @@
 | `create_skill` | 安全创建技能或相关文件 |
 | `rename_skill` | 安全重命名技能或相关文件 |
 | `remove_skill` | 安全移除技能或相关文件 |
+
+`ToolDeps` 提供当前索引与技能管理端口，供不依赖加载树的工具使用。
+`SkillTreeToolDeps` 在其上增加必需的 `SkillTree`，用于 `import_skill` 与 `cancel_skill`。
 
 ## 技能 ID
 
@@ -100,7 +104,8 @@
 
 技能加载与卸载的行为详见[加载树文档]。
 
-[`skills.skillTree.enabled`] 为 `false` 时，技能加载树被关闭，加载与卸载技能启动时不再注册。
+[`skills.skillTree.enabled`] 为 `false` 时，插件初始化时不注册 `import_skill` 与 `cancel_skill`，其余工具照常注册。
+开关的生效时机见[配置读取与生效]。
 
 ## 技能管理
 

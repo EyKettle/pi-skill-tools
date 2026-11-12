@@ -9,6 +9,7 @@
 [技能 ID]: tools.md#技能-id
 [技能 ID 取用规则]: tools.md#取用规则
 [`skills.skillTree.enabled`]: ../configuration.md#配置项
+[配置读取与生效]: ../configuration.md#配置读取与生效
 
 ## 技能加载树
 
@@ -17,7 +18,14 @@ skill-tools 将技能储存为应用状态。
 
 通过尾部提示词（`tail-prompt` 扩展）挂载到上下文中，具体见[挂载章节](#挂载)。
 
-仅当 [`skills.skillTree.enabled`] 为 `true` 时，插件符合该文档所述行为。
+加载、存储、挂载与手动路径仅在 [`skills.skillTree.enabled`] 为 `true` 时启用。
+开关的生效时机见[配置读取与生效]。
+
+## 关闭状态
+
+总开关关闭时，插件不装配技能加载树，不打开其会话副本存储，也不读取或写入副本及加载树日志。
+插件不注册尾部段，不监听 `tail-prompt:ready`，也不显示已加载数量的状态栏。
+既有副本和日志不会因关闭而删除；重新开启时按[偏离与修复](#偏离与修复)恢复当前会话路径的加载状态。
 
 ## 行为
 
