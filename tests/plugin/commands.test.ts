@@ -1,8 +1,9 @@
 /**
  * The event mapping and the four commands, with a recording host instead of pi.
  */
-import { describe, expect, it } from "vitest";
+import { describe, expect, expectTypeOf, it } from "vitest";
 import { appendGuidance, installContextHooks } from "../../src/plugin/hooks";
+import type { ContextEvent, ContextHandlers, EventSource } from "../../src/plugin/hooks";
 import { runCommand } from "../../src/plugin/commands";
 import type { CommandPorts } from "../../src/plugin/commands";
 import { changeOk, makeWorld, stubTree, indexOf, writeSkill } from "../tools/support/world";
@@ -24,9 +25,9 @@ describe("installContextHooks", () => {
 				},
 			},
 			{
-				start: (value) => seen.push(`start:${value.name}`),
-				navigate: (value) => seen.push(`navigate:${value.name}`),
-				shutdown: (value) => seen.push(`shutdown:${value.name}`),
+				start: (value) => { seen.push(`start:${value.name}`); },
+				navigate: (value) => { seen.push(`navigate:${value.name}`); },
+				shutdown: (value) => { seen.push(`shutdown:${value.name}`); },
 			},
 		);
 
@@ -37,6 +38,38 @@ describe("installContextHooks", () => {
 		]);
 		expect(seen).toEqual(["start:ctx", "navigate:ctx", "shutdown:ctx"]);
 	});
+
+	it.each(["session_start", "session_tree", "session_shutdown"] as const)(
+		"returns asynchronous completion to the host for %s",
+		async (event) => {
+			const ctx = { name: "ctx" };
+			type Handler = (context: typeof ctx) => void | Promise<void>;
+			expectTypeOf<ContextHandlers<typeof ctx>>().toEqualTypeOf<{
+				readonly start: Handler;
+				readonly navigate: Handler;
+				readonly shutdown: Handler;
+			}>();
+			expectTypeOf<Parameters<EventSource<typeof ctx>["on"]>[1]>()
+				.returns.toEqualTypeOf<void | Promise<void>>();
+
+			let settled = false;
+			const completion = Promise.resolve().then(() => { settled = true; });
+			const registered = new Map<ContextEvent, (event: unknown, context: typeof ctx) => void | Promise<void>>();
+			installContextHooks<typeof ctx>({
+				on(name, handler) { registered.set(name, handler); },
+			}, {
+				start: () => completion,
+				navigate: () => completion,
+				shutdown: () => completion,
+			});
+
+			const result = registered.get(event)!({ type: event }, ctx);
+			expect(result).toBe(completion);
+			expect(settled).toBe(false);
+			await result;
+			expect(settled).toBe(true);
+		},
+	);
 });
 
 describe("appendGuidance", () => {

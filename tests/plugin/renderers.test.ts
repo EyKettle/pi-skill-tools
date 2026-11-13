@@ -77,6 +77,15 @@ function emptyStore(): CopyStore {
 	return { read: () => undefined, write: () => {} };
 }
 
+function sessionContext(cwd: string) {
+	return {
+		cwd,
+		hasUI: false,
+		ui: { setStatus() {}, notify() {} },
+		sessionManager: { getBranch: () => [], getLeafId: () => null },
+	};
+}
+
 /** Install the plugin and keep the tool definitions it registered. */
 async function definitions(): Promise<Map<string, Definition>> {
 	const agentDir = mkdtempSync(path.join(tmpdir(), "renderers-"));
@@ -84,8 +93,11 @@ async function definitions(): Promise<Map<string, Definition>> {
 	mkdirSync(path.join(agentDir, "skills"), { recursive: true });
 
 	const byName = new Map<string, Definition>();
+	const handlers = new Map<string, (event: unknown, ctx: unknown) => unknown>();
 	const pi = {
-		on() {},
+		on(event: string, handler: (event: unknown, ctx: unknown) => unknown) {
+			handlers.set(event, handler);
+		},
 		registerTool(definition: Definition) {
 			byName.set(definition.name, definition);
 		},
@@ -97,6 +109,7 @@ async function definitions(): Promise<Map<string, Definition>> {
 		host: hostFor(agentDir),
 		sessionState: emptyStore(),
 	});
+	await handlers.get("session_start")!({ type: "session_start" }, sessionContext(agentDir));
 	return byName;
 }
 
@@ -230,11 +243,12 @@ describe("the guidance", () => {
 			host: hostFor(agentDir),
 			sessionState: emptyStore(),
 		});
+		await handlers.get("session_start")!({ type: "session_start" }, sessionContext(agentDir));
 
 		const options = { appendSystemPrompt: "host text" };
 		handlers.get("before_agent_start")!(
 			{ type: "before_agent_start", systemPrompt: "whole", systemPromptOptions: options },
-			{ cwd: agentDir, hasUI: false, ui: { setStatus() {}, notify() {} } },
+			sessionContext(agentDir),
 		);
 		expect(options.appendSystemPrompt).toBe(`host text\n\n${GUIDANCE_TEXT}`);
 	});

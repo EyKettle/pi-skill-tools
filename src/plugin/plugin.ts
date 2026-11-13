@@ -17,7 +17,7 @@ import type { Index, RegistryEntry } from "../discovery/types";
 import { countLines, readSkillFile, resolveSkillFile } from "../files/read";
 import { walkFiles } from "../files/list";
 import type { ManagementPorts } from "../management/types";
-import { GUIDANCE_TEXT } from "../model-channel/guidance";
+import { GUIDANCE_TEXT, PREVIEW_GUIDANCE_TEXT } from "../model-channel/guidance";
 import { createSkillTree } from "../skill-tree/assembly";
 import type {
 	CommitEntry,
@@ -42,11 +42,11 @@ import { definePreviewSkillTool } from "../tools/preview-skill";
 import { defineRemoveSkillTool } from "../tools/remove-skill";
 import { defineRenameSkillTool } from "../tools/rename-skill";
 import { defineSearchSkillTool } from "../tools/search-skill";
-import type { SkillTreeToolDeps } from "../tools/types";
+import type { SkillTreeToolDeps, ToolDeps } from "../tools/types";
 import { runCommand } from "./commands";
 import type { CommandName } from "./commands";
 import { appendGuidance, installContextHooks } from "./hooks";
-import type { EventSource } from "./hooks";
+import type { ContextHandlers, EventSource } from "./hooks";
 import { resolveConfig } from "./settings";
 import type { ResolvedConfig } from "./settings";
 
@@ -92,21 +92,41 @@ export async function createPlugin(
 	pi: ExtensionAPI,
 	seams: PluginSeams = {},
 ): Promise<void> {
+	let initialization: Promise<ContextHandlers<ExtensionContext>> | undefined;
+	// SAFETY: pi's event-specific overloads share this context callback shape.
+	const events = pi as unknown as EventSource<ExtensionContext>;
+	installContextHooks<ExtensionContext>(events, {
+		async start(ctx) {
+			const handlers = await (initialization ??= initializePlugin(pi, seams, ctx));
+			await handlers.start(ctx);
+		},
+		async navigate(ctx) {
+			const handlers = await initialization;
+			await handlers?.navigate(ctx);
+		},
+		async shutdown(ctx) {
+			const handlers = await initialization;
+			await handlers?.shutdown(ctx);
+		},
+	});
+}
+
+async function initializePlugin(
+	pi: ExtensionAPI,
+	seams: PluginSeams,
+	ctx: ExtensionContext,
+): Promise<ContextHandlers<ExtensionContext>> {
 	const host: PluginHost =
 		seams.host ?? (await import("@earendil-works/pi-coding-agent"));
-	const sessionState: CopyStore =
-		seams.sessionState ??
-		(await import("pi-session-state")).openSessionState<unknown>({
-			pluginId: "skill-tools",
-			scope: "session",
-		});
 	const agentDir = host.getAgentDir();
 	const configDirName = host.CONFIG_DIR_NAME;
 
 	// --- configuration and the index snapshot --------------------------------
 
-	let cwd = process.cwd();
+	let cwd = ctx.cwd;
 	let config: ResolvedConfig = resolveConfig({ agentDir, cwd, configDirName });
+	const skillTreeEnabled = config.skillTreeEnabled;
+	const guidance = skillTreeEnabled ? GUIDANCE_TEXT : PREVIEW_GUIDANCE_TEXT;
 	let index: Index = buildSnapshot(config, agentDir, cwd);
 
 	function refreshIndex(at?: string): Index {
@@ -119,45 +139,55 @@ export async function createPlugin(
 	// --- the loaded set ------------------------------------------------------
 
 	/** The context the ports act on, carried across events. */
-	let current: ExtensionContext | undefined;
+	let current: ExtensionContext | undefined = ctx;
 
-	const pathCommits = (): readonly PathCommit[] => {
-		if (current === undefined) return [];
-		const commits: PathCommit[] = [];
-		for (const entry of current.sessionManager.getBranch()) {
-			if (entry.type !== "custom" || entry.customType !== COMMIT_ENTRY_TYPE) {
-				continue;
+	async function assembleTree(): Promise<SkillTree> {
+		const sessionState: CopyStore =
+			seams.sessionState ??
+			(await import("pi-session-state")).openSessionState<unknown>({
+				pluginId: "skill-tools",
+				scope: "session",
+			});
+		const pathCommits = (): readonly PathCommit[] => {
+			if (current === undefined) return [];
+			const commits: PathCommit[] = [];
+			for (const entry of current.sessionManager.getBranch()) {
+				if (entry.type !== "custom" || entry.customType !== COMMIT_ENTRY_TYPE) {
+					continue;
+				}
+				commits.push({ id: entry.id, entry: entry.data as CommitEntry });
 			}
-			commits.push({ id: entry.id, entry: entry.data as CommitEntry });
-		}
-		return commits;
-	};
+			return commits;
+		};
 
-	const tree: SkillTree = createSkillTree({
-		readCopy: () =>
-			current === undefined ? undefined : sessionState.read(current),
-		writeCopy: (copy) => {
-			if (current !== undefined) sessionState.write(current, copy);
-		},
-		readPath: pathCommits,
-		leafId: () => current?.sessionManager.getLeafId() ?? "",
-		appendEntry: (entry) => pi.appendEntry(COMMIT_ENTRY_TYPE, entry),
-		registerSegment: (text) =>
-			pi.events.emit(
-				TAIL_PROMPT_REGISTER_EVENT,
-				buildSkillToolsSegment(text),
-			),
-		report: (reason) => {
-			if (ctxHasUi(current)) current.ui.notify(reportText(reason), "warning");
-		},
-		historyEnabled: () => config.historyEnabled,
-		readBody: (entry, refPath) => bodyOf(entry, refPath),
-	});
+		return createSkillTree({
+			readCopy: () =>
+				current === undefined ? undefined : sessionState.read(current),
+			writeCopy: (copy) => {
+				if (current !== undefined) sessionState.write(current, copy);
+			},
+			readPath: pathCommits,
+			leafId: () => current?.sessionManager.getLeafId() ?? "",
+			appendEntry: (entry) => pi.appendEntry(COMMIT_ENTRY_TYPE, entry),
+			registerSegment: (text) =>
+				pi.events.emit(
+					TAIL_PROMPT_REGISTER_EVENT,
+					buildSkillToolsSegment(text),
+				),
+			report: (reason) => {
+				if (ctxHasUi(current)) current.ui.notify(reportText(reason), "warning");
+			},
+			historyEnabled: () => config.historyEnabled,
+			readBody: (entry, refPath) => bodyOf(entry, refPath),
+		});
+	}
+
+	const tree = skillTreeEnabled ? await assembleTree() : undefined;
 
 	// --- the status bar ------------------------------------------------------
 
 	function refreshStatus(): void {
-		if (!ctxHasUi(current)) return;
+		if (tree === undefined || !ctxHasUi(current)) return;
 		const text = renderStatus(tree.state.length);
 		current.ui.setStatus(STATUS_KEY, text.length === 0 ? undefined : text);
 	}
@@ -185,7 +215,9 @@ export async function createPlugin(
 		},
 	});
 
-	const deps: SkillTreeToolDeps = { index: () => index, tree, management };
+	const deps: ToolDeps = { index: () => index, management };
+	const treeDeps: SkillTreeToolDeps | undefined =
+		tree === undefined ? undefined : { ...deps, tree };
 
 	const tools = [
 		defineListSkillsTool(deps),
@@ -193,8 +225,9 @@ export async function createPlugin(
 		defineListSkillFilesTool(deps),
 		definePreviewSkillTool(deps),
 		defineSearchSkillTool(deps),
-		defineImportSkillTool(deps),
-		defineCancelSkillTool(deps),
+		...(treeDeps === undefined
+			? []
+			: [defineImportSkillTool(treeDeps), defineCancelSkillTool(treeDeps)]),
 		defineCreateSkillTool(deps),
 		defineRenameSkillTool(deps),
 		defineRemoveSkillTool(deps),
@@ -256,57 +289,54 @@ export async function createPlugin(
 
 	// --- the four commands ---------------------------------------------------
 
-	const commands: readonly { name: CommandName; description: string }[] = [
-		{ name: "loaded", description: "Show the loaded skill set" },
-		{ name: "import", description: "Load or refresh skills by ID" },
-		{ name: "cancel", description: "Unload skills by ID" },
-		{ name: "clear", description: "Unload every loaded skill" },
-	];
+	if (tree !== undefined) {
+		const commands: readonly { name: CommandName; description: string }[] = [
+			{ name: "loaded", description: "Show the loaded skill set" },
+			{ name: "import", description: "Load or refresh skills by ID" },
+			{ name: "cancel", description: "Unload skills by ID" },
+			{ name: "clear", description: "Unload every loaded skill" },
+		];
 
-	for (const command of commands) {
-		pi.registerCommand(`skill:${command.name}`, {
-			description: command.description,
-			async handler(args, ctx) {
-				current = ctx;
-				const message = runCommand(
-					{
-						tree,
-						index: () => index,
-						historyEnabled: () => config.historyEnabled,
-						afterChange: refreshStatus,
-					},
-					command.name,
-					args,
-				);
-				if (ctx.hasUI) ctx.ui.notify(message, "info");
-			},
-		});
+		for (const command of commands) {
+			pi.registerCommand(`skill:${command.name}`, {
+				description: command.description,
+				async handler(args, ctx) {
+					current = ctx;
+					const message = runCommand(
+						{
+							tree,
+							index: () => index,
+							historyEnabled: () => config.historyEnabled,
+							afterChange: refreshStatus,
+						},
+						command.name,
+						args,
+					);
+					if (ctx.hasUI) ctx.ui.notify(message, "info");
+				},
+			});
+		}
 	}
 
 	// --- the session hooks ---------------------------------------------------
 
-	// SAFETY: pi's `on` is overloaded per event name, so one structural
-	// interface cannot describe it. The host calls every handler as
-	// `(event, ctx)`; `EventSource` states both parameters and the installer
-	// forwards the second, so the cast changes the declared arity only.
-	const events = pi as unknown as EventSource<ExtensionContext>;
-	installContextHooks<ExtensionContext>(events, {
+	const handlers: ContextHandlers<ExtensionContext> = {
 		start(ctx) {
 			current = ctx;
 			refreshIndex(ctx.cwd);
 			reportLocationIssues(ctx, agentDir, config);
-			tree.start();
+			tree?.start();
 			refreshStatus();
 		},
 		navigate(ctx) {
 			current = ctx;
-			tree.navigate();
+			tree?.navigate();
 			refreshStatus();
 		},
 		shutdown() {
 			current = undefined;
 		},
-	});
+	};
 
 	pi.on("before_agent_start", (event, ctx) => {
 		current = ctx;
@@ -316,14 +346,17 @@ export async function createPlugin(
 		// be dropped and the transcript would no longer match what was sent.
 		event.systemPromptOptions.appendSystemPrompt = appendGuidance(
 			event.systemPromptOptions.appendSystemPrompt,
-			GUIDANCE_TEXT,
+			guidance,
 		);
 	});
 
-	pi.events.on(TAIL_PROMPT_READY_EVENT, () => {
-		tree.start();
-		refreshStatus();
-	});
+	if (tree !== undefined) {
+		pi.events.on(TAIL_PROMPT_READY_EVENT, () => {
+			tree.start();
+			refreshStatus();
+		});
+	}
+	return handlers;
 }
 
 // ---------------------------------------------------------------------------

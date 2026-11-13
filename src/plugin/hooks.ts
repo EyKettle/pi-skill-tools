@@ -12,11 +12,11 @@ export type ContextEvent = "session_start" | "session_tree" | "session_shutdown"
 
 export interface ContextHandlers<C> {
 	/** Settle the loaded set against the session tree. */
-	readonly start: (ctx: C) => void;
+	readonly start: (ctx: C) => void | Promise<void>;
 	/** Recompute after the tree's leaf moved. */
-	readonly navigate: (ctx: C) => void;
+	readonly navigate: (ctx: C) => void | Promise<void>;
 	/** Drop every piece of per-session state. */
-	readonly shutdown: (ctx: C) => void;
+	readonly shutdown: (ctx: C) => void | Promise<void>;
 }
 
 /**
@@ -27,7 +27,7 @@ export interface ContextHandlers<C> {
  * handler would receive the event and use it as the context.
  */
 export interface EventSource<C> {
-	on(event: ContextEvent, handler: (event: unknown, ctx: C) => void): void;
+	on(event: ContextEvent, handler: (event: unknown, ctx: C) => void | Promise<void>): void;
 }
 
 /** Register the three context-only handlers on the host. */
